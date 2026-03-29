@@ -78,6 +78,7 @@ Social_media_saas/
 | `/api/generate-scripts` | POST | `{template, ideas[], tone, duration}` | Script per idea with tone/duration-aware generation. 10 tones, 12 templates, banned opening phrases | Working (Gemini 2.5 Flash, JSON mode) |
 | `/api/generate-post-ideas` | POST | `{topic, tone, niche, platform}` | Proxies to Flask `/pg/generate_ideas`, returns 10 post ideas with `pg_job_id` | Working |
 | `/api/voice-preview` | POST | `{voice_id}` | Proxies to Flask `/vg/voice-preview`, returns MP3 audio sample | Working (used for generating static samples) |
+| `/api/video-proxy` | GET | `?path=/vg/preview/...` | Proxies video files from Flask with API key auth, bypassing Flask `@login_required` | Working |
 
 ## Trigger.dev Integration (Async Video Rendering)
 
@@ -206,6 +207,10 @@ TRIGGER_PROJECT_REF   — Trigger.dev project reference ID
 - **Landing page CTAs linked** — Login→/login, Get Started→/signup, all pricing cards→/signup
 - **Sidebar persists on /create** — added to create layout, highlights active page via `usePathname()`
 - **DashboardNav Create button** — routes to /create (was non-functional)
+- **Trigger.dev real credentials connected** — `tr_dev_` secret key + `proj_ufmentijdeajuabueicr` project ref. Packages pinned to 4.4.3 (fixes CLI version mismatch)
+- **Video renders end-to-end in browser** — full flow tested: generate ideas → select → scripts → "Create videos" → Trigger.dev task fires → Flask pipeline (script → TTS → Pexels backgrounds → lipsync → Remotion) → 23.7MB video in 4m 31s
+- **Video playback via API proxy** — `<video>` element loads from `/api/video-proxy` which adds `X-API-Key` to Flask requests, bypassing Flask `@login_required` on preview routes
+- **Flask character mouth validation fixed** — now supports nested `mouth/closed.png` directory structure used by most characters (doctor, professor, cowboy, etc.)
 
 ## Voice System (Architecture)
 
@@ -250,7 +255,13 @@ Voices are **NOT** tied to characters. Voice is a separate setting chosen indepe
 - [x] **All settings pills functional** — Tone, Duration, Background, Layout, Voice, Platform all flow end-to-end from UI → server action → Trigger.dev → Flask
 - [x] **Image Post format** — full pipeline: format picker → Flask `/pg/generate_ideas` → editor → `render-post` task → Flask `/pg/start` + SSE → review page with image gallery
 - [x] Fix UX issues — voice preview speed, create button feedback, tone/duration placement, banned prompts, 10 tones, 12 templates
-- [ ] Test full video + image flows in browser
+- [x] **Trigger.dev connected with real credentials** — tasks fire from browser, worker executes, Flask pipeline completes
+- [x] **Video renders end-to-end** — 23.7MB video, 4m 31s. Fixed video playback via API proxy + Flask character mouth validation
+- [ ] Test video playback in browser, verify proxy works
+- [ ] Fix platform toggles on review page
+- [ ] Fix caption display/size on review page
+- [ ] Add render timer / elapsed time display
+- [ ] Build library/history page (past renders)
 - [ ] Read/write user defaults from database to settings pills
 - [ ] Integrate Ayrshare for posting
 - [x] Build visual content calendar / dashboard (UI done with mock data)
