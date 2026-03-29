@@ -187,10 +187,20 @@ TRIGGER_PROJECT_REF   — Trigger.dev project reference ID
 - **`render-video.ts` connected to real Flask backend** — calls `/vg/generate_script` (mode: "script"), `/vg/start`, then streams `/vg/events/<job_id>` SSE for live progress. Falls back to simulation if `FLASK_API_URL` not set
 - **Review page shows real video player** — HTML5 `<video>` element with controls when render completes, gradient fallback if video URL unavailable
 
+## Voice System (Important Architecture Note)
+
+Voices are **NOT** tied to characters. Voice is a separate setting chosen independently:
+1. A "Voice" settings pill will be added to the script editor page (next to Tone, Presenter, Background, Duration, Layout)
+2. Voice options come from a voices config file — NOT from character `config.json`
+3. Each voice has: `name`, `fish_audio_voice_id`, `sample_preview_url`
+4. Tom will provide the Fish Audio voice IDs
+5. The `render-video` task sends the selected `voice_id` to Flask instead of deriving it from the character
+6. Characters are visual only (body frames, mouth PNGs), voices are audio only (Fish Audio TTS)
+
 ## What's NOT Yet Connected
 
 - **Google OAuth** — placeholder credentials, need real Google Cloud Console project
-- **Video rendering** — Trigger.dev task calls Flask API, but Flask requires session auth (need to add API key middleware to Flask for service-to-service calls)
+- **Video rendering** — Full pipeline tested (API key auth, script generation, Pexels backgrounds all work). Blocked on Fish Audio voice IDs (characters have placeholder voice_id)
 - **Platform posting** — Ayrshare SDK not installed, platform toggle buttons are UI-only
 - **Scheduling** — date/time picker on review page is UI-only, no Trigger.dev jobs
 - **User preferences** — settings pills don't read/write from database User model
@@ -213,7 +223,7 @@ TRIGGER_PROJECT_REF   — Trigger.dev project reference ID
 - [x] Integrate Trigger.dev for async video rendering (task + server action + realtime review page)
 - [x] Build review/preview screen (wired to Trigger.dev realtime hooks)
 - [x] **Connect Flask backend** — `render-video.ts` calls `/vg/generate_script` → `/vg/start` → SSE `/vg/events/<job_id>` with realtime metadata updates
-- [ ] **Add API key auth to Flask** — Flask routes use `@login_required`; need `X-API-Key` middleware for Trigger.dev service-to-service calls
+- [x] **Add API key auth to Flask** — `X-API-Key` header + `ServiceUser` via Flask-Login `request_loader`, CSRF exemption for API requests
 - [ ] Integrate Ayrshare for posting
 - [x] Build visual content calendar / dashboard (UI done with mock data)
 - [ ] Deploy: Next.js to Vercel, Flask stays on Railway

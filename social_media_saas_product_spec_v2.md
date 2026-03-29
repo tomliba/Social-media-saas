@@ -149,6 +149,7 @@ AI generates scripts for ALL selected ideas simultaneously. Each shown as an edi
 Horizontal row of rounded pill buttons showing current selection:
 - **Tone**: Funny / Serious / Cursing / Edgy-Controversial
 - **Presenter**: Animated character (pick which) / HeyGen avatar (pro) / Text only / Upload own
+- **Voice**: Fish Audio TTS voices (10-15 options, independent of character) / Upload own (future)
 - **Background**: Stock footage (Pexels) / AI images (Gemini) / Kling video (pro) / Upload own
 - **Duration**: 15s / 30s / 60s / AI picks best
 - **Layout**: Character + background / Split screen / Text only
