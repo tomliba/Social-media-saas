@@ -56,8 +56,8 @@ Social_media_saas/
 |-------|------|-------------|
 | `/dashboard` | `src/app/dashboard/page.tsx` | Visual content calendar with notification banner, calendar grid (5 columns Mon-Fri), multiple card types (video, carousel, caption draft, rendering), floating action bar |
 | `/create` | `src/app/create/page.tsx` | Format picker — 4 large cards (Video, Image Post, Carousel, Text). Selecting one reveals input method section with slide-in animation |
-| `/create/templates` | `src/app/create/templates/page.tsx` | **Video:** Template grid (8 templates) + niche input + Gemini ideas. **Image:** Topic + niche input → Flask `/pg/generate_ideas` for 10 post ideas. Select up to 5, continue to editor |
-| `/create/editor` | `src/app/create/editor/page.tsx` | **Video:** Script cards + regenerate + settings pills (tone, presenter, voice, background, duration, layout). **Image:** Post idea cards with editable hooks + settings pills (tone, platform only) |
+| `/create/templates` | `src/app/create/templates/page.tsx` | **Video:** Template grid (12 templates, 3x4 grid) + niche input + Tone/Duration selectors + Gemini ideas. **Image:** Topic + niche input + Tone selector → Flask `/pg/generate_ideas` for 10 post ideas. Select up to 5, continue to editor |
+| `/create/editor` | `src/app/create/editor/page.tsx` | **Video:** Script cards + regenerate + settings pills (presenter, voice w/ audio preview, background, layout). **Image:** Post idea cards with editable hooks + settings pills (platform only). Tone/Duration set on templates page, passed via URL params |
 | `/create/review` | `src/app/create/review/page.tsx` | **Video:** Video player + platform toggles + caption + schedule. **Image:** Image gallery with post1/post2 variant thumbnails + caption + platform toggles + schedule. Shared components for platform selector, captions, scheduler, action buttons |
 | `/autopilot` | `src/app/autopilot/page.tsx` | Autopilot setup — hero section, on/off toggle, bento grid config (niche, content types, style/tone, schedule with day picker, approval mode) |
 
@@ -66,7 +66,7 @@ Social_media_saas/
 |-------|------|-------------|
 | Root | `src/app/layout.tsx` | Root layout with fonts, Material Symbols CDN link |
 | `/dashboard/*` | `src/app/dashboard/layout.tsx` | DashboardNav + Sidebar + main content area |
-| `/create/*` | `src/app/create/layout.tsx` | DashboardNav only (no sidebar for create flow) |
+| `/create/*` | `src/app/create/layout.tsx` | DashboardNav + Sidebar + main content area |
 | `/autopilot/*` | `src/app/autopilot/layout.tsx` | DashboardNav + Sidebar |
 
 ## API Routes
@@ -74,9 +74,10 @@ Social_media_saas/
 | Endpoint | Method | Input | Output | Status |
 |----------|--------|-------|--------|--------|
 | `/api/auth/[...nextauth]` | GET/POST | NextAuth handlers | Session management | Working |
-| `/api/generate-ideas` | POST | `{template, niche}` | 10 viral video ideas with titles + tags | Working (Gemini 2.5 Flash, JSON mode) |
-| `/api/generate-scripts` | POST | `{template, ideas[], tone, duration}` | Script per idea with tone/duration-aware generation | Working (Gemini 2.5 Flash, JSON mode) |
+| `/api/generate-ideas` | POST | `{template, niche}` | 10 viral video ideas with titles + tags. Requires stats in 3+ titles | Working (Gemini 2.5 Flash, JSON mode) |
+| `/api/generate-scripts` | POST | `{template, ideas[], tone, duration}` | Script per idea with tone/duration-aware generation. 10 tones, 12 templates, banned opening phrases | Working (Gemini 2.5 Flash, JSON mode) |
 | `/api/generate-post-ideas` | POST | `{topic, tone, niche, platform}` | Proxies to Flask `/pg/generate_ideas`, returns 10 post ideas with `pg_job_id` | Working |
+| `/api/voice-preview` | POST | `{voice_id}` | Proxies to Flask `/vg/voice-preview`, returns MP3 audio sample | Working (used for generating static samples) |
 
 ## Trigger.dev Integration (Async Video Rendering)
 
@@ -195,6 +196,16 @@ TRIGGER_PROJECT_REF   — Trigger.dev project reference ID
 - **Voice system implemented** — voices are independent of characters (see below). Voice settings pill on editor page. Full pipeline tested end-to-end with real Fish Audio voice — 3.6MB video rendered successfully
 - **All settings pills functional** — Tone affects Gemini script style + Flask tone param. Duration affects word count + Flask duration. Background controls Pexels vs AI images (Flask `bg_mode`). Layout passed through for future Remotion templates. Voice sends `fishAudioId` override. Platform (image posts only) passed to Flask
 - **Image Post format fully built** — format picker → topic input → Flask `/pg/generate_ideas` → idea selection → editor with Tone + Platform pills → Trigger.dev `render-post` task → Flask `/pg/start` + SSE streaming → review page with image gallery + captions. Tested: Flask generates 2 PNG images per post (~1.5-2MB each) + caption text
+- **10 tones available** — Funny, Serious, Cursing, Edgy, Motivational, Storytelling, Sarcastic, Shocked, Conspiracy, Friendly. Each has unique prompt instructions for both idea generation and script writing
+- **12 video templates** — Did You Know, Myth Buster, X vs Y, Story Time, Top 5, How-To, Hot Take, What Happens If, Before & After, Problem → Solution, Ranking / Tier List, Mini Series. 3-column grid layout
+- **Tone & Duration moved to templates page** — selected before script generation so Gemini uses them. Passed to editor via URL params
+- **Voice preview instant** — pre-generated static MP3 files load immediately (no Flask roundtrip)
+- **Create button loading feedback** — spinner + "Launching render jobs..." text + visual state change when creating
+- **Banned opening phrases** — scripts avoid "Did you know", "What if I told you", "Here's the thing", etc.
+- **Statistics in titles** — generate-ideas prompt requires numbers/stats in 3+ of 10 titles
+- **Landing page CTAs linked** — Login→/login, Get Started→/signup, all pricing cards→/signup
+- **Sidebar persists on /create** — added to create layout, highlights active page via `usePathname()`
+- **DashboardNav Create button** — routes to /create (was non-functional)
 
 ## Voice System (Architecture)
 
@@ -202,10 +213,11 @@ Voices are **NOT** tied to characters. Voice is a separate setting chosen indepe
 1. **Voice settings pill** on editor page (between Presenter and Background) — users pick a voice independently of character
 2. **`src/lib/voices.ts`** — central config file for all Fish Audio voices
 3. Each voice has: `name`, `fishAudioId`, `emoji`, optional `previewUrl`
-4. Two real voices working: Geography Guy (`728f6ff2240d49308e8137ffe66008e2`), Sports Bro (`c203ca8e441c4e8e80562be2eef75a10`)
+4. Two real voices working: Deep Male Voice (`728f6ff2240d49308e8137ffe66008e2`), Energetic Male Voice (`c203ca8e441c4e8e80562be2eef75a10`)
 5. The `render-video` task looks up `fishAudioId` from the voice config and sends it as `voice_id` override to Flask `/vg/start`
 6. Characters are visual only (body frames, mouth PNGs), voices are audio only (Fish Audio TTS)
-7. To add a new voice: get Fish Audio reference ID from fish.audio, add entry to `voices.ts`
+7. **Instant audio preview** — pre-generated 3-second MP3 samples stored as static files in `/public/audio/voices/`. No Flask call needed at preview time
+8. To add a new voice: get Fish Audio reference ID from fish.audio, add entry to `voices.ts`, generate preview via `/api/voice-preview` and save to `/public/audio/voices/`
 
 ## What's NOT Yet Connected
 
@@ -237,7 +249,8 @@ Voices are **NOT** tied to characters. Voice is a separate setting chosen indepe
 - [x] **Voice system** — separate Voice settings pill, `voices.ts` config, `voice_id` override passed to Flask. Full E2E test: real 3.6MB video rendered with Geography Guy voice
 - [x] **All settings pills functional** — Tone, Duration, Background, Layout, Voice, Platform all flow end-to-end from UI → server action → Trigger.dev → Flask
 - [x] **Image Post format** — full pipeline: format picker → Flask `/pg/generate_ideas` → editor → `render-post` task → Flask `/pg/start` + SSE → review page with image gallery
-- [ ] Test full video + image flows in browser, fix UX issues
+- [x] Fix UX issues — voice preview speed, create button feedback, tone/duration placement, banned prompts, 10 tones, 12 templates
+- [ ] Test full video + image flows in browser
 - [ ] Read/write user defaults from database to settings pills
 - [ ] Integrate Ayrshare for posting
 - [x] Build visual content calendar / dashboard (UI done with mock data)

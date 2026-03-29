@@ -27,11 +27,13 @@ export const voices: Voice[] = [
     name: "Deep Male Voice",
     fishAudioId: "728f6ff2240d49308e8137ffe66008e2",
     emoji: "\u{1F399}\uFE0F",
+    previewUrl: "/audio/voices/deep-male-voice.mp3",
   },
   {
     name: "Energetic Male Voice",
     fishAudioId: "c203ca8e441c4e8e80562be2eef75a10",
     emoji: "\u26A1",
+    previewUrl: "/audio/voices/energetic-male-voice.mp3",
   },
 
   // ── Placeholder voices (Tom will provide real IDs) ──

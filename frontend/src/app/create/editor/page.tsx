@@ -224,35 +224,25 @@ function EditorContent() {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const playVoicePreview = async (voiceName: string, e: React.MouseEvent) => {
+  const playVoicePreview = (voiceName: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (playingVoice === voiceName) {
       audioRef.current?.pause();
       setPlayingVoice(null);
       return;
     }
+    const voice = getVoiceByName(voiceName);
+    if (!voice.previewUrl) return;
+
     setPlayingVoice(voiceName);
-    try {
-      const voice = getVoiceByName(voiceName);
-      const res = await fetch("/api/voice-preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ voice_id: voice.fishAudioId }),
-      });
-      if (!res.ok) throw new Error("Preview failed");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => setPlayingVoice(null);
-      audio.play();
-    } catch (err) {
-      console.error("Voice preview error:", err);
-      setPlayingVoice(null);
+    if (audioRef.current) {
+      audioRef.current.pause();
     }
+    const audio = new Audio(voice.previewUrl);
+    audioRef.current = audio;
+    audio.onended = () => setPlayingVoice(null);
+    audio.onerror = () => setPlayingVoice(null);
+    audio.play();
   };
 
   // ── Video: create videos ──
@@ -660,19 +650,23 @@ function EditorContent() {
         <button
           onClick={isImage ? handleCreatePosts : handleCreateVideos}
           disabled={loading || creating || !hasContent}
-          className="w-full max-w-xl py-5 primary-gradient text-on-primary rounded-full text-xl font-bold font-headline flex items-center justify-center gap-3 shadow-xl shadow-primary/30 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`w-full max-w-xl py-5 rounded-full text-xl font-bold font-headline flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95 ${
+            creating
+              ? "bg-primary/80 text-on-primary shadow-primary/20 cursor-wait"
+              : "primary-gradient text-on-primary shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
+          }`}
         >
           {loading ? (
             <>
               <span className="material-symbols-outlined animate-spin">
-                refresh
+                progress_activity
               </span>
               Generating scripts...
             </>
           ) : creating ? (
             <>
               <span className="material-symbols-outlined animate-spin">
-                refresh
+                progress_activity
               </span>
               {isImage ? "Launching post generation..." : "Launching render jobs..."}
             </>
