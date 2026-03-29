@@ -83,9 +83,11 @@ Social_media_saas/
 - **Config:** `frontend/trigger.config.ts` — project config, 5min max duration, 2 retries
 - **Task:** `frontend/trigger/render-video.ts` — `render-video` task
   - Accepts: title, script, template, settings (tone, presenter, background, duration, layout)
-  - Returns: title, videoUrl, caption
-  - Updates metadata with progress stages: queued → generating_script → generating_audio → fetching_backgrounds → transcribing → rendering_video → finalizing → complete
-  - Currently simulated (~25s per video) — swap to real Flask/Railway API call when backend is connected
+  - Returns: title, videoUrl, previewUrl, caption
+  - Maps frontend settings to Flask API values (tone → funny_clean/educational/etc., duration → 15/30/60, character → directory names)
+  - Real pipeline: POST `/vg/generate_script` (mode: "script") → POST `/vg/start` → SSE `/vg/events/<job_id>` streaming
+  - Metadata updates from Flask SSE: parallel (audio+backgrounds) → lipsync → remotion → complete
+  - Falls back to ~25s simulation if `FLASK_API_URL` not set
 - **Server action:** `src/app/actions/create-videos.ts` — `triggerVideoRenders()` triggers N parallel jobs, returns run IDs + public access tokens
 - **Editor integration:** "Create N videos" button calls server action, stores run handles in sessionStorage, redirects to review
 - **Review page:** Each video card subscribes to its Trigger.dev run via `useRealtimeRun` hook — shows live progress bar + stage label while rendering, transitions to full ready card with platform toggles + schedule/post buttons when complete
@@ -164,6 +166,8 @@ AUTH_URL              — NextAuth base URL (http://localhost:3000)
 AUTH_GOOGLE_ID        — Google OAuth client ID (placeholder)
 AUTH_GOOGLE_SECRET    — Google OAuth client secret (placeholder)
 GEMINI_API_KEY        — Google Gemini API key (set and working)
+FLASK_API_URL         — Flask video backend (http://localhost:5000 for local, Railway URL for prod)
+FLASK_API_KEY         — Optional API key for Flask service-to-service auth
 TRIGGER_SECRET_KEY    — Trigger.dev secret key (from cloud.trigger.dev)
 TRIGGER_PROJECT_REF   — Trigger.dev project reference ID
 ```
@@ -178,17 +182,21 @@ TRIGGER_PROJECT_REF   — Trigger.dev project reference ID
 - Prisma v5 + SQLite database with User model
 - All pages render correctly with design system applied
 - Responsive navigation and sidebar
+- **Trigger.dev v3 integrated** — parallel render jobs working, "Create N videos" fires N independent background tasks
+- **Review page shows live progress** via `useRealtimeRun` hooks — each card displays real-time progress bar + stage label (generating audio, rendering video, etc.) and transitions to the full ready card when complete
+- **`render-video.ts` connected to real Flask backend** — calls `/vg/generate_script` (mode: "script"), `/vg/start`, then streams `/vg/events/<job_id>` SSE for live progress. Falls back to simulation if `FLASK_API_URL` not set
+- **Review page shows real video player** — HTML5 `<video>` element with controls when render completes, gradient fallback if video URL unavailable
 
 ## What's NOT Yet Connected
 
 - **Google OAuth** — placeholder credentials, need real Google Cloud Console project
-- **Video rendering** — review page uses mock data, not connected to Flask/Railway backend
+- **Video rendering** — Trigger.dev task calls Flask API, but Flask requires session auth (need to add API key middleware to Flask for service-to-service calls)
 - **Platform posting** — Ayrshare SDK not installed, platform toggle buttons are UI-only
 - **Scheduling** — date/time picker on review page is UI-only, no Trigger.dev jobs
 - **User preferences** — settings pills don't read/write from database User model
 - **Usage tracking** — videosUsed/postsUsed counters not incremented
 - **Billing** — Lemon Squeezy not integrated, pricing page not built
-- **Real-time updates** — rendering cards don't poll for actual render progress
+- **Real-time updates** — Trigger.dev realtime hooks wired up, but need real TRIGGER_SECRET_KEY to test end-to-end
 - **Image/Carousel/Text formats** — only Video format is wired up end-to-end
 - **Other input methods** — "Free type", "Viral link", "Upload content", "Viral right now" show "Coming soon"
 
@@ -204,6 +212,8 @@ TRIGGER_PROJECT_REF   — Trigger.dev project reference ID
 - [x] Build batch script editor + settings pills UI
 - [x] Integrate Trigger.dev for async video rendering (task + server action + realtime review page)
 - [x] Build review/preview screen (wired to Trigger.dev realtime hooks)
+- [x] **Connect Flask backend** — `render-video.ts` calls `/vg/generate_script` → `/vg/start` → SSE `/vg/events/<job_id>` with realtime metadata updates
+- [ ] **Add API key auth to Flask** — Flask routes use `@login_required`; need `X-API-Key` middleware for Trigger.dev service-to-service calls
 - [ ] Integrate Ayrshare for posting
 - [x] Build visual content calendar / dashboard (UI done with mock data)
 - [ ] Deploy: Next.js to Vercel, Flask stays on Railway

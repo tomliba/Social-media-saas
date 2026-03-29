@@ -44,11 +44,13 @@ function VideoRunCard({
 
   const progress = (run?.metadata?.progress as number) ?? 0;
   const stageLabel = (run?.metadata?.stageLabel as string) ?? "Queued...";
+  const videoUrl = (run?.metadata?.videoUrl as string) ?? "";
   const isComplete = run?.status === "COMPLETED";
   const isFailed = run?.status === "FAILED" || run?.status === "CANCELED";
-  const output = isComplete ? (run?.output as { title: string; videoUrl: string; caption: string } | undefined) : undefined;
+  const output = isComplete ? (run?.output as { title: string; videoUrl: string; previewUrl: string; caption: string } | undefined) : undefined;
   const title = output?.title ?? handle.title;
   const caption = output?.caption ?? null;
+  const finalVideoUrl = output?.videoUrl || videoUrl;
 
   if (error) {
     return <ErrorCard title={handle.title} message={error.message} />;
@@ -59,6 +61,7 @@ function VideoRunCard({
       <ReadyVideoCard
         title={title}
         caption={caption}
+        videoUrl={finalVideoUrl}
         gradient={gradient}
         index={index}
         total={total}
@@ -83,12 +86,14 @@ function VideoRunCard({
 function ReadyVideoCard({
   title,
   caption,
+  videoUrl,
   gradient,
   index,
   total,
 }: {
   title: string;
   caption: string | null;
+  videoUrl: string;
   gradient: string;
   index: number;
   total: number;
@@ -96,6 +101,7 @@ function ReadyVideoCard({
   const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
   const [showCaption, setShowCaption] = useState(false);
   const [showScheduler, setShowScheduler] = useState(false);
+  const [videoError, setVideoError] = useState(false);
 
   const togglePlatform = (key: string) => {
     setActivePlatforms((prev) => {
@@ -105,6 +111,8 @@ function ReadyVideoCard({
       return next;
     });
   };
+
+  const hasVideo = videoUrl && !videoError;
 
   return (
     <section className="group animate-in fade-in duration-500">
@@ -121,14 +129,27 @@ function ReadyVideoCard({
           showScheduler ? "border-2 border-primary/20" : ""
         }`}
       >
-        {/* Video Preview */}
-        <div className="relative aspect-video rounded-lg overflow-hidden mb-6 bg-surface-dim group-hover:scale-[1.01] transition-transform duration-500 shadow-inner">
-          <div className={`w-full h-full bg-gradient-to-br ${gradient}`} />
-          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white cursor-pointer hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
-            </div>
-          </div>
+        {/* Video Preview — real player if URL available, gradient fallback otherwise */}
+        <div className="relative aspect-video rounded-lg overflow-hidden mb-6 bg-black group-hover:scale-[1.01] transition-transform duration-500 shadow-inner">
+          {hasVideo ? (
+            <video
+              src={videoUrl}
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full h-full object-contain"
+              onError={() => setVideoError(true)}
+            />
+          ) : (
+            <>
+              <div className={`w-full h-full bg-gradient-to-br ${gradient}`} />
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white cursor-pointer hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{title}</h2>
