@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Autopilot Configuration | Lumina Creative</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be_Vietnam_Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "error-container": "#f74b6d",
+                        "tertiary-fixed": "#ff8eac",
+                        "error": "#b41340",
+                        "on-tertiary-fixed": "#380016",
+                        "error-dim": "#a70138",
+                        "surface-bright": "#f7f6f4",
+                        "secondary-dim": "#6a3599",
+                        "on-tertiary-container": "#64042d",
+                        "on-secondary-fixed-variant": "#6b369a",
+                        "outline": "#767775",
+                        "on-primary-fixed": "#000000",
+                        "surface-dim": "#d4d5d2",
+                        "on-tertiary": "#ffeff1",
+                        "inverse-surface": "#0d0e0e",
+                        "tertiary-fixed-dim": "#f77c9e",
+                        "on-secondary": "#fbefff",
+                        "surface": "#f7f6f4",
+                        "primary-fixed-dim": "#a67aff",
+                        "on-surface": "#2e2f2e",
+                        "outline-variant": "#adadab",
+                        "on-error": "#ffefef",
+                        "surface-container-highest": "#dddddb",
+                        "tertiary-container": "#ff8eac",
+                        "primary-container": "#b28cff",
+                        "background": "#f7f6f4",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#e2e3e0",
+                        "primary": "#6f33d5",
+                        "primary-dim": "#6321c9",
+                        "primary-fixed": "#b28cff",
+                        "on-background": "#2e2f2e",
+                        "inverse-primary": "#a476ff",
+                        "on-error-container": "#510017",
+                        "on-secondary-fixed": "#4d137b",
+                        "on-primary": "#f8f0ff",
+                        "tertiary": "#9e3657",
+                        "secondary": "#7742a6",
+                        "surface-container-low": "#f1f1ef",
+                        "surface-container": "#e8e8e6",
+                        "inverse-on-surface": "#9d9d9b",
+                        "on-primary-container": "#2e006c",
+                        "secondary-fixed": "#e6c5ff",
+                        "on-secondary-container": "#612c90",
+                        "tertiary-dim": "#8e294c",
+                        "secondary-fixed-dim": "#ddb3ff",
+                        "on-surface-variant": "#5b5c5a",
+                        "on-tertiary-fixed-variant": "#711036",
+                        "on-primary-fixed-variant": "#390083",
+                        "surface-tint": "#6f33d5",
+                        "surface-variant": "#dddddb",
+                        "secondary-container": "#e6c5ff"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Be Vietnam Pro"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-nav {
+            background: rgba(247, 246, 244, 0.8);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface">
+<!-- Top Navigation Bar (Shared Component Logic) -->
+<nav class="fixed top-0 left-0 w-full flex justify-between items-center px-6 h-16 glass-nav z-50">
+<div class="flex items-center gap-4">
+<span class="text-2xl font-black text-primary tracking-tighter font-headline">Lumina Creative</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant/20 mx-2"></div>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-full font-headline font-bold text-sm transition-all hover:opacity-90 active:scale-95">
+                Create
+            </button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/30">
+<img alt="User Profile Avatar" data-alt="professional headshot of a smiling creative professional with soft studio lighting and neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBEbNVDuvHoMluL_sI72Skqkw7MFUqZTknkcxurJzzZ1u_Xe-1QVgSz4qrWzoDpAfREunb6cnl9lk3mxa4y4O4EpbJp2m1gTi4Fg5Eq760UruODzh_c2Jbbl78Gi2KvEnIIrHsRdose9yGf5FSU_I2Zdp3wWE42kqZBsWnjx22ApJHbLQ4ddnOu2UmUkxenKAzEQ5OV3J7vLeaCqvhfLQ7n3uDoR__uEfiI2gbvJFV9oeSXHb1lJrP9HLJnW5d_Ztd6_0biQW41w"/>
+</div>
+</div>
+</nav>
+<!-- Side Navigation (Shared Component Logic) -->
+<aside class="fixed left-0 top-16 bottom-0 w-20 flex flex-col items-center py-8 z-40 bg-surface-container-low">
+<div class="flex flex-col gap-6">
+<div class="flex flex-col items-center gap-1 group cursor-pointer">
+<div class="p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-2xl transition-all">
+<span class="material-symbols-outlined">home</span>
+</div>
+</div>
+<div class="flex flex-col items-center gap-1 group cursor-pointer">
+<div class="p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-2xl transition-all">
+<span class="material-symbols-outlined">add_circle</span>
+</div>
+</div>
+<!-- Active State: Autopilot -->
+<div class="flex flex-col items-center gap-1 cursor-pointer">
+<div class="p-3 bg-primary-container/30 text-primary rounded-2xl transition-all shadow-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+</div>
+<div class="flex flex-col items-center gap-1 group cursor-pointer">
+<div class="p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-2xl transition-all">
+<span class="material-symbols-outlined">group</span>
+</div>
+</div>
+<div class="flex flex-col items-center gap-1 group cursor-pointer">
+<div class="p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-2xl transition-all">
+<span class="material-symbols-outlined">settings</span>
+</div>
+</div>
+</div>
+<div class="mt-auto">
+<div class="p-3 text-secondary hover:bg-secondary-container/50 rounded-2xl transition-all cursor-pointer">
+<span class="material-symbols-outlined">workspace_premium</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-20 pt-24 pb-20 px-8 max-w-6xl mx-auto">
+<!-- Hero Section -->
+<section class="relative mb-16 overflow-hidden bg-surface-container-lowest rounded-xl p-10 flex flex-col md:flex-row items-center gap-12 shadow-[0px_20px_40px_rgba(111,51,213,0.04)]">
+<div class="flex-1 text-center md:text-left">
+<h1 class="text-5xl font-black font-headline text-on-surface tracking-tight leading-tight mb-4">
+                    Put your content on <span class="text-primary">autopilot</span>
+</h1>
+<p class="text-xl text-on-surface-variant leading-relaxed max-w-md">
+                    AI creates and posts for you every day. You just review and approve.
+                </p>
+</div>
+<div class="flex-1 w-full flex justify-center">
+<!-- Visual Flow Representation -->
+<div class="relative w-full aspect-video bg-surface-container-low rounded-lg p-6 flex flex-col items-center justify-center gap-8 border border-outline-variant/10">
+<div class="flex items-center gap-4 animate-pulse">
+<div class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-white text-3xl">auto_awesome</span>
+</div>
+<div class="h-[2px] w-12 bg-primary-container"></div>
+</div>
+<div class="grid grid-cols-5 gap-4">
+<div class="flex flex-col items-center gap-2">
+<div class="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center border border-outline-variant/20">
+<img class="w-6 h-6 rounded-sm" data-alt="Instagram social media app icon aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiQYJ3EIUlr2tm4TdqblhRGLZ7Xr38KXVxtxfH_8q64T-sgI0P0M2ovArrttTfrQBKJOqd4VxOIOjy0QDNFe7IQxHj-pesOO75LT8m4IwaCa3P74ZXCbmewZ64scKxUxZa_LgYeir81yaLRFHfQKv8AAZ1wrdZcuMkRS8OrdsHh_208cWlOv9ONprTBHHkq-n70gksvelof_EyvoV0Ocf2e1CAa01GYpP16UUt9RZ7tSw5RFyrEyg2-x99ACfikso8K1NRosgR-g"/>
+</div>
+<span class="text-[10px] font-bold opacity-60">Instagram</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center border border-outline-variant/20">
+<img class="w-6 h-6 rounded-sm" data-alt="TikTok social media logo icon simple" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDILGkMGOwdGLArPXHcm3-sF2OzL--8UJ6FfNQK_xWuu3ua985W4ahO9X7W-16RfM4ZnIsOeDKsGblXnw2xSanmLI51IyumbIHCa5hDlVkBqqfav8gVfm3dePWkoBuZ-pAEfVF853C9G117B5HAeQSBdXpEz7S1rn9SN6ui1632pHRTb_Xpc1dFWA6yYIqak1ggcIvPpFFGvhayfFYAOPkhvXEgFv1oWteDKKwDzbkytArNcz5j08APRIzXbRf5A-Yuu81yl2lGw"/>
+</div>
+<span class="text-[10px] font-bold opacity-60">TikTok</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center border border-outline-variant/20">
+<img class="w-6 h-6 rounded-sm" data-alt="X formerly twitter social platform logo icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmrzgMJTBtRigfZ2SKFwBGlmP7Lu6Pi6UEh1J22demSarOZ2w6GytoFz-N5IW4WyiV_Yw5qZdLn2gRBFhFooaitUEi3XEpGb23MiPckvVvNxUGVaGixZXg3zXLB4SJUULm1auT6KNN8AovcqYpAI0fb4mPvEL8ooE6SMbvpTRQvy233U_I6paLryFTKOmMWy-oNsHrWuX48Lq1jO1lZus7R8v8baJOwQvtjiJILGEQYs67zJLxUq65cx520yPp-gMs-_tuTH0WXQ"/>
+</div>
+<span class="text-[10px] font-bold opacity-60">X / Twitter</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center border border-outline-variant/20">
+<img class="w-6 h-6 rounded-sm" data-alt="LinkedIn social networking app icon professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtxNSQixFAl6v0e80p6d7pcfHJ4Cjlbi21LX_qF4o0Ts4YO8ihG-BUwAviFQvmMAE3idWrOfeJ1yd8xo68n3TJmYxwpYPSy4IZQAoO5c88MSQjVMlazz6G2XWxxTXAs1RYbsuSe5lyK4VKjvSLUgjUqR9M6AhkygCQNKEs8lvv8XIcVQE8mvVOo9Gdz1fYtBX9EAgYeh93r_Fl0rmEvKlSWuLaV-C5dBO8G32ziS7TwuYPYVLhD_mL_c9UjxTICXp-CRGxx_bvvQ"/>
+</div>
+<span class="text-[10px] font-bold opacity-60">LinkedIn</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center border border-outline-variant/20">
+<img class="w-6 h-6 rounded-sm" data-alt="YouTube video platform logo icon aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPfIjqoaAjvdPpbNaSe28n6Q2x-w4CCOTB-GhxA3H_pPlBQ27Sx6Adu63LHWqOvi9zXG_fV0NFI_jIWWan4-1YkSa6f4HQ0PbMSZYSQEQB9XS1IcqQ2mhBoUucW7XT5MMqL8TdTcqNC0wVj4RgsAgUfKrgmfuCBl3IzC5Vd0jU1ljbtAd1VK3hczSwVFPH-GlfYptxIzy77Lbm26MxdUF7gmYav4oqnwIFZb-vpcoz9PMr17uxfQaMxJieR6r9dC_2K7TiJ7AIzQ"/>
+</div>
+<span class="text-[10px] font-bold opacity-60">YouTube</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Main Toggle -->
+<div class="flex justify-between items-center mb-10 p-6 bg-surface-container-low rounded-lg">
+<div>
+<h3 class="text-xl font-bold font-headline text-on-surface">Autopilot Status</h3>
+<p class="text-on-surface-variant text-sm">Enable this to start generating content daily</p>
+</div>
+<div class="flex items-center gap-4 px-6 py-3 bg-surface-container-highest rounded-full transition-all">
+<span class="text-on-surface-variant font-bold">Autopilot is OFF</span>
+<div class="w-12 h-6 bg-outline-variant/40 rounded-full relative cursor-pointer">
+<div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md"></div>
+</div>
+</div>
+</div>
+<!-- Configuration Stack (Asymmetric / Bento-ish Grid) -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Column 1: Core Config -->
+<div class="col-span-12 lg:col-span-7 flex flex-col gap-8">
+<!-- Niche -->
+<div class="p-8 bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/5">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">psychology</span>
+<h4 class="text-lg font-bold font-headline">Your niche</h4>
+</div>
+<input class="w-full bg-surface-container-low border-0 rounded-sm p-4 focus:ring-2 focus:ring-primary/40 text-on-surface placeholder:text-on-surface-variant/50 transition-all" placeholder="e.g., fitness tips, medical facts, personal finance" type="text"/>
+</div>
+<!-- Content Types -->
+<div class="p-8 bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/5">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">dashboard_customize</span>
+<h4 class="text-lg font-bold font-headline">Content types</h4>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<label class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg cursor-pointer hover:bg-surface-container hover:shadow-inner transition-all">
+<input checked="" class="w-5 h-5 rounded border-0 text-primary focus:ring-0" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-bold text-sm">Video</span>
+<span class="text-xs text-on-surface-variant">Reels, TikTok, Shorts</span>
+</div>
+</label>
+<label class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg cursor-pointer hover:bg-surface-container transition-all">
+<input checked="" class="w-5 h-5 rounded border-0 text-primary focus:ring-0" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-bold text-sm">Carousel</span>
+<span class="text-xs text-on-surface-variant">IG Feed</span>
+</div>
+</label>
+<label class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg cursor-pointer hover:bg-surface-container transition-all">
+<input class="w-5 h-5 rounded border-0 text-primary focus:ring-0" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-bold text-sm">Thread</span>
+<span class="text-xs text-on-surface-variant">X / Twitter</span>
+</div>
+</label>
+<label class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg cursor-pointer hover:bg-surface-container transition-all">
+<input class="w-5 h-5 rounded border-0 text-primary focus:ring-0" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-bold text-sm">Caption</span>
+<span class="text-xs text-on-surface-variant">LinkedIn</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Style -->
+<div class="p-8 bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/5">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">palette</span>
+<h4 class="text-lg font-bold font-headline">Your style</h4>
+</div>
+<div class="space-y-8">
+<div>
+<p class="text-sm font-bold text-on-surface-variant mb-3 uppercase tracking-wider">Tone</p>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 bg-primary text-on-primary rounded-full text-sm font-bold shadow-sm">Funny</button>
+<button class="px-4 py-2 bg-surface-container-highest text-on-surface rounded-full text-sm font-bold hover:bg-surface-container transition-all">Serious</button>
+<button class="px-4 py-2 bg-surface-container-highest text-on-surface rounded-full text-sm font-bold hover:bg-surface-container transition-all">Cursing</button>
+<button class="px-4 py-2 bg-surface-container-highest text-on-surface rounded-full text-sm font-bold hover:bg-surface-container transition-all">Edgy</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<p class="text-sm font-bold text-on-surface-variant mb-3 uppercase tracking-wider">Character</p>
+<div class="relative">
+<select class="w-full bg-surface-container-low border-0 rounded-sm p-3 pr-10 text-on-surface appearance-none focus:ring-2 focus:ring-primary/40">
+<option>The Mentor</option>
+<option>The Rebel</option>
+<option>The Analyst</option>
+<option>The Storyteller</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface-variant mb-3 uppercase tracking-wider">Background</p>
+<div class="flex items-center p-1 bg-surface-container-low rounded-full">
+<button class="flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all bg-white shadow-sm text-primary">Stock footage</button>
+<button class="flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all text-on-surface-variant">AI images</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Column 2: Schedule & Logic -->
+<div class="col-span-12 lg:col-span-5 flex flex-col gap-8">
+<!-- Schedule -->
+<div class="p-8 bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/5">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">calendar_month</span>
+<h4 class="text-lg font-bold font-headline">Schedule</h4>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg mb-6">
+<span class="font-bold">Every day</span>
+<span class="material-symbols-outlined text-on-surface-variant">check_circle</span>
+</div>
+<div class="flex justify-between gap-1 mb-8">
+<button class="w-10 h-10 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">M</button>
+<button class="w-10 h-10 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">T</button>
+<button class="w-10 h-10 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">W</button>
+<button class="w-10 h-10 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">T</button>
+<button class="w-10 h-10 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">F</button>
+<button class="w-10 h-10 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">S</button>
+<button class="w-10 h-10 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">S</button>
+</div>
+<div class="flex items-center justify-between p-4 border border-outline-variant/20 rounded-lg">
+<span class="text-on-surface-variant font-medium">Posting Time</span>
+<div class="flex items-center gap-2">
+<span class="text-xl font-black font-headline">3:00 PM</span>
+<span class="material-symbols-outlined text-on-surface-variant">schedule</span>
+</div>
+</div>
+</div>
+<!-- Approval Logic -->
+<div class="p-8 bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/5">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">rule</span>
+<h4 class="text-lg font-bold font-headline">Before posting</h4>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex-1 p-5 border-2 border-primary bg-primary/5 rounded-lg relative cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="font-bold">Review first</span>
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">radio_button_checked</span>
+</div>
+<p class="text-xs text-on-surface-variant">Recommended. We notify you to approve every piece before it goes live.</p>
+</div>
+<div class="flex-1 p-5 border-2 border-secondary/20 rounded-lg relative cursor-pointer opacity-70">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="font-bold">Fully automatic</span>
+<span class="px-2 py-0.5 bg-secondary text-on-secondary text-[10px] rounded-full uppercase font-black">Pro</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant">radio_button_unchecked</span>
+</div>
+<p class="text-xs text-on-surface-variant">Content goes straight to your socials without intervention.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="mt-16 flex flex-col items-center">
+<button class="w-full max-w-md py-6 px-12 bg-gradient-to-br from-primary to-primary-dim text-on-primary rounded-xl font-headline font-black text-xl shadow-[0px_20px_40px_rgba(111,51,213,0.15)] hover:scale-[1.02] transition-all active:scale-95">
+                Save and activate
+            </button>
+<p class="mt-6 text-on-surface-variant text-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">verified_user</span>
+                You can pause or edit these settings at any time. No contracts.
+            </p>
+</div>
+</main>
+<!-- Floating Action Pill (Shared Logic) -->
+<div class="fixed bottom-8 left-1/2 -translate-x-1/2 glass-nav rounded-full px-8 py-4 shadow-2xl flex items-center gap-6 z-50 border border-white/20">
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">history</span>
+<span class="text-[10px] font-bold opacity-60">History</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant/20"></div>
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">analytics</span>
+<span class="text-[10px] font-bold opacity-60">Stats</span>
+</button>
+<button class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-on-primary shadow-lg shadow-primary/20 hover:rotate-90 transition-all">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">smart_toy</span>
+<span class="text-[10px] font-bold opacity-60">Copilot</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant/20"></div>
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">help</span>
+<span class="text-[10px] font-bold opacity-60">Support</span>
+</button>
+</div>
+</body></html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Curator | Batch Video Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed-dim": "#f77c9e",
+              "surface-container-low": "#f1f1ef",
+              "on-secondary-container": "#612c90",
+              "outline-variant": "#adadab",
+              "on-surface-variant": "#5b5c5a",
+              "outline": "#767775",
+              "surface-container-highest": "#dddddb",
+              "on-primary-fixed-variant": "#390083",
+              "secondary-fixed-dim": "#ddb3ff",
+              "surface-container-lowest": "#ffffff",
+              "primary-dim": "#6321c9",
+              "on-tertiary-fixed": "#380016",
+              "error-container": "#f74b6d",
+              "background": "#f7f6f4",
+              "on-tertiary-container": "#64042d",
+              "on-primary": "#f8f0ff",
+              "surface-dim": "#d4d5d2",
+              "inverse-primary": "#a476ff",
+              "on-secondary": "#fbefff",
+              "primary-fixed": "#b28cff",
+              "on-error": "#ffefef",
+              "surface-bright": "#f7f6f4",
+              "primary": "#6f33d5",
+              "secondary-dim": "#6a3599",
+              "on-primary-fixed": "#000000",
+              "surface-variant": "#dddddb",
+              "secondary": "#7742a6",
+              "inverse-surface": "#0d0e0e",
+              "tertiary": "#9e3657",
+              "on-surface": "#2e2f2e",
+              "on-error-container": "#510017",
+              "on-tertiary-fixed-variant": "#711036",
+              "on-primary-container": "#2e006c",
+              "on-secondary-fixed-variant": "#6b369a",
+              "on-tertiary": "#ffeff1",
+              "on-secondary-fixed": "#4d137b",
+              "secondary-fixed": "#e6c5ff",
+              "inverse-on-surface": "#9d9d9b",
+              "primary-container": "#b28cff",
+              "on-background": "#2e2f2e",
+              "secondary-container": "#e6c5ff",
+              "surface-container-high": "#e2e3e0",
+              "primary-fixed-dim": "#a67aff",
+              "surface-container": "#e8e8e6",
+              "error": "#b41340",
+              "error-dim": "#a70138",
+              "surface": "#f7f6f4",
+              "tertiary-container": "#ff8eac",
+              "tertiary-fixed": "#ff8eac",
+              "surface-tint": "#6f33d5",
+              "tertiary-dim": "#8e294c"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      body { background-color: #f7f6f4; color: #2e2f2e; }
+      .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+      .glass-nav { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar Navigation -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl shadow-[0px_20px_40px_rgba(111,51,213,0.06)]">
+<div class="flex items-center gap-4">
+<span class="text-xl font-bold bg-gradient-to-br from-violet-600 to-indigo-400 bg-clip-text text-transparent font-headline tracking-tight">The Curator</span>
+<nav class="hidden md:flex items-center gap-6 ml-8">
+<a class="text-stone-500 dark:text-stone-400 font-medium font-headline hover:text-violet-500 dark:hover:text-violet-300 transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-violet-700 dark:text-violet-300 border-b-2 border-violet-500 pb-1 font-headline" href="#">Projects</a>
+<a class="text-stone-500 dark:text-stone-400 font-medium font-headline hover:text-violet-500 dark:hover:text-violet-300 transition-colors duration-200" href="#">Library</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img alt="User profile" class="w-8 h-8 rounded-full border border-outline-variant/20" data-alt="professional portrait of a creative designer with a minimalist aesthetic background and soft studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAz1ZEzU7bH10tIxSbPU4d9hXJdCrmWr-hw1nriL42gUYeMxSq08hosq45-7zcsoZxk3VnsONC7dRym3xgPNiYcxK2SajRevoycsZwsJZ_8zGouQHXzyT9iBEsDb01zGjDB2qgqYpsCLWPfw9M8kmnG7eolkVgHKEBnYDjmkrRukq-2ZxXgHw-Ybb__5GH6QYKilFzZljms3mI4Jq8ViRs-p6ovVAJpQFJEFUDYfFGKaY6H596ZBFtZ4_s_E1_ocxedjsqpMOofAg"/>
+</div>
+</header>
+<main class="pt-24 pb-48 px-6 max-w-4xl mx-auto">
+<!-- Breadcrumb & Back Action -->
+<div class="flex items-center gap-3 mb-10 text-on-surface-variant font-headline">
+<button class="p-2 hover:bg-surface-container-highest rounded-full transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<nav class="flex items-center gap-2 text-sm font-medium">
+<span class="hover:text-primary cursor-pointer transition-colors">Create</span>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="hover:text-primary cursor-pointer transition-colors">Video</span>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="hover:text-primary cursor-pointer transition-colors">Did You Know</span>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-on-surface font-bold">3 videos</span>
+</nav>
+</div>
+<!-- Section: Script Cards -->
+<section class="space-y-8 mb-16">
+<h2 class="text-3xl font-bold font-headline tracking-tight text-on-surface mb-6">Review Scripts</h2>
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-lg p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10 relative overflow-hidden">
+<div class="flex justify-between items-start mb-6">
+<div class="space-y-1">
+<span class="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">Video 1 of 3</span>
+<h3 class="text-xl font-bold font-headline text-on-surface">The Coffee Paradox</h3>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant text-sm font-semibold rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined text-sm">refresh</span>
+                        Regenerate
+                    </button>
+</div>
+<div class="relative">
+<textarea class="w-full min-h-[160px] bg-surface text-on-surface-variant font-body leading-relaxed p-6 rounded-md border-none focus:ring-2 focus:ring-primary/40 resize-none" placeholder="Enter script here...">Did you know that drinking coffee within the first hour of waking up can actually make you MORE tired later in the day? Your body naturally produces cortisol in the morning to wake you up, and caffeine interferes with that natural process. Try waiting 90 minutes for a cleaner energy boost!</textarea>
+<div class="absolute bottom-4 right-4 text-[10px] font-bold text-outline-variant uppercase tracking-tighter">Editorial Draft</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-lg p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10">
+<div class="flex justify-between items-start mb-6">
+<div class="space-y-1">
+<span class="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">Video 2 of 3</span>
+<h3 class="text-xl font-bold font-headline text-on-surface">The Memory Palace</h3>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant text-sm font-semibold rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined text-sm">refresh</span>
+                        Regenerate
+                    </button>
+</div>
+<textarea class="w-full min-h-[160px] bg-surface text-on-surface-variant font-body leading-relaxed p-6 rounded-md border-none focus:ring-2 focus:ring-primary/40 resize-none">Did you know that your brain has the capacity to store 2.5 petabytes of data? That’s equivalent to 3 million hours of TV shows. To remember things better, try the 'Memory Palace' technique where you associate facts with rooms in a house you know well.</textarea>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest rounded-lg p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10">
+<div class="flex justify-between items-start mb-6">
+<div class="space-y-1">
+<span class="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">Video 3 of 3</span>
+<h3 class="text-xl font-bold font-headline text-on-surface">Ocean Giants</h3>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant text-sm font-semibold rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined text-sm">refresh</span>
+                        Regenerate
+                    </button>
+</div>
+<textarea class="w-full min-h-[160px] bg-surface text-on-surface-variant font-body leading-relaxed p-6 rounded-md border-none focus:ring-2 focus:ring-primary/40 resize-none">Did you know that a Blue Whale's heart is so big that a human could swim through its arteries? These gentle giants can grow up to 100 feet long. Even more amazing, their song can be heard by other whales up to 1,000 miles away in the deep ocean.</textarea>
+</div>
+</section>
+<!-- Section: Settings Section -->
+<section class="mt-16 relative">
+<h2 class="text-3xl font-bold font-headline tracking-tight text-on-surface mb-8">Creative Settings</h2>
+<div class="flex flex-wrap gap-4 items-center">
+<!-- Tone Pill -->
+<button class="flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-full font-bold font-headline transition-all shadow-lg shadow-primary/20">
+<span>😄</span>
+<span>Funny</span>
+</button>
+<!-- Presenter Pill (Active/Expanded) -->
+<div class="relative">
+<button class="flex items-center gap-2 px-6 py-3 bg-secondary-container text-on-secondary-container rounded-full font-bold font-headline transition-all ring-2 ring-primary">
+<span>🧑‍⚕️</span>
+<span>Doctor</span>
+<span class="material-symbols-outlined text-lg">expand_less</span>
+</button>
+<!-- Popover -->
+<div class="absolute top-full left-0 mt-4 w-[480px] bg-surface-container-lowest rounded-lg shadow-[0px_30px_60px_rgba(111,51,213,0.15)] border border-outline-variant/15 p-6 z-40">
+<div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 font-headline">Choose Presenter Persona</div>
+<!-- Avatar Grid -->
+<div class="grid grid-cols-5 gap-4 mb-8">
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-14 h-14 rounded-full p-1 ring-2 ring-primary ring-offset-2">
+<img alt="Doctor" class="w-full h-full rounded-full bg-surface-container" data-alt="friendly male doctor in clinical white coat with stethoscope against a clean medical office background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEwrnD2ZmT9_s-eKuQbsRUCKD17tOGCkfNy5oza_nhz00mWUdKaxmmGCHX2hPIhQf8cO73SeoYipPLDS0vNolWPJWrOTRup1Z6fu7FK9882LRABzZJbJyRSwRAy5pkDgTESlLI_SfcKvAvVt6SZ-qxvbppoWGGycuZaQ5MFKvhIu_YNp4IUlUCLOv-UzVs6yf2y_MYd9ePxmpZqGGbk2V2klS6n_OEqr1VwC5WLGvhl116HbrTIy07zJG2pc_yPX1lZJIvIjEBlw"/>
+</div>
+<span class="text-[10px] font-bold text-on-surface">Doctor</span>
+</div>
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-40 hover:opacity-100 transition-opacity">
+<div class="w-14 h-14 rounded-full p-1 bg-surface-container-low">
+<img alt="Professor" class="w-full h-full rounded-full" data-alt="distinguished professor with glasses and tweed jacket in a library setting with old books" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-8t2NXP2bB-89tgdE5JYi_I0vc0JSMv56KtPJVvcBF_qJdHwMczA6hzyr1lLWcAmCkk9HI4p9yaaFn8BGsb-_wKYsGUXBh7-lBU0CY1l6eauf3Fh96J2cGTtH_-f3NnFk_e0QKClrWCR-CZbChompEdoXx24t6Mi4ERVwH1QlyLleVXp-4EU-Y_TGt-nwyfpTDYojG1Xou5-yUGueSAaZgK4Y1f92q0_WByfsfn8J_hk9HfZBPvvSk3W6gD7fgN1jJNZV2D-YaA"/>
+</div>
+<span class="text-[10px] font-bold">Professor</span>
+</div>
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-40 hover:opacity-100 transition-opacity">
+<div class="w-14 h-14 rounded-full p-1 bg-surface-container-low">
+<img alt="Chef" class="w-full h-full rounded-full" data-alt="professional chef in white uniform and hat in a modern high-end kitchen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIeXfelKNWEneUuyuxHKsON70HREiBwa9zjj-FnUk_K9p_Fc15WP5PoN7IWo0o3vzAQuBobBXbpxBVWG1nyJJvDXgSm7auCcixFF6b-0x_4jBKspts77ww5ku_sjAnaB2A6crU7jcA0AxKVXh60fAfuBPuB0D2-UpWtyh_86mWAvOr17wEDJygptwhnwRWB49BxaAl06Cr9Bf3gxD7xMQuDc6rQ9E3eMkQOM5UemPZRQ-64kd8Ak1DH3aTecTvbKgmebMt_RqWvQ"/>
+</div>
+<span class="text-[10px] font-bold">Chef</span>
+</div>
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-40 hover:opacity-100 transition-opacity">
+<div class="w-14 h-14 rounded-full p-1 bg-surface-container-low">
+<img alt="Cowboy" class="w-full h-full rounded-full" data-alt="rugged cowboy with classic hat in a sun-drenched dusty ranch environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWIGiPMi_3VWVV4r6eQSJ-udU_wayD-QEgFjZX1wvPYgz1AUEU4piHlKiOJ2Ghm49wu3v_kkrT8fa9v_3SSm1qtFVbya28XqqiajBPnLbas8p90KDl9US-AaFme8aye1GYZOp2DWiWF90BxTmwBRUO0wzrEOBmHgbniggojL-AtHCd-VAju8yhIUs7LOK2eDctukw6ofA7NDoaCK_IOAOxTTi9vj3BK7j576qWLVpCjCSUMyJE_DdRzmrKpnUrCN3QN-4bq2DHwQ"/>
+</div>
+<span class="text-[10px] font-bold">Cowboy</span>
+</div>
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-40 hover:opacity-100 transition-opacity">
+<div class="w-14 h-14 rounded-full p-1 bg-surface-container-low">
+<img alt="Robot" class="w-full h-full rounded-full" data-alt="sleek futuristic humanoid robot with soft glowing eyes and metallic white finish" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCIMS1ND-rasVkuVmbO6J9lUQIcCbUBlnEGGKXI-OphHllAoF8I7HckL_XaisDgnfD4YZL0ZOLsavHF5U3SOiLiSyHe4AGKSFPTYSMXGnSL58u-R13pGCgnaHyHY-z8Xw6R54uW_2gbDmVqyMZxNuGK-6lM0_Ko-FTwmMQDQGZ8zUfkqg5t71FX0j0gac4xU77ngArn6NyyctxDTVRhk-hoMC23M0ZKRD4KKUeISNh5fXyQ3Z3rHn7Nlz1ArbPt8lNuHCDGbyg-w"/>
+</div>
+<span class="text-[10px] font-bold">Robot</span>
+</div>
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-40 hover:opacity-100 transition-opacity">
+<div class="w-14 h-14 rounded-full p-1 bg-surface-container-low">
+<img alt="Vampire" class="w-full h-full rounded-full" data-alt="elegant vampire character in gothic attire with dramatic dark lighting and purple hues" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgVmS9W4o7n0D43GMqEK-N4R5o8qDn_JnixEZP4tjNsM5K7TQ5Ov6htHr42CW6vJPpuIQcrgk45MV76m9hUG0mx-PQ4zx0eA3-kF4IhQZgnr-xe3-7wpQsr-d--9pjHG8AvEkSLzXayoIVkBzhArzSXSxHrCR0JLXIIfPEsQpPHSEaZmtDjexmncZsO1hpUgtsHX_TUErugWGBjuj2tBDvi_QXC230JMcHY8JbOOUYuDArWbXPwtaov2CiZMSXhbFlE3RXVXnwrw"/>
+</div>
+<span class="text-[10px] font-bold">Vampire</span>
+</div>
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-40 hover:opacity-100 transition-opacity">
+<div class="w-14 h-14 rounded-full p-1 bg-surface-container-low">
+<img alt="Wizard" class="w-full h-full rounded-full" data-alt="wise wizard with long silver beard and blue robe in a mystical study with glowing orbs" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhngbPzkyb9PZ47DJPV4eIP1KFb6p7O_oYeGth1925lvI6c0bKF-L-FvpxztLGZC5VxtDcTD3ER9fcY2Tx801SOsi4eJyGTw9cmevfYqlyJR1ORmNnpNVooB5ied-YhnGOZEHZYzJHrtns1nJOF-xFxJHOKIBgNrv9ywM-DZFldQhjx14r36a5LrygXm2GZyfuMsLJHwW8J1KctmPosCW-JN10No9uGozLmkOlfXlnL99SZRoCPB7oDmUa30QKav1GT4Qv-YqNfA"/>
+</div>
+<span class="text-[10px] font-bold">Wizard</span>
+</div>
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-40 hover:opacity-100 transition-opacity">
+<div class="w-14 h-14 rounded-full p-1 bg-surface-container-low">
+<img alt="Finance Bro" class="w-full h-full rounded-full" data-alt="young energetic man in a vest in front of trading screens and financial charts" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtNcT2ie18mjXfKYoLUZSonX0afQbXMLLtPH8TQ5IvqmVUy5bYA61xKiKf7Km8dy4ZQZ_bNo7qg1wEvhxWHhNAGIOBy5n05qIq3cK1PV49Vsb9rpmx0ccWloZu-x_jFstGQutUzQIR8wSQ5gsw803QrLa-vjiqXSon4PhMTOYyUPNLYe9dzOSLd6C6S27T0c61S7zGT7r6rZkXM5akru5cfYfhCrILocJ8XWUGHrQyqV9SOxhjF7VqKPuME4PLtn8T8edR4d6V7A"/>
+</div>
+<span class="text-[10px] font-bold text-center">Finance Bro</span>
+</div>
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-40 hover:opacity-100 transition-opacity">
+<div class="w-14 h-14 rounded-full p-1 bg-surface-container-low">
+<img alt="Alien" class="w-full h-full rounded-full" data-alt="friendly cinematic extraterrestrial with iridescent skin in a high-tech starship interior" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDo_6j5INI9uZ4lu_p-Pff5prVnEd1kYsEYygLdH8R1EgL0zcJP8L93_Aur1ZhhptJBicKYMYgEOg59H5if57swoYUgdi1STYxXre5vTXXxw0Vl5tyJaJI7TqbsixCb89Lays_wgv61EbWoG4rTbRk2nKTE2mFhzPeECnNqCmnz5nolx8v1bb_zh7QzMUSTX3DOHGIUfwcDOYEGaIAlJHU-JBGxSKGH81lCL4RwMaQMFJUW-8SM0n-zP8FySzlg78SIeJT6mhs-6A"/>
+</div>
+<span class="text-[10px] font-bold">Alien</span>
+</div>
+</div>
+<!-- Special Options -->
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-surface-container-low rounded hover:bg-surface-container-high transition-colors cursor-pointer border border-primary/20">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">video_stable</span>
+<span class="text-sm font-semibold">HeyGen realistic avatar</span>
+</div>
+<span class="bg-primary-container text-on-primary-container text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest">Pro</span>
+</div>
+<div class="flex items-center gap-3 p-3 bg-surface-container-lowest border border-outline-variant/30 rounded hover:bg-surface-container-low transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-on-surface-variant">format_quote</span>
+<span class="text-sm font-semibold">Text only — no presenter</span>
+</div>
+<div class="flex items-center gap-3 p-3 bg-surface-container-lowest border border-outline-variant/30 rounded hover:bg-surface-container-low transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-on-surface-variant">cloud_upload</span>
+<span class="text-sm font-semibold">Upload your own video</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Stock Footage Pill -->
+<button class="flex items-center gap-2 px-6 py-3 bg-surface-container-highest text-on-surface rounded-full font-bold font-headline transition-all hover:bg-surface-dim">
+<span>🎬</span>
+<span>Stock footage</span>
+</button>
+<!-- Duration Pill -->
+<button class="flex items-center gap-2 px-6 py-3 bg-surface-container-highest text-on-surface rounded-full font-bold font-headline transition-all hover:bg-surface-dim">
+<span>⏱</span>
+<span>30s</span>
+</button>
+<!-- Layout Pill -->
+<button class="flex items-center gap-2 px-6 py-3 bg-surface-container-highest text-on-surface rounded-full font-bold font-headline transition-all hover:bg-surface-dim">
+<span>📐</span>
+<span>Standard</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Sticky Bottom Generation Bar -->
+<footer class="fixed bottom-0 left-0 w-full z-50 bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center">
+<button class="w-full max-w-xl py-5 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-full text-xl font-bold font-headline flex items-center justify-center gap-3 shadow-xl shadow-primary/30 active:scale-95 transition-transform">
+            Create 3 videos
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">colors_spark</span>
+</button>
+<p class="mt-3 text-xs font-medium text-on-surface-variant flex items-center gap-2">
+<span class="w-1.5 h-1.5 bg-tertiary rounded-full"></span>
+            Videos render in the background · We will notify you when ready · ~7 minutes estimated
+        </p>
+</footer>
+<!-- Bottom Navigation Bar (Mobile Visibility Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl rounded-t-3xl shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] pointer-events-none opacity-0">
+<!-- Suppressed for transactional flow focus -->
+</nav>
+</body></html>

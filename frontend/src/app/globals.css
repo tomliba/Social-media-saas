@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors from Stitch design system */
+  --color-primary: #6f33d5;
+  --color-primary-dim: #6321c9;
+  --color-primary-container: #b28cff;
+  --color-primary-fixed: #b28cff;
+  --color-primary-fixed-dim: #a67aff;
+  --color-on-primary: #f8f0ff;
+  --color-on-primary-container: #2e006c;
+  --color-on-primary-fixed: #000000;
+  --color-inverse-primary: #a476ff;
+
+  --color-secondary: #7742a6;
+  --color-secondary-dim: #6a3599;
+  --color-secondary-container: #e6c5ff;
+  --color-secondary-fixed: #e6c5ff;
+  --color-secondary-fixed-dim: #ddb3ff;
+  --color-on-secondary: #fbefff;
+  --color-on-secondary-container: #612c90;
+
+  --color-tertiary: #9e3657;
+  --color-tertiary-dim: #8e294c;
+  --color-tertiary-container: #ff8eac;
+  --color-tertiary-fixed: #ff8eac;
+  --color-tertiary-fixed-dim: #f77c9e;
+  --color-on-tertiary: #ffeff1;
+  --color-on-tertiary-container: #64042d;
+
+  --color-error: #b41340;
+  --color-error-dim: #a70138;
+  --color-error-container: #f74b6d;
+  --color-on-error: #ffefef;
+  --color-on-error-container: #510017;
+
+  --color-surface: #f7f6f4;
+  --color-surface-dim: #d4d5d2;
+  --color-surface-bright: #f7f6f4;
+  --color-surface-variant: #dddddb;
+  --color-surface-container: #e8e8e6;
+  --color-surface-container-low: #f1f1ef;
+  --color-surface-container-high: #e2e3e0;
+  --color-surface-container-highest: #dddddb;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-tint: #6f33d5;
+
+  --color-on-surface: #2e2f2e;
+  --color-on-surface-variant: #5b5c5a;
+  --color-on-background: #2e2f2e;
+  --color-background: #f7f6f4;
+
+  --color-outline: #767775;
+  --color-outline-variant: #adadab;
+  --color-inverse-surface: #0d0e0e;
+  --color-inverse-on-surface: #9d9d9b;
+
+  /* Fonts */
+  --font-headline: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Be Vietnam Pro", sans-serif;
+  --font-label: "Plus Jakarta Sans", sans-serif;
+
+  /* Border radius */
+  --radius-sm: 0.5rem;
+  --radius-DEFAULT: 1rem;
+  --radius-lg: 2rem;
+  --radius-xl: 3rem;
+  --radius-full: 9999px;
+}
+
+/* Custom utilities */
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #6f33d5 0%, #b28cff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .primary-gradient {
+    background: linear-gradient(135deg, #6f33d5 0%, #b28cff 100%);
+  }
+
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, #f1f1ef 25%, #e8e8e6 50%, #f1f1ef 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+  }
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #dddddb; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #adadab; }

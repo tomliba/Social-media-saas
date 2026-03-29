@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Fluid Curator | Dashboard</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be_Vietnam_Pro:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-fixed": "#4d137b",
+              "tertiary-fixed-dim": "#f77c9e",
+              "secondary-fixed": "#e6c5ff",
+              "on-primary-fixed-variant": "#390083",
+              "primary-dim": "#6321c9",
+              "on-primary": "#f8f0ff",
+              "on-secondary-container": "#612c90",
+              "surface-variant": "#dddddb",
+              "error-container": "#f74b6d",
+              "error-dim": "#a70138",
+              "secondary-dim": "#6a3599",
+              "primary-container": "#b28cff",
+              "on-secondary-fixed-variant": "#6b369a",
+              "primary-fixed": "#b28cff",
+              "surface-dim": "#d4d5d2",
+              "tertiary-container": "#ff8eac",
+              "surface-bright": "#f7f6f4",
+              "on-primary-container": "#2e006c",
+              "surface-container-high": "#e2e3e0",
+              "on-tertiary-container": "#64042d",
+              "on-tertiary-fixed": "#380016",
+              "surface-container": "#e8e8e6",
+              "secondary-container": "#e6c5ff",
+              "tertiary-fixed": "#ff8eac",
+              "surface": "#f7f6f4",
+              "on-error": "#ffefef",
+              "on-tertiary": "#ffeff1",
+              "on-surface-variant": "#5b5c5a",
+              "tertiary-dim": "#8e294c",
+              "surface-container-low": "#f1f1ef",
+              "on-background": "#2e2f2e",
+              "on-primary-fixed": "#000000",
+              "surface-container-lowest": "#ffffff",
+              "inverse-primary": "#a476ff",
+              "primary-fixed-dim": "#a67aff",
+              "on-tertiary-fixed-variant": "#711036",
+              "error": "#b41340",
+              "surface-container-highest": "#dddddb",
+              "inverse-surface": "#0d0e0e",
+              "background": "#f7f6f4",
+              "on-error-container": "#510017",
+              "secondary-fixed-dim": "#ddb3ff",
+              "tertiary": "#9e3657",
+              "outline-variant": "#adadab",
+              "primary": "#6f33d5",
+              "surface-tint": "#6f33d5",
+              "inverse-on-surface": "#9d9d9b",
+              "on-secondary": "#fbefff",
+              "on-surface": "#2e2f2e",
+              "outline": "#767775",
+              "secondary": "#7742a6"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Be Vietnam Pro', sans-serif; background-color: #f7f6f4; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl shadow-sm dark:shadow-none flex justify-between items-center px-6 py-3 w-full">
+<div class="flex items-center gap-4">
+<span class="text-2xl font-bold bg-gradient-to-br from-violet-600 to-violet-400 bg-clip-text text-transparent font-['Plus_Jakarta_Sans'] tracking-tight">The Fluid Curator</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="bg-primary text-on-primary px-5 py-2 rounded-full font-semibold hover:opacity-90 transition-opacity flex items-center gap-2">
+<span>Create</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors rounded-full">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-1 rounded-full border border-outline-variant/20">
+<span class="material-symbols-outlined text-3xl">account_circle</span>
+</button>
+</div>
+</nav>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-zinc-50 dark:bg-zinc-950 flex flex-col py-4 space-y-2 hidden md:flex">
+<div class="px-6 mb-6">
+<div class="flex items-center gap-3 mb-1">
+<div class="w-10 h-10 rounded-xl bg-primary-container/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div>
+<p class="font-headline font-bold text-sm">Creator Hub</p>
+<p class="text-xs text-on-surface-variant">Pro Plan</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Home (Active) -->
+<a class="bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-200 rounded-xl mx-2 flex items-center gap-3 px-4 py-3 font-medium transition-transform hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">home</span>
+<span>Home</span>
+</a>
+<a class="text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mx-2 rounded-xl flex items-center gap-3 px-4 py-3 font-medium transition-transform hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">add_circle</span>
+<span>Create</span>
+</a>
+<a class="text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mx-2 rounded-xl flex items-center gap-3 px-4 py-3 font-medium transition-transform hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span>Autopilot</span>
+</a>
+<a class="text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mx-2 rounded-xl flex items-center gap-3 px-4 py-3 font-medium transition-transform hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">manage_accounts</span>
+<span>Accounts</span>
+</a>
+<a class="text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mx-2 rounded-xl flex items-center gap-3 px-4 py-3 font-medium transition-transform hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Preferences</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<div class="bg-surface-container-highest p-4 rounded-xl mb-4">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Usage: 80%</span>
+<span class="material-symbols-outlined text-sm text-primary">bar_chart</span>
+</div>
+<div class="w-full bg-outline-variant/20 h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[80%]"></div>
+</div>
+<button class="w-full mt-4 py-2 text-sm font-bold text-primary bg-white rounded-lg shadow-sm">Upgrade Plan</button>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="md:ml-64 pt-20 px-6 pb-12 bg-surface min-h-screen">
+<!-- Notification Banner -->
+<div class="max-w-7xl mx-auto mb-8">
+<div class="bg-primary/5 border border-primary/10 p-4 rounded-xl flex items-center justify-between cursor-pointer group hover:bg-primary/10 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">video_library</span>
+</div>
+<div>
+<p class="font-headline font-semibold text-on-primary-container">You have 3 videos ready to review</p>
+<p class="text-sm text-on-surface-variant">Review and approve your latest AI-generated drafts.</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</div>
+<!-- Dashboard Header / Filters -->
+<div class="max-w-7xl mx-auto mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+<div>
+<h1 class="text-4xl font-headline font-extrabold tracking-tight mb-2">Content Calendar</h1>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<div class="flex items-center bg-surface-container-low p-1 rounded-full">
+<button class="px-6 py-2 rounded-full bg-white shadow-sm text-on-surface font-semibold text-sm">Week</button>
+<button class="px-6 py-2 rounded-full text-sm font-medium">Month</button>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-full"><span class="material-symbols-outlined">chevron_left</span></button>
+<span class="font-semibold text-on-surface">Oct 23 - Oct 27</span>
+<button class="p-2 hover:bg-surface-container-high rounded-full"><span class="material-symbols-outlined">chevron_right</span></button>
+</div>
+</div>
+</div>
+<div class="flex flex-wrap gap-3">
+<div class="relative">
+<select class="appearance-none bg-surface-container-lowest border-none py-3 pl-5 pr-12 rounded-full text-sm font-semibold shadow-sm focus:ring-2 focus:ring-primary/40">
+<option>Platform: All</option>
+<option>Instagram</option>
+<option>TikTok</option>
+<option>LinkedIn</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none bg-surface-container-lowest border-none py-3 pl-5 pr-12 rounded-full text-sm font-semibold shadow-sm focus:ring-2 focus:ring-primary/40">
+<option>Format: Video</option>
+<option>Carousel</option>
+<option>Caption Only</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+<button class="bg-surface-container-highest px-6 py-3 rounded-full text-sm font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+                    More Filters
+                </button>
+</div>
+</div>
+<!-- Calendar Bento Grid -->
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+<!-- Monday -->
+<div class="space-y-4">
+<div class="flex items-center justify-between px-2 mb-4">
+<span class="font-headline font-bold text-lg">Mon <span class="text-on-surface-variant font-medium">23</span></span>
+<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">2 POSTS</span>
+</div>
+<!-- Published Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+<div class="relative aspect-[9/16] rounded-lg overflow-hidden mb-3">
+<img class="w-full h-full object-cover" data-alt="overhead shot of a minimalist workstation with a sleek laptop and a single Monstera leaf in a glass vase" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjNX_iDBOSwurRVUa-R3qz3p_uGZv7jNmovntdWw6pxfhUojA3wI8EX17UEDNQG6wzpYIfeAFDHfAa9wUmPW13vZ3TCpQAOR9HHEl4ueMtkYoENeZwRZEWXZfZljCQHq-8_LarJJKBvQjOT6w-5QykqnvPBGuj0u0CrMX8MZ0d_dAmGuwVP2x9rGM4Rcn0UcMPKKRH7RuBUxL9Dtw2qmhxqoVLKzAVujKePABTZ-7Swa06Pew5LITe1YUFnfPnLkqRxaEl24uzKw"/>
+<div class="absolute top-2 left-2 bg-emerald-500 w-3 h-3 rounded-full border-2 border-white"></div>
+<div class="absolute bottom-2 right-2 bg-black/40 backdrop-blur-md px-2 py-1 rounded-md text-[10px] text-white font-bold">0:30</div>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-4xl opacity-80">play_circle</span>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<p class="text-xs font-bold truncate pr-4">Morning Routine Concept</p>
+<div class="flex -space-x-2">
+<div class="w-5 h-5 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 flex items-center justify-center text-[10px] text-white ring-1 ring-white">IG</div>
+<div class="w-5 h-5 rounded-full bg-black flex items-center justify-center text-[8px] text-white ring-1 ring-white">TT</div>
+</div>
+</div>
+</div>
+<!-- Published Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+<div class="relative aspect-[9/16] rounded-lg overflow-hidden mb-3">
+<img class="w-full h-full object-cover" data-alt="dynamic close-up of high-tech circuit board with glowing purple and cyan led lights neon futuristic aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCx74KA5yjeb0mAMGVihMugdSdJSxBypnFHjgU0GPBqb_g0o8B_oTA_NIo4rCjx2mXTTxeXKeCtGTAW0ALLwm3G0eiGccnTZZgezMebupwDguCphBVpgorgrmU9PDeYMoF2D41mA81cquI6IgXl21QHGalf4QDBiCBcMJaYCxv56lSK79qcFxuZCR1-xPv_xZV_M9MtJYMMDZPGp1uDd9HjqT_dC2KTOBIJEcN-I2RXJHDzVcTkJ-69fMjifXbXt30P7vNBhuRBQw"/>
+<div class="absolute top-2 left-2 bg-emerald-500 w-3 h-3 rounded-full border-2 border-white"></div>
+<div class="absolute bottom-2 right-2 bg-black/40 backdrop-blur-md px-2 py-1 rounded-md text-[10px] text-white font-bold">0:15</div>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-4xl opacity-80">play_circle</span>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<p class="text-xs font-bold truncate pr-4">Tech News Summary</p>
+<div class="flex -space-x-2">
+<div class="w-5 h-5 rounded-full bg-black flex items-center justify-center text-[8px] text-white ring-1 ring-white">TT</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Tuesday -->
+<div class="space-y-4">
+<div class="flex items-center justify-between px-2 mb-4">
+<span class="font-headline font-bold text-lg">Tue <span class="text-on-surface-variant font-medium">24</span></span>
+<span class="text-xs text-on-surface-variant font-bold">EMPTY</span>
+</div>
+<div class="border-2 border-dashed border-outline-variant/30 rounded-xl h-40 flex flex-col items-center justify-center text-on-surface-variant/40 hover:bg-surface-container-low transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-3xl mb-2">add</span>
+<span class="text-xs font-bold">Schedule</span>
+</div>
+</div>
+<!-- Wednesday -->
+<div class="space-y-4">
+<div class="flex items-center justify-between px-2 mb-4">
+<span class="font-headline font-bold text-lg">Wed <span class="text-on-surface-variant font-medium">25</span></span>
+<span class="text-xs bg-primary-container text-on-primary-container px-2 py-0.5 rounded-full font-bold">2 SCHED</span>
+</div>
+<!-- Carousel Card -->
+<div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+<div class="relative h-48 mb-3 flex items-center justify-center group">
+<!-- Fanned Slides -->
+<div class="absolute w-24 h-32 bg-zinc-200 rounded-lg shadow-sm -rotate-6 translate-x-[-15px] group-hover:-rotate-12 transition-transform"></div>
+<div class="absolute w-24 h-32 bg-zinc-300 rounded-lg shadow-sm rotate-3 translate-x-[15px] group-hover:rotate-6 transition-transform"></div>
+<div class="relative w-28 h-36 rounded-lg overflow-hidden shadow-md">
+<img class="w-full h-full object-cover" data-alt="abstract artistic composition with soft paper textures and muted pastel colors under soft studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFdeO1XiafGNDb1uD-Om8UYD4TcHVOltSlVbjyCdebtfTJweAVYcM6OLKcuPoojNpkp8NX1A6HpFXvz0l2VSzrLlUfM0BUpuISXIIdeLhEoBQmG_9Xc7T40E7wu_YZ-kFZCK-4MR3C_Gobr91734AraplKaXHbIbbIWiCiYYZT14AimH7LiYt4Jhr40wb5cHLplH7pNNw1JcoDtl5BQ7SWnRsgJG2Ot0bfclKEOhWZSYypLjjSmJ130dpgsc2chjKQKMx7p_6yYQ"/>
+<div class="absolute top-2 left-2 bg-primary w-3 h-3 rounded-full border-2 border-white"></div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<p class="text-xs font-bold truncate">Aesthetic Design Tips</p>
+<p class="text-[10px] text-on-surface-variant">5 Slides • 14:00 PM</p>
+</div>
+<div class="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-[8px] text-white">in</div>
+</div>
+</div>
+<!-- Video Card -->
+<div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+<div class="relative aspect-video rounded-lg overflow-hidden mb-3">
+<img class="w-full h-full object-cover" data-alt="close-up of a high-resolution laptop screen showing elegant code with a bokeh background of a cozy home office" src="https://lh3.googleusercontent.com/aida-public/AB6AXuByBtEI8hrFYRFRy9QvE1KjylywMll06QuLZ8NwnFoCND33qOTun9KcXkuCL2l7go6SODBbD_h13VGypeRuFLVWbgnrkcFNFyZwnjVSnTqYqiMTvrzq5UwIsWoUaLqKR-smKy3GMcAVOFnbrmD_ZJQQjgr8EpmbHx6r0lEIa_9X5pDT-C-jnZL8IBd_LPGgKwmMYlN7vlc7dt8NGZgWeP51gLCB4EQXudQo4D2drqUx4nI1qGxpoAWjI9Nbvp8NRWLLTJxQTZw-OA"/>
+<div class="absolute top-2 left-2 bg-primary w-3 h-3 rounded-full border-2 border-white"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl opacity-80">schedule</span>
+</div>
+</div>
+<p class="text-xs font-bold">Coding Setup Reel</p>
+<p class="text-[10px] text-on-surface-variant">Tomorrow • 09:30 AM</p>
+</div>
+</div>
+<!-- Thursday -->
+<div class="space-y-4">
+<div class="flex items-center justify-between px-2 mb-4">
+<span class="font-headline font-bold text-lg">Thu <span class="text-on-surface-variant font-medium">26</span></span>
+<span class="text-xs bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded-full font-bold">1 DRAFT</span>
+</div>
+<!-- Draft Caption Card -->
+<div class="bg-surface-container-lowest border-l-4 border-outline-variant rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+<div class="flex items-center gap-2 mb-3">
+<div class="w-2 h-2 rounded-full bg-outline"></div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Caption Draft</span>
+</div>
+<div class="space-y-2">
+<div class="h-2 w-full bg-surface-container-low rounded"></div>
+<div class="h-2 w-5/6 bg-surface-container-low rounded"></div>
+<div class="h-2 w-4/6 bg-surface-container-low rounded"></div>
+</div>
+<p class="mt-4 text-[11px] italic text-on-surface-variant line-clamp-2">"Behind every great project is an even better workspace. Today I'm sharing..."</p>
+<div class="mt-4 flex items-center justify-between text-[10px] font-bold text-on-surface-variant">
+<span>324 words</span>
+<span class="material-symbols-outlined text-sm">edit_note</span>
+</div>
+</div>
+</div>
+<!-- Friday -->
+<div class="space-y-4">
+<div class="flex items-center justify-between px-2 mb-4">
+<span class="font-headline font-bold text-lg">Fri <span class="text-on-surface-variant font-medium">27</span></span>
+<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">2 RENDERING</span>
+</div>
+<!-- Rendering Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm overflow-hidden relative group">
+<div class="animate-pulse bg-surface-container-low aspect-square rounded-lg mb-3 flex flex-col items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-amber-500 mb-2">sync</span>
+<span class="text-[10px] font-bold text-amber-600 uppercase">Processing...</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-bold">
+<span>Vlog_Final_v2</span>
+<span>72%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-low rounded-full">
+<div class="h-full w-[72%] bg-amber-500 rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Rendering Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm overflow-hidden relative">
+<div class="animate-pulse bg-surface-container-low aspect-square rounded-lg mb-3 flex flex-col items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-amber-500 mb-2">cloud_upload</span>
+<span class="text-[10px] font-bold text-amber-600 uppercase">Uploading Assets</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-bold">
+<span>Asset_Package_4</span>
+<span>15%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-low rounded-full">
+<div class="h-full w-[15%] bg-amber-500 rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Bar (Creative Shortcuts) -->
+<div class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-full px-4 py-3 flex items-center gap-6 z-50">
+<button class="flex flex-col items-center gap-1 group">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">auto_fix_high</span>
+</div>
+<span class="text-[10px] font-bold text-on-surface-variant">Magic Edit</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">calendar_today</span>
+</div>
+<span class="text-[10px] font-bold text-on-surface-variant">Smart Plan</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant/30 mx-2"></div>
+<button class="flex flex-col items-center gap-1 group">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+<span class="text-[10px] font-bold text-on-surface-variant">Insights</span>
+</button>
+</div>
+</body></html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Curator - Select Style &amp; Ideas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-container": "#b28cff",
+              "primary": "#6f33d5",
+              "tertiary-container": "#ff8eac",
+              "surface-container-high": "#e2e3e0",
+              "on-error": "#ffefef",
+              "secondary-fixed-dim": "#ddb3ff",
+              "secondary-container": "#e6c5ff",
+              "tertiary": "#9e3657",
+              "surface-container-lowest": "#ffffff",
+              "error-dim": "#a70138",
+              "on-background": "#2e2f2e",
+              "on-tertiary-container": "#64042d",
+              "inverse-surface": "#0d0e0e",
+              "tertiary-dim": "#8e294c",
+              "on-tertiary-fixed": "#380016",
+              "outline": "#767775",
+              "on-primary-fixed-variant": "#390083",
+              "on-surface-variant": "#5b5c5a",
+              "on-surface": "#2e2f2e",
+              "error": "#b41340",
+              "inverse-primary": "#a476ff",
+              "on-secondary-fixed-variant": "#6b369a",
+              "on-primary": "#f8f0ff",
+              "surface-tint": "#6f33d5",
+              "error-container": "#f74b6d",
+              "surface-container": "#e8e8e6",
+              "secondary-dim": "#6a3599",
+              "on-tertiary-fixed-variant": "#711036",
+              "surface-container-low": "#f1f1ef",
+              "secondary-fixed": "#e6c5ff",
+              "primary-dim": "#6321c9",
+              "tertiary-fixed-dim": "#f77c9e",
+              "surface-container-highest": "#dddddb",
+              "primary-fixed-dim": "#a67aff",
+              "on-error-container": "#510017",
+              "on-secondary": "#fbefff",
+              "surface": "#f7f6f4",
+              "background": "#f7f6f4",
+              "tertiary-fixed": "#ff8eac",
+              "inverse-on-surface": "#9d9d9b",
+              "outline-variant": "#adadab",
+              "on-secondary-fixed": "#4d137b",
+              "surface-variant": "#dddddb",
+              "on-secondary-container": "#612c90",
+              "on-primary-container": "#2e006c",
+              "surface-bright": "#f7f6f4",
+              "primary-fixed": "#b28cff",
+              "on-tertiary": "#ffeff1",
+              "on-primary-fixed": "#000000",
+              "secondary": "#7742a6",
+              "surface-dim": "#d4d5d2"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .asymmetric-canvas {
+            margin-left: clamp(1rem, 5vw, 4rem);
+            margin-right: clamp(1rem, 8vw, 6rem);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface selection:bg-primary-container selection:text-on-primary-container min-h-screen pb-32">
+<!-- TopNavBar (Shared Component) -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl shadow-sm flex justify-between items-center px-6 h-16">
+<div class="flex items-center gap-4">
+<span class="text-xl font-bold text-purple-700 dark:text-purple-300 font-headline tracking-tight">The Curator</span>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-zinc-500 dark:text-zinc-400 font-headline font-semibold tracking-tight hover:text-purple-600 transition-colors active:scale-95 duration-200" href="#">Drafts</a>
+<a class="text-purple-700 dark:text-purple-300 border-b-2 border-purple-600 font-headline font-semibold tracking-tight active:scale-95 duration-200" href="#">Templates</a>
+<a class="text-zinc-500 dark:text-zinc-400 font-headline font-semibold tracking-tight hover:text-purple-600 transition-colors active:scale-95 duration-200" href="#">Library</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden">
+<img alt="User Profile" data-alt="close up professional portrait of a creative individual with minimalist aesthetic and soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjZKQC8rvOyqpiSvKfmAJEA-Uf2isZ5o7dd-yFdcko2Jnv5MkA_UWwmkU3FqnXVy2LeySDjJNseUXECZFaSOCMTcaopnVQoZiUPT0BdisRqtykpy8GB36gE-WVrueiVD-Grd38gZv8rQZuQCanGnpd03DCw34BGBo6UMbh_XFBdiF3nj6wGOj3oRO7D575FpKi2lV3EyUGqJXszo-26tsq3YqIYBIZXGC5n-7lM8kzQpO7SBRzGNBJ4BdlV8tKjQEicu0MnovQiA"/>
+</div>
+</div>
+</nav>
+<main class="pt-24 asymmetric-canvas">
+<!-- Header Section -->
+<header class="mb-10 flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-lowest hover:bg-surface-container-high transition-all active:scale-90 shadow-sm text-primary">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div>
+<h1 class="text-3xl font-extrabold font-headline tracking-tight text-on-surface">Pick a style</h1>
+<p class="text-on-surface-variant text-sm mt-1">Select the visual format for your next viral hit</p>
+</div>
+</header>
+<!-- Template Grid (Bento Style) -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
+<!-- Selected Card -->
+<button class="group relative flex flex-col p-5 bg-surface-container-lowest rounded-DEFAULT text-left transition-all ring-2 ring-primary shadow-[0px_20px_40px_rgba(111,51,213,0.12)] active:scale-[0.98]">
+<div class="w-10 h-10 mb-4 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined filled-icon">lightbulb</span>
+</div>
+<h3 class="font-bold text-lg font-headline text-on-surface mb-1">Did You Know</h3>
+<p class="text-xs text-on-surface-variant italic leading-relaxed">"Octopuses have 3 hearts"</p>
+<div class="absolute top-3 right-3 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-white font-bold">check</span>
+</div>
+</button>
+<button class="group relative flex flex-col p-5 bg-surface-container-lowest rounded-DEFAULT text-left transition-all hover:shadow-md active:scale-[0.98]">
+<div class="w-10 h-10 mb-4 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">verified</span>
+</div>
+<h3 class="font-bold text-lg font-headline text-on-surface mb-1">Myth Buster</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed">"Knuckle cracking is harmless"</p>
+</button>
+<button class="group relative flex flex-col p-5 bg-surface-container-lowest rounded-DEFAULT text-left transition-all hover:shadow-md active:scale-[0.98]">
+<div class="w-10 h-10 mb-4 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">compare_arrows</span>
+</div>
+<h3 class="font-bold text-lg font-headline text-on-surface mb-1">X vs Y</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed">"Coffee vs Green Tea"</p>
+</button>
+<button class="group relative flex flex-col p-5 bg-surface-container-lowest rounded-DEFAULT text-left transition-all hover:shadow-md active:scale-[0.98]">
+<div class="w-10 h-10 mb-4 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">auto_stories</span>
+</div>
+<h3 class="font-bold text-lg font-headline text-on-surface mb-1">Story Time</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed">"The man who vanished with $200K"</p>
+</button>
+<button class="group relative flex flex-col p-5 bg-surface-container-lowest rounded-DEFAULT text-left transition-all hover:shadow-md active:scale-[0.98]">
+<div class="w-10 h-10 mb-4 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">format_list_numbered</span>
+</div>
+<h3 class="font-bold text-lg font-headline text-on-surface mb-1">Top 5</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed">"5 foods killing your gut"</p>
+</button>
+<button class="group relative flex flex-col p-5 bg-surface-container-lowest rounded-DEFAULT text-left transition-all hover:shadow-md active:scale-[0.98]">
+<div class="w-10 h-10 mb-4 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">construction</span>
+</div>
+<h3 class="font-bold text-lg font-headline text-on-surface mb-1">How-To</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed">"Fall asleep in 2 minutes"</p>
+</button>
+<button class="group relative flex flex-col p-5 bg-surface-container-lowest rounded-DEFAULT text-left transition-all hover:shadow-md active:scale-[0.98]">
+<div class="w-10 h-10 mb-4 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<h3 class="font-bold text-lg font-headline text-on-surface mb-1">Hot Take</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed">"Stretching is useless"</p>
+</button>
+<button class="group relative flex flex-col p-5 bg-surface-container-lowest rounded-DEFAULT text-left transition-all hover:shadow-md active:scale-[0.98]">
+<div class="w-10 h-10 mb-4 rounded-lg bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">quiz</span>
+</div>
+<h3 class="font-bold text-lg font-headline text-on-surface mb-1">What Happens If</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed">"No sugar for 30 days"</p>
+</button>
+</section>
+<!-- Ideas Section -->
+<section class="max-w-4xl">
+<div class="flex items-end justify-between mb-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container filled-icon">auto_awesome</span>
+<h2 class="text-2xl font-bold font-headline text-on-surface">10 ideas for you</h2>
+</div>
+<button class="flex items-center gap-1.5 text-primary text-sm font-semibold hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-sm">refresh</span>
+                    Generate new ideas
+                </button>
+</div>
+<!-- Scrollable List -->
+<div class="space-y-3 max-h-[500px] overflow-y-auto pr-4 hide-scrollbar">
+<!-- Checked Idea 1 -->
+<div class="group flex items-center gap-4 p-4 bg-surface-container-lowest rounded-DEFAULT hover:bg-white transition-colors cursor-pointer border-l-4 border-primary">
+<div class="flex-shrink-0 w-6 h-6 rounded-full border-2 border-primary bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[16px] font-bold">check</span>
+</div>
+<p class="flex-grow font-semibold text-on-surface font-headline leading-tight">Why your morning coffee actually makes you MORE tired</p>
+<span class="px-3 py-1 bg-surface-container-low rounded-full text-[10px] font-bold tracking-wider text-on-surface-variant uppercase">Health</span>
+</div>
+<!-- Checked Idea 2 -->
+<div class="group flex items-center gap-4 p-4 bg-surface-container-lowest rounded-DEFAULT hover:bg-white transition-colors cursor-pointer border-l-4 border-primary">
+<div class="flex-shrink-0 w-6 h-6 rounded-full border-2 border-primary bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[16px] font-bold">check</span>
+</div>
+<p class="flex-grow font-semibold text-on-surface font-headline leading-tight">The hidden psychology of "Loss Aversion" in apps</p>
+<span class="px-3 py-1 bg-surface-container-low rounded-full text-[10px] font-bold tracking-wider text-on-surface-variant uppercase">Psychology</span>
+</div>
+<!-- Checked Idea 3 -->
+<div class="group flex items-center gap-4 p-4 bg-surface-container-lowest rounded-DEFAULT hover:bg-white transition-colors cursor-pointer border-l-4 border-primary">
+<div class="flex-shrink-0 w-6 h-6 rounded-full border-2 border-primary bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[16px] font-bold">check</span>
+</div>
+<p class="flex-grow font-semibold text-on-surface font-headline leading-tight">3 morning habits that are secretly ruining your focus</p>
+<span class="px-3 py-1 bg-surface-container-low rounded-full text-[10px] font-bold tracking-wider text-on-surface-variant uppercase">Productivity</span>
+</div>
+<!-- Unchecked Ideas -->
+<div class="group flex items-center gap-4 p-4 bg-surface-container-low/50 rounded-DEFAULT hover:bg-surface-container-lowest transition-all cursor-pointer">
+<div class="flex-shrink-0 w-6 h-6 rounded-full border-2 border-outline-variant group-hover:border-primary transition-colors"></div>
+<p class="flex-grow font-medium text-on-surface-variant font-headline leading-tight group-hover:text-on-surface transition-colors">How to start coding if you're actually bad at math</p>
+<span class="px-3 py-1 bg-surface-container-high/30 rounded-full text-[10px] font-bold tracking-wider text-outline uppercase">Tech</span>
+</div>
+<div class="group flex items-center gap-4 p-4 bg-surface-container-low/50 rounded-DEFAULT hover:bg-surface-container-lowest transition-all cursor-pointer">
+<div class="flex-shrink-0 w-6 h-6 rounded-full border-2 border-outline-variant group-hover:border-primary transition-colors"></div>
+<p class="flex-grow font-medium text-on-surface-variant font-headline leading-tight group-hover:text-on-surface transition-colors">Stop reading non-fiction if you aren't doing this</p>
+<span class="px-3 py-1 bg-surface-container-high/30 rounded-full text-[10px] font-bold tracking-wider text-outline uppercase">Education</span>
+</div>
+<div class="group flex items-center gap-4 p-4 bg-surface-container-low/50 rounded-DEFAULT hover:bg-surface-container-lowest transition-all cursor-pointer">
+<div class="flex-shrink-0 w-6 h-6 rounded-full border-2 border-outline-variant group-hover:border-primary transition-colors"></div>
+<p class="flex-grow font-medium text-on-surface-variant font-headline leading-tight group-hover:text-on-surface transition-colors">The paradox of choice: why too many options kill sales</p>
+<span class="px-3 py-1 bg-surface-container-high/30 rounded-full text-[10px] font-bold tracking-wider text-outline uppercase">Business</span>
+</div>
+<div class="group flex items-center gap-4 p-4 bg-surface-container-low/50 rounded-DEFAULT hover:bg-surface-container-lowest transition-all cursor-pointer">
+<div class="flex-shrink-0 w-6 h-6 rounded-full border-2 border-outline-variant group-hover:border-primary transition-colors"></div>
+<p class="flex-grow font-medium text-on-surface-variant font-headline leading-tight group-hover:text-on-surface transition-colors">Why you should never trust a 5-star review again</p>
+<span class="px-3 py-1 bg-surface-container-high/30 rounded-full text-[10px] font-bold tracking-wider text-outline uppercase">Lifestyle</span>
+</div>
+</div>
+<div class="mt-6 flex items-center gap-2 text-on-surface-variant text-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+<p>Select up to 5 ideas · <span class="text-on-surface font-bold">3 selected</span></p>
+</div>
+</section>
+</main>
+<!-- Bottom Action Bar -->
+<div class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40 border-t-0">
+<div class="max-w-6xl w-full flex justify-end items-center">
+<button class="px-10 py-4 bg-gradient-to-r from-primary to-primary-container text-white rounded-full font-bold font-headline shadow-[0px_10px_30px_rgba(111,51,213,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+                Continue with 3 ideas
+                <span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Mobile Navigation Shell (Shared Component) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center pt-2 pb-6 px-4 bg-white dark:bg-zinc-900 rounded-t-3xl border-t border-zinc-100 dark:border-zinc-800 z-50 shadow-[0_-4px_20px_rgba(124,58,237,0.06)]">
+<a class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 px-5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium">Create</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 rounded-2xl px-5 py-2 active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="lightbulb">lightbulb</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium">Ideas</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 px-5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="video_library">video_library</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium">Assets</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 px-5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium">Profile</span>
+</a>
+</nav>
+</body></html>

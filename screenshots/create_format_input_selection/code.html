@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Create Content | The Curator</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;0,800;1,800&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-tint": "#6f33d5",
+              "on-background": "#2e2f2e",
+              "secondary": "#7742a6",
+              "outline-variant": "#adadab",
+              "surface-variant": "#dddddb",
+              "on-secondary-container": "#612c90",
+              "secondary-fixed": "#e6c5ff",
+              "tertiary-container": "#ff8eac",
+              "on-error-container": "#510017",
+              "error-dim": "#a70138",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed-dim": "#ddb3ff",
+              "inverse-on-surface": "#9d9d9b",
+              "primary-dim": "#6321c9",
+              "primary-container": "#b28cff",
+              "secondary-dim": "#6a3599",
+              "tertiary-fixed": "#ff8eac",
+              "tertiary-fixed-dim": "#f77c9e",
+              "surface-container": "#e8e8e8",
+              "on-tertiary-container": "#64042d",
+              "tertiary-dim": "#8e294c",
+              "on-tertiary": "#ffeff1",
+              "inverse-surface": "#0d0e0e",
+              "outline": "#767775",
+              "on-primary": "#f8f0ff",
+              "secondary-container": "#e6c5ff",
+              "on-primary-fixed": "#000000",
+              "on-primary-container": "#2e006c",
+              "surface-container-low": "#f1f1ef",
+              "on-error": "#ffefef",
+              "tertiary": "#9e3657",
+              "surface-container-high": "#e2e3e0",
+              "on-surface": "#2e2f2e",
+              "inverse-primary": "#a476ff",
+              "on-tertiary-fixed": "#380016",
+              "primary": "#6f33d5",
+              "surface-container-highest": "#dddddb",
+              "on-secondary": "#fbefff",
+              "surface-dim": "#d4d5d2",
+              "error-container": "#f74b6d",
+              "surface": "#f7f6f4",
+              "background": "#f7f6f4",
+              "on-secondary-fixed": "#4d137b",
+              "on-surface-variant": "#5b5c5a",
+              "primary-fixed": "#b28cff",
+              "on-secondary-fixed-variant": "#6b369a",
+              "on-primary-fixed-variant": "#390083",
+              "on-tertiary-fixed-variant": "#711036",
+              "surface-bright": "#f7f6f4",
+              "primary-fixed-dim": "#a67aff",
+              "error": "#b41340"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .tonal-transition { transition: background-color 0.3s ease; }
+      .glass-pill {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+      }
+      .asymmetric-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 1.5rem;
+      }
+      @media (max-width: 768px) {
+        .asymmetric-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface min-h-screen">
+<!-- TopNavBar Implementation -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-zinc-900/80 backdrop-blur-xl shadow-[0px_20px_40px_rgba(111,51,213,0.06)]">
+<div class="flex justify-between items-center w-full px-8 py-4 max-w-screen-2xl mx-auto">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-black text-violet-700 dark:text-violet-500 italic font-['Plus_Jakarta_Sans'] tracking-tight">The Curator</span>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-zinc-500 dark:text-zinc-400 hover:text-violet-500 transition-colors font-['Plus_Jakarta_Sans'] font-bold" href="#">Explore</a>
+<a class="text-zinc-500 dark:text-zinc-400 hover:text-violet-500 transition-colors font-['Plus_Jakarta_Sans'] font-bold" href="#">Library</a>
+<a class="text-zinc-500 dark:text-zinc-400 hover:text-violet-500 transition-colors font-['Plus_Jakarta_Sans'] font-bold" href="#">Analytics</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex items-center gap-2">
+<button class="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all active:scale-95 duration-200">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all active:scale-95 duration-200">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="settings">settings</span>
+</button>
+</div>
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-full font-bold shadow-sm active:scale-95 transition-all text-violet-700 dark:text-violet-400 border-b-2 border-violet-600 pb-1">Create</button>
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest ring-2 ring-primary/10">
+<img alt="Creator Profile" data-alt="Close-up portrait of a creative professional woman with soft studio lighting and warm neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_ytgWg2dApiwis5tkrQWwoii8o1ej6QT1e1nolgBhHqVo-m3IGwynyqhrkXS9maJxQBtro8qYYT3IBm-Ux8_ddlTLzsXTHOwHDitQqGGCaQkAAFMdJOLKEXNm84Yr8el5kQTLrKn7eBKiDJHG13IbxPAG75y44W0-29W9p2z5T8gumTB2J4HmK1C00DDOaMMrn0n1Z_hcELJrzkXOIJ-_GyaLqSS5iNsWCe7_aRNT4gRoNZjfykjhpRyzHpt7dEWVI9RiJ_tY9g"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="pt-28 pb-20 px-6 max-w-screen-xl mx-auto">
+<!-- Header Section -->
+<header class="mb-12">
+<h1 class="font-headline text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-2">What's the format?</h1>
+<p class="text-on-surface-variant text-lg">Select a medium to start your next masterpiece.</p>
+</header>
+<!-- Format Picker: 2x2 Grid -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+<!-- Card 1: Video (Large Full Width prioritized visually) -->
+<button class="group relative flex flex-col items-start text-left overflow-hidden bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.99]">
+<div class="relative w-full h-64 overflow-hidden">
+<img alt="Video Format" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" data-alt="Vibrant 3D abstract render with an animated character standing in a futuristic studio with a floating play button icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdi8L32YHtP9sv9bUqKciyAzwTIqC1_Q6BYbJu1ZimG2XXEC-XJU0RVU0YD2HVvwibBYdJ5bUaYLPlXp0KM2EhmCEUEaJU7m_iRHpj1YXWgXkD-Kpp_eUTGfi7EQOk40D3OhfHwJqJ2W-lLPq1jiswJNEgzljwsOSV7AKwNuSfgHQcCOjM9erRyBGXBA6Zy2cQeMtRppQCjNK7Lx5nGyBTcHaov3k2KQh8fW60VfDEr6EFVMP0BqaMFHQA8m1T3h86u1a4rwHKzg"/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors"></div>
+<div class="absolute top-4 right-4 bg-primary text-on-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Most popular</div>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-xl">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+</div>
+<div class="p-6">
+<h3 class="font-headline text-2xl font-bold mb-1">Video</h3>
+<p class="text-on-surface-variant">AI explainers, tutorials, stories, myth busters</p>
+</div>
+</button>
+<!-- Card 2: Image Post -->
+<button class="group flex flex-col items-start text-left overflow-hidden bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.99]">
+<div class="relative w-full h-64 overflow-hidden bg-surface-container-low">
+<img alt="Image Post Format" class="w-full h-full object-cover p-8 transition-transform group-hover:scale-105 duration-700" data-alt="Sleek interface layout of a social media post featuring high-end lifestyle photography and minimalist captions" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7XkDz5n-uoWjYt4o5ciPLDD_3OTtQmRZoBHRvHFIFOB-YC03jWhsT_HmqBaScg7N7aPS4oFxXa4oiIbm1DBY2vewHEUX4JuIkhGymxcM8OIcqvacENqfGQ_6JWJS8TRG9FplfT6CBU29wSg6mDEtwYoLaJZfpLCzoFe6T0bipikjaawCapQTDOPGMA311G869gHyvyturiZsH78-WdNPMR2UiYM9-5FqPYVeA0kr97NK9-lw8tNFqHtHvRSJms4lSgkBo863oFw"/>
+</div>
+<div class="p-6">
+<h3 class="font-headline text-2xl font-bold mb-1">Image Post</h3>
+<p class="text-on-surface-variant">AI-generated images with captions</p>
+</div>
+</button>
+<!-- Card 3: Carousel -->
+<button class="group flex flex-col items-start text-left overflow-hidden bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.99]">
+<div class="relative w-full h-64 overflow-hidden flex items-center justify-center bg-surface-container-low px-12">
+<div class="relative flex">
+<div class="w-32 h-44 bg-white rounded-lg shadow-lg rotate-[-12deg] flex-shrink-0 border border-outline-variant/10"></div>
+<div class="w-32 h-44 bg-white rounded-lg shadow-lg rotate-[-6deg] absolute left-6 border border-outline-variant/10"></div>
+<div class="w-32 h-44 bg-primary rounded-lg shadow-xl absolute left-12 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary text-3xl" data-icon="view_carousel">view_carousel</span>
+</div>
+</div>
+</div>
+<div class="p-6">
+<h3 class="font-headline text-2xl font-bold mb-1">Carousel</h3>
+<p class="text-on-surface-variant">Educational slides for Instagram</p>
+</div>
+</button>
+<!-- Card 4: Text -->
+<button class="group flex flex-col items-start text-left overflow-hidden bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.99]">
+<div class="relative w-full h-64 overflow-hidden bg-surface-container-low flex flex-col justify-center gap-4 px-12">
+<div class="h-4 w-3/4 bg-surface-container-highest rounded-full"></div>
+<div class="h-4 w-full bg-surface-container-highest rounded-full"></div>
+<div class="h-4 w-2/3 bg-primary/20 rounded-full"></div>
+<div class="flex gap-4 mt-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest"></div>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest"></div>
+</div>
+</div>
+<div class="p-6">
+<h3 class="font-headline text-2xl font-bold mb-1">Text</h3>
+<p class="text-on-surface-variant">Captions, threads, hooks for any platform</p>
+</div>
+</button>
+</section>
+<!-- Input Selection (Video State focus) -->
+<section class="max-w-3xl mx-auto">
+<h2 class="font-headline text-2xl font-bold mb-8 flex items-center gap-3">
+<span class="w-8 h-1 bg-primary rounded-full"></span>
+                How do you want to start?
+            </h2>
+<div class="flex flex-col gap-4">
+<!-- Card A: Pick a template (Highlighted) -->
+<button class="group flex items-center gap-6 p-6 bg-surface-container-lowest rounded-xl border-2 border-primary/20 shadow-[0px_4px_20px_rgba(111,51,213,0.08)] hover:border-primary/40 transition-all text-left relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16"></div>
+<div class="flex-shrink-0 w-14 h-14 rounded-xl bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl" data-icon="grid_view" style="font-variation-settings: 'FILL' 1;">grid_view</span>
+</div>
+<div class="flex-grow">
+<h4 class="font-headline text-xl font-bold mb-1">Pick a template</h4>
+<p class="text-on-surface-variant mb-3">10 AI-generated viral ideas based on your niche</p>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 rounded-full bg-surface-container text-xs font-semibold text-on-surface-variant">Did You Know</span>
+<span class="px-3 py-1 rounded-full bg-surface-container text-xs font-semibold text-on-surface-variant">Myth Buster</span>
+<span class="px-3 py-1 rounded-full bg-surface-container text-xs font-semibold text-on-surface-variant">X vs Y</span>
+<span class="px-3 py-1 rounded-full bg-surface-container text-xs font-semibold text-on-surface-variant">Top 5</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Card B: Type your own idea -->
+<button class="group flex items-center gap-6 p-6 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all text-left">
+<div class="flex-shrink-0 w-14 h-14 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-3xl" data-icon="edit_note">edit_note</span>
+</div>
+<div class="flex-grow">
+<h4 class="font-headline text-xl font-bold mb-1">Type your own idea</h4>
+<p class="text-on-surface-variant">Describe your video, AI handles the rest</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Card C: Remix a viral video -->
+<button class="group flex items-center gap-6 p-6 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all text-left">
+<div class="flex-shrink-0 w-14 h-14 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-3xl" data-icon="link">link</span>
+</div>
+<div class="flex-grow">
+<h4 class="font-headline text-xl font-bold mb-1">Remix a viral video</h4>
+<p class="text-on-surface-variant">Paste a link — AI analyzes and creates your version</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Card D: Upload content -->
+<button class="group flex items-center gap-6 p-6 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all text-left">
+<div class="flex-shrink-0 w-14 h-14 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-3xl" data-icon="upload_file">upload_file</span>
+</div>
+<div class="flex-grow">
+<h4 class="font-headline text-xl font-bold mb-1">Upload content</h4>
+<p class="text-on-surface-variant">PDF, document, or text → AI turns it into a video</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Card E: Trending now (Featured) -->
+<button class="group flex items-center gap-6 p-6 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all text-left border border-tertiary-container/30 relative">
+<div class="absolute inset-0 bg-gradient-to-r from-tertiary-container/5 to-transparent rounded-xl pointer-events-none"></div>
+<div class="flex-shrink-0 w-14 h-14 rounded-xl bg-tertiary-container/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-3xl" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+<div class="flex-grow">
+<div class="flex items-center gap-2 mb-1">
+<h4 class="font-headline text-xl font-bold">Trending now</h4>
+<span class="text-[10px] bg-tertiary text-on-tertiary px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">New</span>
+</div>
+<p class="text-on-surface-variant mb-3">Skeleton explainer, Before/After, and more</p>
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-lg bg-surface-container overflow-hidden">
+<img alt="Trending Thumbnail 1" data-alt="Miniature tech setup with neon lighting, focused on a retro computer screen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDj-gE0prNbNBTCacIb-ok7szQbRGRtkirwczQgnpnHbbFg4mE_dOQVhjIb8Nb1Cuekg6-vIfodhGFBXXutI-7Ih-DiYZeMalUsLTzrNZagif3ZNr0qBvQ7YJAZkYSKV9mRz5dC0s8JW-qYtEZcIC0PeQGWK2xE2iflU8JRpnNQso8QHVSENgHqkEnk2cQWRYsxSWSRBXxHqzxBycDnHPmcJok6iNsBM3Za1Jm03ulGjU0NDBVRb3y7mxK1-zKaH1ztZGH8pvcdXw"/>
+</div>
+<div class="w-12 h-12 rounded-lg bg-surface-container overflow-hidden">
+<img alt="Trending Thumbnail 2" data-alt="Laptop screen showing complex code with soft bokeh background lights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkC7aKb2tKwkPvidlK8rmzVxdYrYMskFIGYf1Hip1m8aLSn1bbALsDPYRndGJE9I0rPAZn3RzaSHxVYrE6d5GdFqbjr3eK9urPpjHKuMvwvxfDO_xGmjX7qvmZwW8ID139-Xjnp6ouAmPokYZxUWtwqUrl9P1OAZ8MGVHQxbIFfUmZOYEABBg4JBBr7RIP3jjdjoO1F5XIYZRgjCDrtG0fQ2e6RZIanLcUmk5rbKci2VP24L3OljiotHi6gL4ajZ7deXglQRiQnA"/>
+</div>
+<div class="w-12 h-12 rounded-lg bg-surface-container overflow-hidden">
+<img alt="Trending Thumbnail 3" data-alt="Overhead shot of team members hands collaborating around a colorful Moodboard" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmmtE9FfImfN0KPOil-0SZ1OHEKom3YONdxpYAZRBhZJUSwSHDLT8Q7AziIpK2v4fNfkrIyrGFYhKaQwuWwqa7WmIfPQPo5OCUaCwukiVb2mYfEBRO194hW9Sh5FcHYR4bCfVB063iCbJgRcAxshE5sbh8rgSjK1wIO2VlGk1PCUG9Kabela6UsnKxnuqqVVyPGVhzBzfAkxj9k2WGAVry-irCP5AzAC3pbgz9T2I9UrtWDw8N8ukdoHz192PmC9LXwCk1vT-9Vg"/>
+</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Floating Action Bar (Suppressed on this specific focused screen as per rules, but showing the navigation shell) -->
+<!-- On MOBILE: Bottom NavBar -->
+<nav class="md:hidden fixed bottom-0 w-full bg-surface/80 backdrop-blur-xl py-3 px-6 flex justify-around items-center shadow-[0px_-10px_40px_rgba(0,0,0,0.04)] z-50">
+<a class="flex flex-col items-center gap-1 text-zinc-500" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-on-primary -mt-8 shadow-lg">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</div>
+</a>
+<a class="flex flex-col items-center gap-1 text-zinc-500" href="#">
+<span class="material-symbols-outlined" data-icon="folder_open">folder_open</span>
+<span class="text-[10px] font-bold">Library</span>
+</a>
+</nav>
+</body></html>

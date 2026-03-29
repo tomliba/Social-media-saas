@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Content Review | The Fluid Curator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be_Vietnam_Pro:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error": "#b41340",
+              "error-dim": "#a70138",
+              "tertiary-dim": "#8e294c",
+              "secondary-dim": "#6a3599",
+              "outline": "#767775",
+              "on-tertiary": "#ffeff1",
+              "secondary": "#7742a6",
+              "tertiary-container": "#ff8eac",
+              "surface-container-lowest": "#ffffff",
+              "tertiary-fixed": "#ff8eac",
+              "on-tertiary-fixed": "#380016",
+              "tertiary": "#9e3657",
+              "secondary-container": "#e6c5ff",
+              "inverse-primary": "#a476ff",
+              "error-container": "#f74b6d",
+              "outline-variant": "#adadab",
+              "tertiary-fixed-dim": "#f77c9e",
+              "on-primary": "#f8f0ff",
+              "inverse-surface": "#0d0e0e",
+              "primary": "#6f33d5",
+              "surface-container-low": "#f1f1ef",
+              "on-primary-fixed-variant": "#390083",
+              "on-primary-container": "#2e006c",
+              "surface-bright": "#f7f6f4",
+              "on-secondary": "#fbefff",
+              "primary-dim": "#6321c9",
+              "primary-container": "#b28cff",
+              "on-surface-variant": "#5b5c5a",
+              "on-primary-fixed": "#000000",
+              "primary-fixed": "#b28cff",
+              "secondary-fixed": "#e6c5ff",
+              "on-secondary-container": "#612c90",
+              "on-secondary-fixed-variant": "#6b369a",
+              "surface-dim": "#d4d5d2",
+              "surface-variant": "#dddddb",
+              "secondary-fixed-dim": "#ddb3ff",
+              "on-error-container": "#510017",
+              "on-error": "#ffefef",
+              "primary-fixed-dim": "#a67aff",
+              "on-surface": "#2e2f2e",
+              "on-secondary-fixed": "#4d137b",
+              "on-tertiary-fixed-variant": "#711036",
+              "background": "#f7f6f4",
+              "surface-tint": "#6f33d5",
+              "surface-container-high": "#e2e3e0",
+              "surface": "#f7f6f4",
+              "inverse-on-surface": "#9d9d9b",
+              "surface-container-highest": "#dddddb",
+              "on-tertiary-container": "#64042d",
+              "surface-container": "#e8e8e6",
+              "on-background": "#2e2f2e"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .shimmer {
+            background: linear-gradient(90deg, #f1f1ef 25%, #e8e8e6 50%, #f1f1ef 75%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite linear;
+        }
+        @keyframes shimmer {
+            from { background-position: 200% 0; }
+            to { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface selection:bg-secondary-container">
+<!-- TopNavBar from Shared Components -->
+<header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl shadow-[0px_20px_40px_rgba(111,51,213,0.06)]">
+<div class="flex justify-between items-center w-full px-8 py-4 max-w-screen-2xl mx-auto">
+<div class="text-2xl font-bold bg-gradient-to-tr from-purple-600 to-purple-400 bg-clip-text text-transparent font-['Plus_Jakarta_Sans'] tracking-tight">The Fluid Curator</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-zinc-500 dark:text-zinc-400 font-medium hover:text-purple-500 transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-purple-600 dark:text-purple-400 font-bold border-b-2 border-purple-600" href="#">Library</a>
+<a class="text-zinc-500 dark:text-zinc-400 font-medium hover:text-purple-500 transition-colors duration-200" href="#">Analytics</a>
+<a class="text-zinc-500 dark:text-zinc-400 font-medium hover:text-purple-500 transition-colors duration-200" href="#">Settings</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">account_circle</button>
+<button class="bg-gradient-to-tr from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-full font-label font-semibold active:scale-95 transition-transform shadow-md">Create New</button>
+</div>
+</div>
+</header>
+<main class="pt-32 pb-40 px-6 max-w-3xl mx-auto">
+<!-- Status Bar -->
+<div class="mb-12">
+<div class="flex justify-between items-end mb-4">
+<h1 class="text-2xl font-headline font-extrabold tracking-tight text-on-surface">3 of 5 videos ready</h1>
+<span class="text-sm font-label font-bold text-primary">60% Complete</span>
+</div>
+<div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full w-3/5 bg-gradient-to-r from-primary to-primary-container rounded-full transition-all duration-700"></div>
+</div>
+</div>
+<div class="space-y-10">
+<!-- Ready Video Card 1 -->
+<section class="group">
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)]">
+<div class="relative aspect-video rounded-lg overflow-hidden mb-6 bg-surface-dim group-hover:scale-[1.01] transition-transform duration-500 shadow-inner">
+<img class="w-full h-full object-cover" data-alt="cinematic close up of glowing neon purple lights in a dark futuristic studio setting with smoke effects" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDVQishqGnOS4mZ535odnn8z316Y7dOIiR5TFhl2KRijwxJLPU7WQNFgyqdK9_TAY64GzJv_C1az2tcPTKW4mVl5fpoV4ZSynY-z9yd2-VJ17rvGL1uAVSOP3nmNPTv6weLeI9kKxQTZRAcuFZCFi0keUysEivk0Gt0kkOA09udlOxFxLRnsKspAOSBUx7QuA2aoplaAKzRI1tix-aC7qnotjTQjjHx-1uYbMHiLDU1QlfgpENyi3zjg2Y_m-EE9y7FHGiGO3NJQ"/>
+<div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+<div class="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white cursor-pointer hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-4xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+</div>
+<h2 class="text-xl font-headline font-bold mb-4 text-on-surface">The Future of Decentralized Design</h2>
+<div class="flex items-center gap-3 mb-6">
+<button class="p-2 rounded-full bg-primary text-on-primary shadow-sm"><span class="material-symbols-outlined text-sm">public</span></button>
+<button class="p-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-secondary-container hover:text-on-secondary-container transition-colors"><span class="material-symbols-outlined text-sm">movie</span></button>
+<button class="p-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-secondary-container hover:text-on-secondary-container transition-colors"><span class="material-symbols-outlined text-sm">video_library</span></button>
+<button class="p-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-secondary-container hover:text-on-secondary-container transition-colors"><span class="material-symbols-outlined text-sm">alternate_email</span></button>
+</div>
+<div class="mb-6 p-4 bg-surface-container-low rounded-md">
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                            Exploring how Web3 is reshaping our visual landscape. From generative art to community-owned assets... <span class="text-primary font-bold cursor-pointer">see more</span>
+</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex-1 bg-gradient-to-tr from-primary to-primary-container text-on-primary py-3 rounded-full font-label font-bold shadow-md hover:opacity-90 transition-opacity">Schedule</button>
+<button class="px-6 py-3 border-2 border-primary text-primary rounded-full font-label font-bold hover:bg-primary/5 transition-colors">Post now</button>
+<button class="p-3 text-outline-variant hover:text-error transition-colors"><span class="material-symbols-outlined">delete</span></button>
+</div>
+</div>
+</section>
+<!-- Ready Video Card 2 (With Date Picker) -->
+<section>
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] border-2 border-primary/20">
+<div class="relative aspect-video rounded-lg overflow-hidden mb-6 bg-surface-dim">
+<img class="w-full h-full object-cover" data-alt="overhead view of a sleek modern workspace with a laptop, designer headphones, and coffee on a clean desk" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWcot3jAW5rSKgrFRaAhar-DHHK4kd4EmEeTcKLE1XGrc8x8Rxh1rdwYEDsrxp5yk6010zPXhtYKeYnabxJcdWmtcMXyYkknrV9l4Ai2XEPwAPdMCPXf33DCqwRWtSkQMYiruTyFeobAeq8-Y9MdP8LH7rnG0MTf_zEa0I5p78nCV6-PEgoxcDW8unssjqsPSjKMoq--Uq7dwOvdm4PhIpVre-a1t_8IA8JQ4s5wBVpwRW5byQ78JqElL-7EQCaZKN_VU8UBqHlA"/>
+<div class="absolute inset-0 bg-black/10 flex items-center justify-center">
+<div class="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white cursor-pointer hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-4xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+</div>
+<h2 class="text-xl font-headline font-bold mb-4 text-on-surface">5 Productivity Hacks for Creators</h2>
+<div class="mb-6 p-5 bg-surface-container-high/50 rounded-lg">
+<div class="flex items-center gap-2 mb-4 text-primary font-bold text-sm">
+<span class="material-symbols-outlined text-lg">calendar_month</span>
+<span>Set Publication Date</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="p-3 bg-surface-container-lowest rounded-sm border border-outline-variant/20">
+<span class="block text-[10px] uppercase tracking-wider text-outline-variant font-bold mb-1">Date</span>
+<span class="font-medium">Oct 24, 2023</span>
+</div>
+<div class="p-3 bg-surface-container-lowest rounded-sm border border-outline-variant/20">
+<span class="block text-[10px] uppercase tracking-wider text-outline-variant font-bold mb-1">Time</span>
+<span class="font-medium">10:00 AM</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex-1 bg-gradient-to-tr from-primary to-primary-container text-on-primary py-3 rounded-full font-label font-bold shadow-md">Confirm Schedule</button>
+<button class="p-3 text-outline-variant hover:text-error transition-colors"><span class="material-symbols-outlined">delete</span></button>
+</div>
+</div>
+</section>
+<!-- Rendering Video Card 1 -->
+<section class="opacity-80">
+<div class="bg-surface-container-lowest/50 rounded-xl p-6 border-dashed border-2 border-outline-variant/30">
+<div class="aspect-video rounded-lg mb-6 shimmer"></div>
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-xl font-headline font-bold text-on-surface-variant">What happens if you stop eating sugar</h2>
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined animate-spin">refresh</span>
+<span class="text-xs font-bold uppercase tracking-widest">Rendering</span>
+</div>
+</div>
+<div class="flex items-center gap-2 mb-8 text-on-surface-variant/60 text-sm">
+<span>Generating audio synthesis...</span>
+<span class="h-1 w-12 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full w-1/3 bg-primary shimmer"></div>
+</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex-1 bg-surface-container-highest text-on-surface-variant/40 py-3 rounded-full font-label font-bold cursor-not-allowed" disabled="">Schedule</button>
+<button class="px-6 py-3 border-2 border-surface-container-highest text-on-surface-variant/40 rounded-full font-label font-bold cursor-not-allowed" disabled="">Post now</button>
+<button class="p-3 text-on-surface-variant/20 cursor-not-allowed" disabled=""><span class="material-symbols-outlined">delete</span></button>
+</div>
+</div>
+</section>
+<!-- Ready Video Card 3 -->
+<section class="group">
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all">
+<div class="relative aspect-video rounded-lg overflow-hidden mb-6 bg-surface-dim">
+<img class="w-full h-full object-cover" data-alt="aesthetic arrangement of retro tech gadgets and modern colorful lighting in a cozy creative workspace" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDP8a3_r9crQpnb-KK0tlYLJPf23_ahaELHNQRLMOrHCaDJskvwMiUOd0f19ljlzDXBbH_vNfnrPDNia-53Sus8nFo-xxcJUkOVBnTvjj5-hGpyQX1zpX1Yy_1zaY8giPfEnZhM-CTAI7lwvhL92AYBOzOq3u2sRgLbaOPvOfDVMBcMm1CaFH7nQoFG4t4smF0ZatM2eZT1RtiFwjg0Tvx48pZ59ovCkNupXqb7yG-nbvp20nVsaaSvm36sYsS48XK98NMauoihYw"/>
+<div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+<div class="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-4xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+</div>
+<h2 class="text-xl font-headline font-bold mb-4 text-on-surface">Minimalist Tech Setup 2024</h2>
+<div class="flex items-center gap-3 mb-6">
+<button class="p-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-secondary-container transition-colors"><span class="material-symbols-outlined text-sm">public</span></button>
+<button class="p-2 rounded-full bg-primary text-on-primary shadow-sm"><span class="material-symbols-outlined text-sm">movie</span></button>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex-1 bg-gradient-to-tr from-primary to-primary-container text-on-primary py-3 rounded-full font-label font-bold shadow-md">Schedule</button>
+<button class="px-6 py-3 border-2 border-primary text-primary rounded-full font-label font-bold">Post now</button>
+<button class="p-3 text-outline-variant hover:text-error transition-colors"><span class="material-symbols-outlined">delete</span></button>
+</div>
+</div>
+</section>
+<!-- Rendering Video Card 2 -->
+<section class="opacity-80">
+<div class="bg-surface-container-lowest/50 rounded-xl p-6 border-dashed border-2 border-outline-variant/30">
+<div class="aspect-video rounded-lg mb-6 shimmer"></div>
+<div class="h-6 w-3/4 shimmer rounded-full mb-8"></div>
+<div class="flex items-center gap-3">
+<div class="flex-1 h-12 bg-surface-container-highest rounded-full shimmer"></div>
+<div class="w-24 h-12 bg-surface-container-highest rounded-full shimmer"></div>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer Navigation -->
+<div class="mt-20 flex flex-col items-center gap-6">
+<button class="bg-primary text-on-primary px-10 py-4 rounded-full font-label font-bold shadow-xl hover:scale-105 transition-transform active:scale-95">Create more content</button>
+<a class="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 font-medium" href="#">
+<span class="material-symbols-outlined">arrow_back</span>
+                Back to dashboard
+            </a>
+</div>
+</main>
+<!-- BottomNavBar from Shared Components (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 py-3 pb-safe bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl shadow-[0px_-10px_30px_rgba(0,0,0,0.05)] rounded-t-3xl z-50">
+<div class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 px-6 py-2">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium font-['Be_Vietnam_Pro'] mt-1">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 px-6 py-2">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-[10px] font-medium font-['Be_Vietnam_Pro'] mt-1">Schedule</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-2xl px-6 py-2">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">video_library</span>
+<span class="text-[10px] font-medium font-['Be_Vietnam_Pro'] mt-1">Library</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 px-6 py-2">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium font-['Be_Vietnam_Pro'] mt-1">Profile</span>
+</div>
+</nav>
+</body></html>
