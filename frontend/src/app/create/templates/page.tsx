@@ -51,6 +51,7 @@ function TemplatesContent() {
 
   const ideasContentRef = useRef<HTMLDivElement>(null);
   const ideasSectionRef = useRef<HTMLDivElement>(null);
+  const generateBtnRef = useRef<HTMLDivElement>(null);
   const [ideasHeight, setIdeasHeight] = useState(0);
 
   useEffect(() => {
@@ -126,6 +127,9 @@ function TemplatesContent() {
 
   const handleTemplateClick = (name: string) => {
     setSelectedTemplate((prev) => (prev === name ? null : name));
+    setTimeout(() => {
+      generateBtnRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
   };
 
   const handleGenerateIdeas = () => {
@@ -354,7 +358,7 @@ function TemplatesContent() {
           </section>
 
           {/* Generate Ideas button */}
-          <div className="flex items-center gap-4 mb-16">
+          <div ref={generateBtnRef} className="flex items-center gap-4 mb-16">
             <button
               onClick={handleGenerateIdeas}
               disabled={loading}
