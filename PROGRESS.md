@@ -56,9 +56,9 @@ Social_media_saas/
 |-------|------|-------------|
 | `/dashboard` | `src/app/dashboard/page.tsx` | Visual content calendar with notification banner, calendar grid (5 columns Mon-Fri), multiple card types (video, carousel, caption draft, rendering), floating action bar |
 | `/create` | `src/app/create/page.tsx` | Format picker — 4 large cards (Video, Image Post, Carousel, Text). Selecting one reveals input method section with slide-in animation |
-| `/create/templates` | `src/app/create/templates/page.tsx` | Template grid (8 templates) + niche input + AI-generated ideas. Calls `/api/generate-ideas`. Select up to 5 ideas, continue to editor |
-| `/create/editor` | `src/app/create/editor/page.tsx` | Script editor — reads selected ideas from URL params, calls `/api/generate-scripts`. Editable script cards with regenerate per-script. Creative settings pills (tone, presenter, background, duration, layout) with popovers |
-| `/create/review` | `src/app/create/review/page.tsx` | Review + schedule — interleaved ready/rendering cards. Ready cards: video preview, platform toggles, caption, schedule/post now/delete. Rendering cards: shimmer animation, progress indicator, disabled buttons |
+| `/create/templates` | `src/app/create/templates/page.tsx` | **Video:** Template grid (8 templates) + niche input + Gemini ideas. **Image:** Topic + niche input → Flask `/pg/generate_ideas` for 10 post ideas. Select up to 5, continue to editor |
+| `/create/editor` | `src/app/create/editor/page.tsx` | **Video:** Script cards + regenerate + settings pills (tone, presenter, voice, background, duration, layout). **Image:** Post idea cards with editable hooks + settings pills (tone, platform only) |
+| `/create/review` | `src/app/create/review/page.tsx` | **Video:** Video player + platform toggles + caption + schedule. **Image:** Image gallery with post1/post2 variant thumbnails + caption + platform toggles + schedule. Shared components for platform selector, captions, scheduler, action buttons |
 | `/autopilot` | `src/app/autopilot/page.tsx` | Autopilot setup — hero section, on/off toggle, bento grid config (niche, content types, style/tone, schedule with day picker, approval mode) |
 
 ### Layouts
@@ -75,7 +75,8 @@ Social_media_saas/
 |----------|--------|-------|--------|--------|
 | `/api/auth/[...nextauth]` | GET/POST | NextAuth handlers | Session management | Working |
 | `/api/generate-ideas` | POST | `{template, niche}` | 10 viral video ideas with titles + tags | Working (Gemini 2.5 Flash, JSON mode) |
-| `/api/generate-scripts` | POST | `{template, ideas[]}` | Script per idea with template-specific structure | Working (Gemini 2.5 Flash, JSON mode) |
+| `/api/generate-scripts` | POST | `{template, ideas[], tone, duration}` | Script per idea with tone/duration-aware generation | Working (Gemini 2.5 Flash, JSON mode) |
+| `/api/generate-post-ideas` | POST | `{topic, tone, niche, platform}` | Proxies to Flask `/pg/generate_ideas`, returns 10 post ideas with `pg_job_id` | Working |
 
 ## Trigger.dev Integration (Async Video Rendering)
 
@@ -88,9 +89,14 @@ Social_media_saas/
   - Real pipeline: POST `/vg/generate_script` (mode: "script") → POST `/vg/start` → SSE `/vg/events/<job_id>` streaming
   - Metadata updates from Flask SSE: parallel (audio+backgrounds) → lipsync → remotion → complete
   - Falls back to ~25s simulation if `FLASK_API_URL` not set
-- **Server action:** `src/app/actions/create-videos.ts` — `triggerVideoRenders()` triggers N parallel jobs, returns run IDs + public access tokens
-- **Editor integration:** "Create N videos" button calls server action, stores run handles in sessionStorage, redirects to review
-- **Review page:** Each video card subscribes to its Trigger.dev run via `useRealtimeRun` hook — shows live progress bar + stage label while rendering, transitions to full ready card with platform toggles + schedule/post buttons when complete
+- **Video server action:** `src/app/actions/create-videos.ts` — `triggerVideoRenders()` triggers N parallel jobs, returns run IDs + public access tokens
+- **Post task:** `frontend/trigger/render-post.ts` — `render-post` task
+  - Accepts: pgJobId, selectedIdeas (numbers), ideaTopics, settings (tone, platform)
+  - Calls Flask `/pg/start` with selected ideas → streams `/pg/events/<id>` SSE (step numbers 2-5)
+  - Returns: results array with topic, imageUrls, caption per post
+- **Post server action:** `src/app/actions/create-posts.ts` — `triggerPostRenders()` triggers single job for all selected ideas
+- **Editor integration:** "Create N videos/posts" button calls appropriate server action, stores run handles + format in sessionStorage, redirects to review
+- **Review page:** Detects format (video/image) from sessionStorage. Video: each card subscribes via `useRealtimeRun`. Image: single run card that expands into individual post cards on completion, each with image gallery (post1/post2 variants), caption, platform toggles, schedule/post buttons
 
 ## Auth Setup
 
@@ -187,6 +193,8 @@ TRIGGER_PROJECT_REF   — Trigger.dev project reference ID
 - **`render-video.ts` connected to real Flask backend** — calls `/vg/generate_script` (mode: "script"), `/vg/start`, then streams `/vg/events/<job_id>` SSE for live progress. Falls back to simulation if `FLASK_API_URL` not set
 - **Review page shows real video player** — HTML5 `<video>` element with controls when render completes, gradient fallback if video URL unavailable
 - **Voice system implemented** — voices are independent of characters (see below). Voice settings pill on editor page. Full pipeline tested end-to-end with real Fish Audio voice — 3.6MB video rendered successfully
+- **All settings pills functional** — Tone affects Gemini script style + Flask tone param. Duration affects word count + Flask duration. Background controls Pexels vs AI images (Flask `bg_mode`). Layout passed through for future Remotion templates. Voice sends `fishAudioId` override. Platform (image posts only) passed to Flask
+- **Image Post format fully built** — format picker → topic input → Flask `/pg/generate_ideas` → idea selection → editor with Tone + Platform pills → Trigger.dev `render-post` task → Flask `/pg/start` + SSE streaming → review page with image gallery + captions. Tested: Flask generates 2 PNG images per post (~1.5-2MB each) + caption text
 
 ## Voice System (Architecture)
 
@@ -209,7 +217,7 @@ Voices are **NOT** tied to characters. Voice is a separate setting chosen indepe
 - **Usage tracking** — videosUsed/postsUsed counters not incremented
 - **Billing** — Lemon Squeezy not integrated, pricing page not built
 - **Real-time updates** — Trigger.dev realtime hooks wired up, but need real TRIGGER_SECRET_KEY to test end-to-end
-- **Image/Carousel/Text formats** — only Video format is wired up end-to-end
+- **Carousel/Text formats** — Video and Image Post are wired up end-to-end, Carousel and Text still need implementation
 - **Other input methods** — "Free type", "Viral link", "Upload content", "Viral right now" show "Coming soon"
 
 ## Next Steps (from Product Spec Build Order)
@@ -227,13 +235,17 @@ Voices are **NOT** tied to characters. Voice is a separate setting chosen indepe
 - [x] **Connect Flask backend** — `render-video.ts` calls `/vg/generate_script` → `/vg/start` → SSE `/vg/events/<job_id>` with realtime metadata updates
 - [x] **Add API key auth to Flask** — `X-API-Key` header + `ServiceUser` via Flask-Login `request_loader`, CSRF exemption for API requests
 - [x] **Voice system** — separate Voice settings pill, `voices.ts` config, `voice_id` override passed to Flask. Full E2E test: real 3.6MB video rendered with Geography Guy voice
-- [ ] Make all settings pills functional (read/write user defaults from database)
+- [x] **All settings pills functional** — Tone, Duration, Background, Layout, Voice, Platform all flow end-to-end from UI → server action → Trigger.dev → Flask
+- [x] **Image Post format** — full pipeline: format picker → Flask `/pg/generate_ideas` → editor → `render-post` task → Flask `/pg/start` + SSE → review page with image gallery
+- [ ] Test full video + image flows in browser, fix UX issues
+- [ ] Read/write user defaults from database to settings pills
 - [ ] Integrate Ayrshare for posting
 - [x] Build visual content calendar / dashboard (UI done with mock data)
 - [ ] Deploy: Next.js to Vercel, Flask stays on Railway
 
 ### Phase 2: Other Formats
-- [ ] Image post, carousel, quote card, caption, thread pipelines
+- [x] Image post — full pipeline with Flask `/pg/*` endpoints
+- [ ] Carousel, quote card, caption, thread pipelines
 
 ### Phase 3: Additional Input Methods
 - [ ] Free type, viral link, upload content, viral right now
