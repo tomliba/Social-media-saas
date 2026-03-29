@@ -77,6 +77,19 @@ Social_media_saas/
 | `/api/generate-ideas` | POST | `{template, niche}` | 10 viral video ideas with titles + tags | Working (Gemini 2.5 Flash, JSON mode) |
 | `/api/generate-scripts` | POST | `{template, ideas[]}` | Script per idea with template-specific structure | Working (Gemini 2.5 Flash, JSON mode) |
 
+## Trigger.dev Integration (Async Video Rendering)
+
+- **Package:** `@trigger.dev/sdk` + `@trigger.dev/react-hooks`
+- **Config:** `frontend/trigger.config.ts` — project config, 5min max duration, 2 retries
+- **Task:** `frontend/trigger/render-video.ts` — `render-video` task
+  - Accepts: title, script, template, settings (tone, presenter, background, duration, layout)
+  - Returns: title, videoUrl, caption
+  - Updates metadata with progress stages: queued → generating_script → generating_audio → fetching_backgrounds → transcribing → rendering_video → finalizing → complete
+  - Currently simulated (~25s per video) — swap to real Flask/Railway API call when backend is connected
+- **Server action:** `src/app/actions/create-videos.ts` — `triggerVideoRenders()` triggers N parallel jobs, returns run IDs + public access tokens
+- **Editor integration:** "Create N videos" button calls server action, stores run handles in sessionStorage, redirects to review
+- **Review page:** Each video card subscribes to its Trigger.dev run via `useRealtimeRun` hook — shows live progress bar + stage label while rendering, transitions to full ready card with platform toggles + schedule/post buttons when complete
+
 ## Auth Setup
 
 - **NextAuth v5** with split config pattern:
@@ -151,6 +164,8 @@ AUTH_URL              — NextAuth base URL (http://localhost:3000)
 AUTH_GOOGLE_ID        — Google OAuth client ID (placeholder)
 AUTH_GOOGLE_SECRET    — Google OAuth client secret (placeholder)
 GEMINI_API_KEY        — Google Gemini API key (set and working)
+TRIGGER_SECRET_KEY    — Trigger.dev secret key (from cloud.trigger.dev)
+TRIGGER_PROJECT_REF   — Trigger.dev project reference ID
 ```
 
 ## What's Working
@@ -187,8 +202,8 @@ GEMINI_API_KEY        — Google Gemini API key (set and working)
 - [x] Build format picker + input method UI
 - [x] Build template picker + idea browser UI
 - [x] Build batch script editor + settings pills UI
-- [ ] Integrate Trigger.dev for async video rendering
-- [x] Build review/preview screen (UI done, async notification not connected)
+- [x] Integrate Trigger.dev for async video rendering (task + server action + realtime review page)
+- [x] Build review/preview screen (wired to Trigger.dev realtime hooks)
 - [ ] Integrate Ayrshare for posting
 - [x] Build visual content calendar / dashboard (UI done with mock data)
 - [ ] Deploy: Next.js to Vercel, Flask stays on Railway

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRealtimeRun } from "@trigger.dev/react-hooks";
+import type { renderVideo } from "@trigger/render-video";
 
 const platforms = [
   { key: "web", icon: "public", label: "Web" },
@@ -10,81 +12,90 @@ const platforms = [
   { key: "x", icon: "alternate_email", label: "X" },
 ];
 
-interface ReadyVideo {
+const gradients = [
+  "from-violet-900 via-purple-800 to-indigo-900",
+  "from-zinc-600 via-stone-500 to-zinc-700",
+  "from-amber-700 via-orange-600 to-red-800",
+  "from-emerald-700 via-teal-600 to-cyan-800",
+  "from-rose-700 via-pink-600 to-fuchsia-800",
+];
+
+interface RunHandle {
+  runId: string;
+  publicAccessToken: string;
+  title: string;
+}
+
+// ── Single video card that subscribes to its own Trigger.dev run ──
+function VideoRunCard({
+  handle,
+  index,
+  total,
+  gradient,
+}: {
+  handle: RunHandle;
+  index: number;
+  total: number;
+  gradient: string;
+}) {
+  const { run, error } = useRealtimeRun<typeof renderVideo>(handle.runId, {
+    accessToken: handle.publicAccessToken,
+  });
+
+  const progress = (run?.metadata?.progress as number) ?? 0;
+  const stageLabel = (run?.metadata?.stageLabel as string) ?? "Queued...";
+  const isComplete = run?.status === "COMPLETED";
+  const isFailed = run?.status === "FAILED" || run?.status === "CANCELED";
+  const output = isComplete ? (run?.output as { title: string; videoUrl: string; caption: string } | undefined) : undefined;
+  const title = output?.title ?? handle.title;
+  const caption = output?.caption ?? null;
+
+  if (error) {
+    return <ErrorCard title={handle.title} message={error.message} />;
+  }
+
+  if (isComplete) {
+    return (
+      <ReadyVideoCard
+        title={title}
+        caption={caption}
+        gradient={gradient}
+        index={index}
+        total={total}
+      />
+    );
+  }
+
+  if (isFailed) {
+    return <ErrorCard title={handle.title} message="Render failed — try again" />;
+  }
+
+  return (
+    <RenderingVideoCard
+      title={handle.title}
+      stageLabel={stageLabel}
+      progress={progress}
+    />
+  );
+}
+
+// ── Ready video card (render complete) ──
+function ReadyVideoCard({
+  title,
+  caption,
+  gradient,
+  index,
+  total,
+}: {
   title: string;
   caption: string | null;
   gradient: string;
-  defaultPlatforms: string[];
-  schedulerOpen: boolean;
-}
-
-const readyVideos: ReadyVideo[] = [
-  {
-    title: "The Future of Decentralized Design",
-    caption:
-      'Exploring how Web3 is reshaping our visual landscape. From generative art to community-owned assets, the creator economy is evolving faster than ever. Here\'s what you need to know about the next wave of digital creativity...',
-    gradient: "from-violet-900 via-purple-800 to-indigo-900",
-    defaultPlatforms: ["web"],
-    schedulerOpen: false,
-  },
-  {
-    title: "5 Productivity Hacks for Creators",
-    caption: null,
-    gradient: "from-zinc-600 via-stone-500 to-zinc-700",
-    defaultPlatforms: [],
-    schedulerOpen: true,
-  },
-  {
-    title: "Minimalist Tech Setup 2024",
-    caption: null,
-    gradient: "from-amber-700 via-orange-600 to-red-800",
-    defaultPlatforms: ["reels"],
-    schedulerOpen: false,
-  },
-];
-
-interface RenderingVideo {
-  title: string | null;
-  status: string | null;
-  progress: number;
-}
-
-const renderingVideos: RenderingVideo[] = [
-  {
-    title: "What happens if you stop eating sugar",
-    status: "Generating audio synthesis...",
-    progress: 33,
-  },
-  {
-    title: null,
-    status: null,
-    progress: 10,
-  },
-];
-
-const totalVideos = readyVideos.length + renderingVideos.length;
-const readyCount = readyVideos.length;
-const progressPercent = Math.round((readyCount / totalVideos) * 100);
-
-// Build interleaved order: Ready 0, Ready 1 (scheduler), Rendering 0, Ready 2, Rendering 1
-type CardItem =
-  | { type: "ready"; data: ReadyVideo }
-  | { type: "rendering"; data: RenderingVideo };
-
-const cardOrder: CardItem[] = [
-  { type: "ready", data: readyVideos[0] },
-  { type: "ready", data: readyVideos[1] },
-  { type: "rendering", data: renderingVideos[0] },
-  { type: "ready", data: readyVideos[2] },
-  { type: "rendering", data: renderingVideos[1] },
-];
-
-function ReadyVideoCard({ video }: { video: ReadyVideo }) {
-  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(
-    new Set(video.defaultPlatforms)
-  );
+  index: number;
+  total: number;
+}) {
+  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
   const [showCaption, setShowCaption] = useState(false);
-  const [showScheduler, setShowScheduler] = useState(video.schedulerOpen);
+  const [showScheduler, setShowScheduler] = useState(false);
 
   const togglePlatform = (key: string) => {
     setActivePlatforms((prev) => {
@@ -96,7 +107,15 @@ function ReadyVideoCard({ video }: { video: ReadyVideo }) {
   };
 
   return (
-    <section className="group">
+    <section className="group animate-in fade-in duration-500">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-tertiary text-on-primary text-xs font-bold">
+          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+        </span>
+        <span className="text-xs font-bold uppercase tracking-widest text-tertiary font-headline">
+          Video {index + 1} of {total} — Ready
+        </span>
+      </div>
       <div
         className={`bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)] ${
           showScheduler ? "border-2 border-primary/20" : ""
@@ -104,25 +123,15 @@ function ReadyVideoCard({ video }: { video: ReadyVideo }) {
       >
         {/* Video Preview */}
         <div className="relative aspect-video rounded-lg overflow-hidden mb-6 bg-surface-dim group-hover:scale-[1.01] transition-transform duration-500 shadow-inner">
-          <div
-            className={`w-full h-full bg-gradient-to-br ${video.gradient}`}
-          />
+          <div className={`w-full h-full bg-gradient-to-br ${gradient}`} />
           <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
             <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white cursor-pointer hover:scale-110 transition-transform">
-              <span
-                className="material-symbols-outlined text-4xl"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                play_arrow
-              </span>
+              <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
             </div>
           </div>
         </div>
 
-        {/* Title */}
-        <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">
-          {video.title}
-        </h2>
+        <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{title}</h2>
 
         {/* Platform Selector */}
         <div className="flex items-center gap-3 mb-6">
@@ -137,52 +146,37 @@ function ReadyVideoCard({ video }: { video: ReadyVideo }) {
                   : "bg-surface-container-low text-on-surface-variant hover:bg-secondary-container hover:text-on-secondary-container"
               }`}
             >
-              <span className="material-symbols-outlined text-sm">
-                {p.icon}
-              </span>
+              <span className="material-symbols-outlined text-sm">{p.icon}</span>
             </button>
           ))}
         </div>
 
-        {/* Caption Preview — only shown if video has a caption */}
-        {video.caption && (
+        {/* Caption */}
+        {caption && (
           <div className="mb-6 p-4 bg-surface-container-low rounded-md">
             <p className="text-on-surface-variant text-sm leading-relaxed">
-              {showCaption
-                ? video.caption
-                : video.caption.slice(0, 100) + "... "}
-              <button
-                onClick={() => setShowCaption(!showCaption)}
-                className="text-primary font-bold cursor-pointer"
-              >
+              {showCaption ? caption : caption.slice(0, 100) + "... "}
+              <button onClick={() => setShowCaption(!showCaption)} className="text-primary font-bold cursor-pointer">
                 {showCaption ? "show less" : "see more"}
               </button>
             </p>
           </div>
         )}
 
-        {/* Scheduler (inline date/time display) */}
+        {/* Scheduler */}
         {showScheduler && (
           <div className="mb-6 p-5 bg-surface-container-high/50 rounded-lg">
             <div className="flex items-center gap-2 mb-4 text-primary font-bold text-sm">
-              <span className="material-symbols-outlined text-lg">
-                calendar_month
-              </span>
+              <span className="material-symbols-outlined text-lg">calendar_month</span>
               <span>Set Publication Date</span>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-surface-container-lowest rounded-sm border border-outline-variant/20">
-                <span className="block text-[10px] uppercase tracking-wider text-outline-variant font-bold mb-1">
-                  Date
-                </span>
-                <span className="font-medium text-on-surface">
-                  Oct 24, 2024
-                </span>
+                <span className="block text-[10px] uppercase tracking-wider text-outline-variant font-bold mb-1">Date</span>
+                <span className="font-medium text-on-surface">Mar 31, 2026</span>
               </div>
               <div className="p-3 bg-surface-container-lowest rounded-sm border border-outline-variant/20">
-                <span className="block text-[10px] uppercase tracking-wider text-outline-variant font-bold mb-1">
-                  Time
-                </span>
+                <span className="block text-[10px] uppercase tracking-wider text-outline-variant font-bold mb-1">Time</span>
                 <span className="font-medium text-on-surface">10:00 AM</span>
               </div>
             </div>
@@ -211,107 +205,144 @@ function ReadyVideoCard({ video }: { video: ReadyVideo }) {
   );
 }
 
-function RenderingVideoCard({ video }: { video: RenderingVideo }) {
-  const isFullSkeleton = !video.title;
-
+// ── Rendering video card (in progress) ──
+function RenderingVideoCard({
+  title,
+  stageLabel,
+  progress,
+}: {
+  title: string;
+  stageLabel: string;
+  progress: number;
+}) {
   return (
     <section className="opacity-80">
       <div className="bg-surface-container-lowest/50 rounded-xl p-6 border-dashed border-2 border-outline-variant/30">
         {/* Shimmer video placeholder */}
         <div className="aspect-video rounded-lg mb-6 shimmer" />
 
-        {isFullSkeleton ? (
-          <>
-            <div className="h-6 w-3/4 shimmer rounded-full mb-8" />
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-12 bg-surface-container-highest rounded-full shimmer" />
-              <div className="w-24 h-12 bg-surface-container-highest rounded-full shimmer" />
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Title + status */}
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-headline font-bold text-on-surface-variant">
-                {video.title}
-              </h2>
-              <div className="flex items-center gap-2 text-primary">
-                <span className="material-symbols-outlined animate-spin">
-                  refresh
-                </span>
-                <span className="text-xs font-bold uppercase tracking-widest">
-                  Rendering
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mb-8 text-on-surface-variant/60 text-sm">
-              <span>{video.status}</span>
-              <span className="h-1 w-12 bg-surface-container-highest rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary shimmer"
-                  style={{ width: `${video.progress}%` }}
-                />
-              </span>
-            </div>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xl font-headline font-bold text-on-surface-variant">{title}</h2>
+          <div className="flex items-center gap-2 text-primary">
+            <span className="material-symbols-outlined animate-spin">refresh</span>
+            <span className="text-xs font-bold uppercase tracking-widest">Rendering</span>
+          </div>
+        </div>
 
-            {/* Disabled buttons */}
-            <div className="flex items-center gap-3">
-              <button
-                disabled
-                className="flex-1 bg-surface-container-highest text-on-surface-variant/40 py-3 rounded-full font-label font-bold cursor-not-allowed"
-              >
-                Schedule
-              </button>
-              <button
-                disabled
-                className="px-6 py-3 border-2 border-surface-container-highest text-on-surface-variant/40 rounded-full font-label font-bold cursor-not-allowed"
-              >
-                Post now
-              </button>
-              <button
-                disabled
-                className="p-3 text-on-surface-variant/20 cursor-not-allowed"
-              >
-                <span className="material-symbols-outlined">delete</span>
-              </button>
-            </div>
-          </>
-        )}
+        {/* Progress bar */}
+        <div className="mb-2">
+          <div className="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+            <div
+              className="h-full primary-gradient rounded-full transition-all duration-700"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-between mb-8 text-sm">
+          <span className="text-on-surface-variant/60">{stageLabel}</span>
+          <span className="text-primary font-bold text-xs">{progress}%</span>
+        </div>
+
+        {/* Disabled buttons */}
+        <div className="flex items-center gap-3">
+          <button disabled className="flex-1 bg-surface-container-highest text-on-surface-variant/40 py-3 rounded-full font-label font-bold cursor-not-allowed">
+            Schedule
+          </button>
+          <button disabled className="px-6 py-3 border-2 border-surface-container-highest text-on-surface-variant/40 rounded-full font-label font-bold cursor-not-allowed">
+            Post now
+          </button>
+          <button disabled className="p-3 text-on-surface-variant/20 cursor-not-allowed">
+            <span className="material-symbols-outlined">delete</span>
+          </button>
+        </div>
       </div>
     </section>
   );
 }
 
+// ── Error card ──
+function ErrorCard({ title, message }: { title: string; message: string }) {
+  return (
+    <section>
+      <div className="bg-error-container/20 rounded-xl p-6 border-2 border-error/20">
+        <h2 className="text-xl font-headline font-bold text-on-surface mb-2">{title}</h2>
+        <div className="flex items-center gap-2 text-error text-sm">
+          <span className="material-symbols-outlined text-sm">error</span>
+          <span>{message}</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Main review page ──
 export default function ReviewPage() {
+  const [handles, setHandles] = useState<RunHandle[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("pending-renders");
+    if (stored) {
+      try {
+        setHandles(JSON.parse(stored));
+      } catch {
+        // invalid data
+      }
+    }
+    setLoaded(true);
+  }, []);
+
+  const totalVideos = handles.length;
+
+  // If no handles found, show empty state
+  if (loaded && handles.length === 0) {
+    return (
+      <main className="pt-32 pb-40 px-6 max-w-3xl mx-auto text-center">
+        <div className="mb-8">
+          <span className="material-symbols-outlined text-6xl text-outline-variant">movie_creation</span>
+        </div>
+        <h1 className="text-2xl font-headline font-extrabold text-on-surface mb-4">No videos rendering</h1>
+        <p className="text-on-surface-variant mb-8">Start by creating videos from the editor.</p>
+        <Link
+          href="/create"
+          className="bg-primary text-on-primary px-10 py-4 rounded-full font-label font-bold shadow-xl hover:scale-105 transition-transform active:scale-95 inline-block"
+        >
+          Create content
+        </Link>
+      </main>
+    );
+  }
+
   return (
     <main className="pt-32 pb-40 px-6 max-w-3xl mx-auto">
-      {/* Status Bar */}
+      {/* Header */}
       <div className="mb-12">
-        <div className="flex justify-between items-end mb-4">
-          <h1 className="text-2xl font-headline font-extrabold tracking-tight text-on-surface">
-            {readyCount} of {totalVideos} videos ready
-          </h1>
-          <span className="text-sm font-label font-bold text-primary">
-            {progressPercent}% Complete
-          </span>
-        </div>
-        <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
-          <div
-            className="h-full primary-gradient rounded-full transition-all duration-700"
-            style={{ width: `${progressPercent}%` }}
-          />
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-full primary-gradient flex items-center justify-center text-on-primary">
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+          </div>
+          <div>
+            <h1 className="text-2xl font-headline font-extrabold tracking-tight text-on-surface">
+              Your videos are being created!
+            </h1>
+            <p className="text-sm text-on-surface-variant">
+              {totalVideos} video{totalVideos !== 1 ? "s" : ""} rendering in parallel &middot; You&apos;re free to leave this page
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Video Cards — interleaved ready + rendering */}
+      {/* Video Cards */}
       <div className="space-y-10">
-        {cardOrder.map((card, i) =>
-          card.type === "ready" ? (
-            <ReadyVideoCard key={`ready-${i}`} video={card.data} />
-          ) : (
-            <RenderingVideoCard key={`render-${i}`} video={card.data} />
-          )
-        )}
+        {handles.map((handle, i) => (
+          <VideoRunCard
+            key={handle.runId}
+            handle={handle}
+            index={i}
+            total={totalVideos}
+            gradient={gradients[i % gradients.length]}
+          />
+        ))}
       </div>
 
       {/* Footer Navigation */}

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { triggerVideoRenders } from "@/app/actions/create-videos";
 
 const characters = [
   { name: "Doctor", emoji: "\u{1F9D1}\u200D\u2695\uFE0F", color: "from-blue-400 to-cyan-300" },
@@ -183,6 +184,29 @@ function EditorContent() {
   const selectSetting = (key: SettingKey, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
     setOpenPill(null);
+  };
+
+  const [creating, setCreating] = useState(false);
+
+  const handleCreateVideos = async () => {
+    if (scripts.length === 0) return;
+    setCreating(true);
+    try {
+      const handles = await triggerVideoRenders(
+        scripts.map((s) => ({
+          title: s.title,
+          script: s.script,
+          template,
+          settings,
+        }))
+      );
+      // Store run handles for the review page
+      sessionStorage.setItem("pending-renders", JSON.stringify(handles));
+      router.push("/create/review");
+    } catch (err) {
+      console.error("Failed to trigger video renders:", err);
+      setCreating(false);
+    }
   };
 
   const videoCount = scripts.length || ideaTitles.length;
@@ -481,8 +505,8 @@ function EditorContent() {
       {/* Sticky Bottom Bar */}
       <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center">
         <button
-          onClick={() => router.push("/create/review")}
-          disabled={loading || scripts.length === 0}
+          onClick={handleCreateVideos}
+          disabled={loading || creating || scripts.length === 0}
           className="w-full max-w-xl py-5 primary-gradient text-on-primary rounded-full text-xl font-bold font-headline flex items-center justify-center gap-3 shadow-xl shadow-primary/30 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
@@ -491,6 +515,13 @@ function EditorContent() {
                 refresh
               </span>
               Generating scripts...
+            </>
+          ) : creating ? (
+            <>
+              <span className="material-symbols-outlined animate-spin">
+                refresh
+              </span>
+              Launching render jobs...
             </>
           ) : (
             <>
