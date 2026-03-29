@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-const templates = [
+const videoTemplates = [
   { name: "Did You Know", icon: "lightbulb", example: '"Octopuses have 3 hearts"' },
   { name: "Myth Buster", icon: "verified", example: '"Knuckle cracking is harmless"' },
   { name: "X vs Y", icon: "compare_arrows", example: '"Coffee vs Green Tea"' },
@@ -15,19 +15,33 @@ const templates = [
   { name: "What Happens If", icon: "quiz", example: '"No sugar for 30 days"' },
 ];
 
-interface Idea {
+interface VideoIdea {
   title: string;
   tag: string;
 }
 
-export default function TemplatesPage() {
+interface PostIdea {
+  number: number;
+  topic: string;
+  hook: string;
+  headline: string;
+  idea: string;
+}
+
+function TemplatesContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const format = searchParams.get("format") || "video";
+  const isImage = format === "image";
+
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showIdeas, setShowIdeas] = useState(false);
   const [selectedIdeas, setSelectedIdeas] = useState<Set<number>>(new Set());
-  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [videoIdeas, setVideoIdeas] = useState<VideoIdea[]>([]);
+  const [postIdeas, setPostIdeas] = useState<PostIdea[]>([]);
   const [loading, setLoading] = useState(false);
   const [niche, setNiche] = useState("health and wellness");
+  const [topic, setTopic] = useState("");
 
   const ideasContentRef = useRef<HTMLDivElement>(null);
   const ideasSectionRef = useRef<HTMLDivElement>(null);
@@ -35,7 +49,6 @@ export default function TemplatesPage() {
 
   useEffect(() => {
     if (showIdeas && ideasContentRef.current) {
-      // Delay measurement to allow content to render
       requestAnimationFrame(() => {
         if (ideasContentRef.current) {
           setIdeasHeight(ideasContentRef.current.scrollHeight);
@@ -47,11 +60,12 @@ export default function TemplatesPage() {
     } else {
       setIdeasHeight(0);
     }
-  }, [showIdeas, ideas, loading]);
+  }, [showIdeas, videoIdeas, postIdeas, loading]);
 
-  const fetchIdeas = useCallback(async (template: string | null) => {
+  // ── Video idea generation (Gemini via Next.js API) ──
+  const fetchVideoIdeas = useCallback(async (template: string | null) => {
     setLoading(true);
-    setIdeas([]);
+    setVideoIdeas([]);
     setSelectedIdeas(new Set());
     setShowIdeas(true);
 
@@ -66,27 +80,60 @@ export default function TemplatesPage() {
       });
       const data = await res.json();
       if (data.ideas) {
-        setIdeas(data.ideas);
+        setVideoIdeas(data.ideas);
       }
     } catch (err) {
-      console.error("Failed to fetch ideas:", err);
+      console.error("Failed to fetch video ideas:", err);
     } finally {
       setLoading(false);
     }
   }, [niche]);
 
+  // ── Image post idea generation (Flask /pg/generate_ideas) ──
+  const fetchPostIdeas = useCallback(async () => {
+    if (!topic.trim()) return;
+    setLoading(true);
+    setPostIdeas([]);
+    setSelectedIdeas(new Set());
+    setShowIdeas(true);
+
+    try {
+      const res = await fetch("/api/generate-post-ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, niche, platform: "instagram" }),
+      });
+      const data = await res.json();
+      if (data.ideas) {
+        setPostIdeas(data.ideas);
+      }
+      // Store the pg_job_id for later use in /pg/start
+      if (data.pg_job_id) {
+        sessionStorage.setItem("pg_job_id", data.pg_job_id);
+      }
+    } catch (err) {
+      console.error("Failed to fetch post ideas:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [topic, niche]);
+
   const handleTemplateClick = (name: string) => {
     setSelectedTemplate(name);
-    fetchIdeas(name);
+    fetchVideoIdeas(name);
   };
 
   const handleSkip = () => {
     setSelectedTemplate(null);
-    fetchIdeas(null);
+    fetchVideoIdeas(null);
   };
 
   const handleRefresh = () => {
-    fetchIdeas(selectedTemplate);
+    if (isImage) {
+      fetchPostIdeas();
+    } else {
+      fetchVideoIdeas(selectedTemplate);
+    }
   };
 
   const toggleIdea = (index: number) => {
@@ -102,13 +149,27 @@ export default function TemplatesPage() {
   };
 
   const handleContinue = () => {
-    const selected = Array.from(selectedIdeas).map((i) => ideas[i].title);
     const params = new URLSearchParams();
-    params.set("template", selectedTemplate || "Did You Know");
-    params.set("ideas", JSON.stringify(selected));
+    params.set("format", format);
+
+    if (isImage) {
+      // Pass selected post idea numbers and topics
+      const selected = Array.from(selectedIdeas).map((i) => postIdeas[i]);
+      params.set("ideas", JSON.stringify(selected.map((idea) => ({
+        number: idea.number,
+        topic: idea.topic,
+        hook: idea.hook,
+        headline: idea.headline,
+      }))));
+    } else {
+      const selected = Array.from(selectedIdeas).map((i) => videoIdeas[i].title);
+      params.set("template", selectedTemplate || "Did You Know");
+      params.set("ideas", JSON.stringify(selected));
+    }
     router.push(`/create/editor?${params.toString()}`);
   };
 
+  const ideas = isImage ? postIdeas : videoIdeas;
   const selectedCount = selectedIdeas.size;
 
   return (
@@ -123,15 +184,17 @@ export default function TemplatesPage() {
         </Link>
         <div>
           <h1 className="text-3xl font-extrabold font-headline tracking-tight text-on-surface">
-            Pick a style
+            {isImage ? "Generate post ideas" : "Pick a style"}
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            Select the visual format for your next viral hit
+            {isImage
+              ? "Enter a topic and we'll create 10 image post ideas"
+              : "Select the visual format for your next viral hit"}
           </p>
         </div>
       </header>
 
-      {/* Niche Input */}
+      {/* Niche Input — shown for both formats */}
       <div className="mb-8 max-w-xl">
         <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">
           Your niche
@@ -145,66 +208,102 @@ export default function TemplatesPage() {
         />
       </div>
 
-      {/* Template Grid */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {templates.map((t) => {
-          const isSelected = selectedTemplate === t.name;
-          return (
-            <button
-              key={t.name}
-              onClick={() => handleTemplateClick(t.name)}
-              className={`group relative flex flex-col p-5 bg-surface-container-lowest rounded-[1rem] text-left transition-all active:scale-[0.98] ${
-                isSelected
-                  ? "ring-2 ring-primary shadow-[0px_20px_40px_rgba(111,51,213,0.12)]"
-                  : "hover:shadow-md"
-              }`}
-            >
-              <div
-                className={`w-10 h-10 mb-4 rounded-lg flex items-center justify-center ${
-                  isSelected
-                    ? "bg-primary-container/20 text-primary"
-                    : "bg-surface-container-low text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors"
-                }`}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={
+      {isImage ? (
+        /* ── Image Post: Topic input + Generate button ── */
+        <div className="mb-16 max-w-xl">
+          <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">
+            Topic
+          </label>
+          <input
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") fetchPostIdeas(); }}
+            placeholder="e.g., morning coffee rituals, why you should drink more water"
+            className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-4 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface placeholder:text-on-surface-variant/50 transition-all font-body mb-4"
+          />
+          <button
+            onClick={fetchPostIdeas}
+            disabled={!topic.trim() || loading}
+            className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {loading ? (
+              <>
+                <span className="material-symbols-outlined animate-spin text-sm">refresh</span>
+                Generating ideas...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                Generate 10 ideas
+              </>
+            )}
+          </button>
+        </div>
+      ) : (
+        /* ── Video: Template Grid ── */
+        <>
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {videoTemplates.map((t) => {
+              const isSelected = selectedTemplate === t.name;
+              return (
+                <button
+                  key={t.name}
+                  onClick={() => handleTemplateClick(t.name)}
+                  className={`group relative flex flex-col p-5 bg-surface-container-lowest rounded-[1rem] text-left transition-all active:scale-[0.98] ${
                     isSelected
-                      ? { fontVariationSettings: "'FILL' 1" }
-                      : undefined
-                  }
+                      ? "ring-2 ring-primary shadow-[0px_20px_40px_rgba(111,51,213,0.12)]"
+                      : "hover:shadow-md"
+                  }`}
                 >
-                  {t.icon}
-                </span>
-              </div>
-              <h3 className="font-bold text-lg font-headline text-on-surface mb-1">
-                {t.name}
-              </h3>
-              <p className="text-xs text-on-surface-variant italic leading-relaxed">
-                {t.example}
-              </p>
-              {isSelected && (
-                <div className="absolute top-3 right-3 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[14px] text-white font-bold">
-                    check
-                  </span>
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </section>
+                  <div
+                    className={`w-10 h-10 mb-4 rounded-lg flex items-center justify-center ${
+                      isSelected
+                        ? "bg-primary-container/20 text-primary"
+                        : "bg-surface-container-low text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors"
+                    }`}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={
+                        isSelected
+                          ? { fontVariationSettings: "'FILL' 1" }
+                          : undefined
+                      }
+                    >
+                      {t.icon}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-lg font-headline text-on-surface mb-1">
+                    {t.name}
+                  </h3>
+                  <p className="text-xs text-on-surface-variant italic leading-relaxed">
+                    {t.example}
+                  </p>
+                  {isSelected && (
+                    <div className="absolute top-3 right-3 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[14px] text-white font-bold">
+                        check
+                      </span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </section>
 
-      {/* Skip link */}
-      <div className="text-center mb-16">
-        <button
-          onClick={handleSkip}
-          className="text-primary text-lg font-bold bg-primary/10 hover:bg-primary/15 px-8 py-3 rounded-full transition-all inline-flex items-center gap-2"
-        >
-          <span className="material-symbols-outlined">skip_next</span>
-          Skip — just give me viral ideas
-        </button>
-      </div>
+          {/* Skip link */}
+          <div className="text-center mb-16">
+            <button
+              onClick={handleSkip}
+              className="text-primary text-lg font-bold bg-primary/10 hover:bg-primary/15 px-8 py-3 rounded-full transition-all inline-flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">skip_next</span>
+              Skip — just give me viral ideas
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Ideas Section */}
       <div
@@ -229,9 +328,11 @@ export default function TemplatesPage() {
                   auto_awesome
                 </span>
                 <h2 className="text-2xl font-bold font-headline text-on-surface">
-                  {selectedTemplate
-                    ? `10 "${selectedTemplate}" ideas`
-                    : "10 viral ideas for you"}
+                  {isImage
+                    ? "10 image post ideas"
+                    : selectedTemplate
+                      ? `10 "${selectedTemplate}" ideas`
+                      : "10 viral ideas for you"}
                 </h2>
               </div>
               <button
@@ -267,18 +368,25 @@ export default function TemplatesPage() {
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-4 no-scrollbar">
                 {ideas.map((idea, i) => {
                   const isChecked = selectedIdeas.has(i);
+                  const title = isImage
+                    ? (idea as PostIdea).topic
+                    : (idea as VideoIdea).title;
+                  const subtitle = isImage
+                    ? (idea as PostIdea).hook
+                    : null;
+                  const tag = isImage ? "post" : (idea as VideoIdea).tag;
                   return (
                     <div
                       key={i}
                       onClick={() => toggleIdea(i)}
-                      className={`group flex items-center gap-4 p-4 rounded-[1rem] cursor-pointer transition-all ${
+                      className={`group flex items-start gap-4 p-4 rounded-[1rem] cursor-pointer transition-all ${
                         isChecked
                           ? "bg-surface-container-lowest border-l-4 border-primary"
                           : "bg-surface-container-low/50 hover:bg-surface-container-lowest"
                       }`}
                     >
                       <div
-                        className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors mt-0.5 ${
                           isChecked
                             ? "border-primary bg-primary"
                             : "border-outline-variant group-hover:border-primary"
@@ -290,15 +398,22 @@ export default function TemplatesPage() {
                           </span>
                         )}
                       </div>
-                      <p
-                        className={`flex-grow font-headline leading-tight ${
-                          isChecked
-                            ? "font-semibold text-on-surface"
-                            : "font-medium text-on-surface-variant group-hover:text-on-surface transition-colors"
-                        }`}
-                      >
-                        {idea.title}
-                      </p>
+                      <div className="flex-grow min-w-0">
+                        <p
+                          className={`font-headline leading-tight ${
+                            isChecked
+                              ? "font-semibold text-on-surface"
+                              : "font-medium text-on-surface-variant group-hover:text-on-surface transition-colors"
+                          }`}
+                        >
+                          {title}
+                        </p>
+                        {subtitle && (
+                          <p className="text-xs text-on-surface-variant/70 mt-1 leading-relaxed">
+                            {subtitle}
+                          </p>
+                        )}
+                      </div>
                       <span
                         className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase flex-shrink-0 ${
                           isChecked
@@ -306,7 +421,7 @@ export default function TemplatesPage() {
                             : "bg-surface-container-high/30 text-outline"
                         }`}
                       >
-                        {idea.tag}
+                        {tag}
                       </span>
                     </div>
                   );
@@ -348,5 +463,13 @@ export default function TemplatesPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function TemplatesPage() {
+  return (
+    <Suspense>
+      <TemplatesContent />
+    </Suspense>
   );
 }

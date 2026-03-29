@@ -18,7 +18,7 @@ const inputMethods = [
     title: "Pick a template",
     description: "10 AI-generated viral ideas based on your niche",
     highlighted: true,
-    videoOnly: true,
+    formats: ["Video", "Image Post"],
     extra: (
       <div className="flex flex-wrap gap-2">
         {templatePills.map((pill) => (
@@ -89,7 +89,9 @@ export default function InputMethodSelection({
           const isHighlighted = method.highlighted;
           const isTrending = method.trending;
           const isEnabled =
-            method.videoOnly && selectedFormat === "Video";
+            method.formats
+              ? method.formats.includes(selectedFormat ?? "")
+              : false;
           const isDisabled = !isEnabled;
 
           return (
@@ -98,7 +100,8 @@ export default function InputMethodSelection({
               disabled={isDisabled}
               onClick={() => {
                 if (isEnabled) {
-                  router.push("/create/templates");
+                  const format = selectedFormat === "Image Post" ? "image" : "video";
+                  router.push(`/create/templates?format=${format}`);
                 }
               }}
               className={`group flex items-center gap-6 p-6 bg-surface-container-lowest rounded-xl transition-all text-left relative overflow-hidden ${

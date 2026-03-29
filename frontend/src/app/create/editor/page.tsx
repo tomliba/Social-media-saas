@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
+import { triggerPostRenders } from "@/app/actions/create-posts";
 import { voices, defaultVoice } from "@/lib/voices";
 
 const characters = [
@@ -18,7 +19,7 @@ const characters = [
   { name: "Alien", emoji: "\u{1F47D}", color: "from-lime-400 to-green-300" },
 ];
 
-type SettingKey = "tone" | "presenter" | "voice" | "background" | "duration" | "layout";
+type SettingKey = "tone" | "presenter" | "voice" | "background" | "duration" | "layout" | "platform";
 
 interface SettingConfig {
   key: SettingKey;
@@ -27,7 +28,7 @@ interface SettingConfig {
   options: { label: string; emoji?: string; icon?: string; badge?: string }[];
 }
 
-const settingsConfig: SettingConfig[] = [
+const videoSettingsConfig: SettingConfig[] = [
   {
     key: "tone",
     label: "Tone",
@@ -85,22 +86,66 @@ const settingsConfig: SettingConfig[] = [
   },
 ];
 
+const imageSettingsConfig: SettingConfig[] = [
+  {
+    key: "tone",
+    label: "Tone",
+    emoji: "\u{1F604}",
+    options: [
+      { label: "Funny", emoji: "\u{1F604}" },
+      { label: "Serious", emoji: "\u{1F3AF}" },
+      { label: "Cursing", emoji: "\u{1F92C}" },
+      { label: "Edgy", emoji: "\u{1F525}" },
+    ],
+  },
+  {
+    key: "platform",
+    label: "Platform",
+    emoji: "\u{1F4F1}",
+    options: [
+      { label: "Instagram", emoji: "\u{1F4F7}" },
+      { label: "TikTok", emoji: "\u{1F3B5}" },
+      { label: "Facebook", emoji: "\u{1F465}" },
+      { label: "LinkedIn", emoji: "\u{1F4BC}" },
+      { label: "X", emoji: "\u{1D54F}" },
+    ],
+  },
+];
+
 interface Script {
   title: string;
   script: string;
+}
+
+interface PostIdea {
+  number: number;
+  topic: string;
+  hook: string;
+  headline: string;
 }
 
 function EditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const format = searchParams.get("format") || "video";
+  const isImage = format === "image";
   const template = searchParams.get("template") || "Did You Know";
   const ideasParam = searchParams.get("ideas");
-  const ideaTitles: string[] = ideasParam ? JSON.parse(ideasParam) : [];
 
+  // Parse ideas based on format
+  const videoIdeaTitles: string[] = !isImage && ideasParam ? JSON.parse(ideasParam) : [];
+  const postIdeas: PostIdea[] = isImage && ideasParam ? JSON.parse(ideasParam) : [];
+
+  // ── Video state ──
   const [scripts, setScripts] = useState<Script[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isImage); // Video auto-fetches scripts
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
+
+  // ── Image state — editable hooks ──
+  const [editableHooks, setEditableHooks] = useState<string[]>(
+    postIdeas.map((idea) => idea.hook)
+  );
 
   const [settings, setSettings] = useState<Record<SettingKey, string>>({
     tone: "Funny",
@@ -109,12 +154,16 @@ function EditorContent() {
     background: "Stock footage",
     duration: "30s",
     layout: "Standard",
+    platform: "Instagram",
   });
   const [openPill, setOpenPill] = useState<SettingKey | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
+  const settingsConfig = isImage ? imageSettingsConfig : videoSettingsConfig;
+
+  // ── Video: fetch scripts from Gemini ──
   const fetchScripts = useCallback(async () => {
-    if (ideaTitles.length === 0) {
+    if (isImage || videoIdeaTitles.length === 0) {
       setLoading(false);
       return;
     }
@@ -123,7 +172,7 @@ function EditorContent() {
       const res = await fetch("/api/generate-scripts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ template, ideas: ideaTitles }),
+        body: JSON.stringify({ template, ideas: videoIdeaTitles, tone: settings.tone, duration: settings.duration }),
       });
       const data = await res.json();
       if (data.scripts) {
@@ -189,6 +238,14 @@ function EditorContent() {
     });
   };
 
+  const updateHook = (index: number, value: string) => {
+    setEditableHooks((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
   const selectSetting = (key: SettingKey, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
     setOpenPill(null);
@@ -196,6 +253,7 @@ function EditorContent() {
 
   const [creating, setCreating] = useState(false);
 
+  // ── Video: create videos ──
   const handleCreateVideos = async () => {
     if (scripts.length === 0) return;
     setCreating(true);
@@ -208,8 +266,8 @@ function EditorContent() {
           settings,
         }))
       );
-      // Store run handles for the review page
       sessionStorage.setItem("pending-renders", JSON.stringify(handles));
+      sessionStorage.setItem("pending-format", "video");
       router.push("/create/review");
     } catch (err) {
       console.error("Failed to trigger video renders:", err);
@@ -217,14 +275,44 @@ function EditorContent() {
     }
   };
 
-  const videoCount = scripts.length || ideaTitles.length;
+  // ── Image: create posts ──
+  const handleCreatePosts = async () => {
+    if (postIdeas.length === 0) return;
+    setCreating(true);
+    try {
+      const pgJobId = sessionStorage.getItem("pg_job_id");
+      if (!pgJobId) {
+        throw new Error("pg_job_id not found — go back and generate ideas first");
+      }
+
+      const handle = await triggerPostRenders({
+        pgJobId,
+        selectedIdeas: postIdeas.map((idea) => idea.number),
+        ideaTopics: postIdeas.map((idea) => idea.topic),
+        settings: {
+          tone: settings.tone,
+          platform: settings.platform,
+        },
+      });
+      sessionStorage.setItem("pending-renders", JSON.stringify([handle]));
+      sessionStorage.setItem("pending-format", "image");
+      router.push("/create/review");
+    } catch (err) {
+      console.error("Failed to trigger post renders:", err);
+      setCreating(false);
+    }
+  };
+
+  const itemCount = isImage ? postIdeas.length : (scripts.length || videoIdeaTitles.length);
+  const itemLabel = isImage ? "post" : "video";
+  const hasContent = isImage ? postIdeas.length > 0 : scripts.length > 0;
 
   return (
     <main className="pt-24 pb-72 px-6 max-w-4xl mx-auto">
       {/* Breadcrumb */}
       <div className="flex items-center gap-3 mb-10 text-on-surface-variant font-headline">
         <Link
-          href="/create/templates"
+          href={`/create/templates?format=${format}`}
           className="p-2 hover:bg-surface-container-highest rounded-full transition-colors"
         >
           <span className="material-symbols-outlined">arrow_back</span>
@@ -240,32 +328,36 @@ function EditorContent() {
             chevron_right
           </span>
           <span className="hover:text-primary cursor-pointer transition-colors">
-            Video
+            {isImage ? "Image Post" : "Video"}
           </span>
-          <span className="material-symbols-outlined text-xs">
-            chevron_right
-          </span>
-          <span className="hover:text-primary cursor-pointer transition-colors">
-            {template}
-          </span>
+          {!isImage && (
+            <>
+              <span className="material-symbols-outlined text-xs">
+                chevron_right
+              </span>
+              <span className="hover:text-primary cursor-pointer transition-colors">
+                {template}
+              </span>
+            </>
+          )}
           <span className="material-symbols-outlined text-xs">
             chevron_right
           </span>
           <span className="text-on-surface font-bold">
-            {videoCount} videos
+            {itemCount} {itemLabel}{itemCount !== 1 ? "s" : ""}
           </span>
         </nav>
       </div>
 
-      {/* Script Cards */}
+      {/* Content Cards */}
       <section className="space-y-8 mb-16">
         <h2 className="text-3xl font-bold font-headline tracking-tight text-on-surface mb-6">
-          Review Scripts
+          {isImage ? "Review Post Ideas" : "Review Scripts"}
         </h2>
 
-        {loading ? (
-          // Loading skeleton
-          Array.from({ length: ideaTitles.length || 3 }).map((_, i) => (
+        {/* ── Video: Loading skeleton ── */}
+        {!isImage && loading && (
+          Array.from({ length: videoIdeaTitles.length || 3 }).map((_, i) => (
             <div
               key={i}
               className="bg-surface-container-lowest rounded-[1rem] p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10"
@@ -285,50 +377,90 @@ function EditorContent() {
               </div>
             </div>
           ))
-        ) : (
-          scripts.map((s, i) => (
-            <div
-              key={i}
-              className="bg-surface-container-lowest rounded-[1rem] p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10 relative overflow-hidden"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className="space-y-1">
-                  <span className="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">
-                    Video {i + 1} of {videoCount}
-                  </span>
-                  <h3 className="text-xl font-bold font-headline text-on-surface">
-                    {s.title}
-                  </h3>
-                </div>
-                <button
-                  onClick={() => regenerateScript(i)}
-                  disabled={regeneratingIndex === i}
-                  className="flex items-center gap-2 px-4 py-2 bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant text-sm font-semibold rounded-full transition-all active:scale-95 disabled:opacity-50"
-                >
-                  <span className={`material-symbols-outlined text-sm ${regeneratingIndex === i ? "animate-spin" : ""}`}>
-                    refresh
-                  </span>
-                  {regeneratingIndex === i ? "Regenerating..." : "Regenerate"}
-                </button>
+        )}
+
+        {/* ── Video: Script cards ── */}
+        {!isImage && !loading && scripts.map((s, i) => (
+          <div
+            key={i}
+            className="bg-surface-container-lowest rounded-[1rem] p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10 relative overflow-hidden"
+          >
+            <div className="flex justify-between items-start mb-6">
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">
+                  Video {i + 1} of {itemCount}
+                </span>
+                <h3 className="text-xl font-bold font-headline text-on-surface">
+                  {s.title}
+                </h3>
               </div>
-              <div className="relative">
-                <textarea
-                  value={s.script}
-                  onChange={(e) => updateScript(i, e.target.value)}
-                  className="w-full min-h-[160px] bg-surface text-on-surface-variant font-body leading-relaxed p-6 rounded-md border-none focus:ring-2 focus:ring-primary/40 resize-none"
-                  placeholder="Enter script here..."
-                />
-                <div className="absolute bottom-4 right-4 text-[10px] font-bold text-outline-variant uppercase tracking-tighter">
-                  AI Generated
-                </div>
+              <button
+                onClick={() => regenerateScript(i)}
+                disabled={regeneratingIndex === i}
+                className="flex items-center gap-2 px-4 py-2 bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant text-sm font-semibold rounded-full transition-all active:scale-95 disabled:opacity-50"
+              >
+                <span className={`material-symbols-outlined text-sm ${regeneratingIndex === i ? "animate-spin" : ""}`}>
+                  refresh
+                </span>
+                {regeneratingIndex === i ? "Regenerating..." : "Regenerate"}
+              </button>
+            </div>
+            <div className="relative">
+              <textarea
+                value={s.script}
+                onChange={(e) => updateScript(i, e.target.value)}
+                className="w-full min-h-[160px] bg-surface text-on-surface-variant font-body leading-relaxed p-6 rounded-md border-none focus:ring-2 focus:ring-primary/40 resize-none"
+                placeholder="Enter script here..."
+              />
+              <div className="absolute bottom-4 right-4 text-[10px] font-bold text-outline-variant uppercase tracking-tighter">
+                AI Generated
               </div>
             </div>
-          ))
-        )}
+          </div>
+        ))}
+
+        {/* ── Image: Post idea cards ── */}
+        {isImage && postIdeas.map((idea, i) => (
+          <div
+            key={i}
+            className="bg-surface-container-lowest rounded-[1rem] p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10 relative overflow-hidden"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">
+                  Post {i + 1} of {itemCount}
+                </span>
+                <h3 className="text-xl font-bold font-headline text-on-surface">
+                  {idea.topic}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-container/20 rounded-full">
+                <span className="material-symbols-outlined text-primary text-sm">image</span>
+                <span className="text-xs font-bold text-primary">Image Post</span>
+              </div>
+            </div>
+            {idea.headline && (
+              <p className="text-sm font-semibold text-on-surface mb-3">
+                {idea.headline}
+              </p>
+            )}
+            <div className="relative">
+              <textarea
+                value={editableHooks[i] || ""}
+                onChange={(e) => updateHook(i, e.target.value)}
+                className="w-full min-h-[80px] bg-surface text-on-surface-variant font-body leading-relaxed p-6 rounded-md border-none focus:ring-2 focus:ring-primary/40 resize-none"
+                placeholder="Edit the hook text..."
+              />
+              <div className="absolute bottom-4 right-4 text-[10px] font-bold text-outline-variant uppercase tracking-tighter">
+                AI Generated
+              </div>
+            </div>
+          </div>
+        ))}
       </section>
 
       {/* Settings Section */}
-      {!loading && scripts.length > 0 && (
+      {!loading && hasContent && (
         <section className="mt-16 relative">
           <h2 className="text-3xl font-bold font-headline tracking-tight text-on-surface mb-8">
             Creative Settings
@@ -513,8 +645,8 @@ function EditorContent() {
       {/* Sticky Bottom Bar */}
       <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center">
         <button
-          onClick={handleCreateVideos}
-          disabled={loading || creating || scripts.length === 0}
+          onClick={isImage ? handleCreatePosts : handleCreateVideos}
+          disabled={loading || creating || !hasContent}
           className="w-full max-w-xl py-5 primary-gradient text-on-primary rounded-full text-xl font-bold font-headline flex items-center justify-center gap-3 shadow-xl shadow-primary/30 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
@@ -529,11 +661,11 @@ function EditorContent() {
               <span className="material-symbols-outlined animate-spin">
                 refresh
               </span>
-              Launching render jobs...
+              {isImage ? "Launching post generation..." : "Launching render jobs..."}
             </>
           ) : (
             <>
-              Create {videoCount} videos
+              Create {itemCount} {itemLabel}{itemCount !== 1 ? "s" : ""}
               <span
                 className="material-symbols-outlined"
                 style={{ fontVariationSettings: "'FILL' 1" }}
@@ -545,8 +677,9 @@ function EditorContent() {
         </button>
         <p className="mt-3 text-xs font-medium text-on-surface-variant flex items-center gap-2">
           <span className="w-1.5 h-1.5 bg-tertiary rounded-full" />
-          Videos render in the background &middot; We&apos;ll notify you when
-          ready &middot; ~7 min estimated
+          {isImage
+            ? "Posts generate in the background \u00B7 ~2 min estimated"
+            : "Videos render in the background \u00B7 We\u2019ll notify you when ready \u00B7 ~7 min estimated"}
         </p>
       </footer>
     </main>
