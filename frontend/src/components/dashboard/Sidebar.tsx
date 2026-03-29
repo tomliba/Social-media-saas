@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const navItems = [
-  { icon: "home", label: "Home", href: "/dashboard", active: true },
-  { icon: "add_circle", label: "Create", href: "/create", active: false },
-  { icon: "auto_awesome", label: "Autopilot", href: "/autopilot", active: false },
-  { icon: "manage_accounts", label: "Accounts", href: "#", active: false },
-  { icon: "settings", label: "Preferences", href: "#", active: false },
+  { icon: "home", label: "Home", href: "/dashboard", match: "/dashboard" },
+  { icon: "add_circle", label: "Create", href: "/create", match: "/create" },
+  { icon: "auto_awesome", label: "Autopilot", href: "/autopilot", match: "/autopilot" },
+  { icon: "manage_accounts", label: "Accounts", href: "/accounts", match: "/accounts" },
+  { icon: "settings", label: "Preferences", href: "/preferences", match: "/preferences" },
 ];
 
 export default function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-zinc-50 hidden md:flex flex-col py-4 space-y-2">
       {/* Creator Hub */}
@@ -33,12 +36,14 @@ export default function Sidebar() {
 
       {/* Nav Links */}
       <nav className="flex-1 space-y-1">
-        {navItems.map((item) => (
+        {navItems.map((item) => {
+          const isActive = pathname === item.match || pathname.startsWith(item.match + "/");
+          return (
           <Link
             key={item.label}
             href={item.href}
             className={`mx-2 flex items-center gap-3 px-4 py-3 font-medium rounded-xl transition-transform hover:translate-x-1 ${
-              item.active
+              isActive
                 ? "bg-violet-100 text-violet-700"
                 : "text-zinc-600 hover:bg-zinc-200"
             }`}
@@ -46,7 +51,8 @@ export default function Sidebar() {
             <span className="material-symbols-outlined">{item.icon}</span>
             <span>{item.label}</span>
           </Link>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Usage / Upgrade */}

@@ -24,14 +24,14 @@ export interface Voice {
 export const voices: Voice[] = [
   // ── Test voices (real Fish Audio IDs) ──
   {
-    name: "Geography Guy",
+    name: "Deep Male Voice",
     fishAudioId: "728f6ff2240d49308e8137ffe66008e2",
-    emoji: "\u{1F30D}",
+    emoji: "\u{1F399}\uFE0F",
   },
   {
-    name: "Sports Bro",
+    name: "Energetic Male Voice",
     fishAudioId: "c203ca8e441c4e8e80562be2eef75a10",
-    emoji: "\u{1F3C8}",
+    emoji: "\u26A1",
   },
 
   // ── Placeholder voices (Tom will provide real IDs) ──

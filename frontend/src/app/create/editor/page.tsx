@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
 import { triggerPostRenders } from "@/app/actions/create-posts";
-import { voices, defaultVoice } from "@/lib/voices";
+import { voices, defaultVoice, getVoiceByName } from "@/lib/voices";
 
 const characters = [
   { name: "Doctor", emoji: "\u{1F9D1}\u200D\u2695\uFE0F", color: "from-blue-400 to-cyan-300" },
@@ -30,17 +30,6 @@ interface SettingConfig {
 
 const videoSettingsConfig: SettingConfig[] = [
   {
-    key: "tone",
-    label: "Tone",
-    emoji: "\u{1F604}",
-    options: [
-      { label: "Funny", emoji: "\u{1F604}" },
-      { label: "Serious", emoji: "\u{1F3AF}" },
-      { label: "Cursing", emoji: "\u{1F92C}" },
-      { label: "Edgy", emoji: "\u{1F525}" },
-    ],
-  },
-  {
     key: "presenter",
     label: "Presenter",
     emoji: "\u{1F9D1}\u200D\u2695\uFE0F",
@@ -64,17 +53,6 @@ const videoSettingsConfig: SettingConfig[] = [
     ],
   },
   {
-    key: "duration",
-    label: "Duration",
-    emoji: "\u23F1",
-    options: [
-      { label: "15s", emoji: "\u23F1" },
-      { label: "30s", emoji: "\u23F1" },
-      { label: "60s", emoji: "\u23F1" },
-      { label: "AI picks", emoji: "\u{1F916}" },
-    ],
-  },
-  {
     key: "layout",
     label: "Layout",
     emoji: "\u{1F4D0}",
@@ -87,17 +65,6 @@ const videoSettingsConfig: SettingConfig[] = [
 ];
 
 const imageSettingsConfig: SettingConfig[] = [
-  {
-    key: "tone",
-    label: "Tone",
-    emoji: "\u{1F604}",
-    options: [
-      { label: "Funny", emoji: "\u{1F604}" },
-      { label: "Serious", emoji: "\u{1F3AF}" },
-      { label: "Cursing", emoji: "\u{1F92C}" },
-      { label: "Edgy", emoji: "\u{1F525}" },
-    ],
-  },
   {
     key: "platform",
     label: "Platform",
@@ -132,6 +99,8 @@ function EditorContent() {
   const isImage = format === "image";
   const template = searchParams.get("template") || "Did You Know";
   const ideasParam = searchParams.get("ideas");
+  const toneParam = searchParams.get("tone") || "Funny";
+  const durationParam = searchParams.get("duration") || "30s";
 
   // Parse ideas based on format
   const videoIdeaTitles: string[] = !isImage && ideasParam ? JSON.parse(ideasParam) : [];
@@ -148,11 +117,11 @@ function EditorContent() {
   );
 
   const [settings, setSettings] = useState<Record<SettingKey, string>>({
-    tone: "Funny",
+    tone: toneParam,
     presenter: "Doctor",
     voice: defaultVoice.name,
     background: "Stock footage",
-    duration: "30s",
+    duration: durationParam,
     layout: "Standard",
     platform: "Instagram",
   });
@@ -252,6 +221,39 @@ function EditorContent() {
   };
 
   const [creating, setCreating] = useState(false);
+  const [playingVoice, setPlayingVoice] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playVoicePreview = async (voiceName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (playingVoice === voiceName) {
+      audioRef.current?.pause();
+      setPlayingVoice(null);
+      return;
+    }
+    setPlayingVoice(voiceName);
+    try {
+      const voice = getVoiceByName(voiceName);
+      const res = await fetch("/api/voice-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voice_id: voice.fishAudioId }),
+      });
+      if (!res.ok) throw new Error("Preview failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => setPlayingVoice(null);
+      audio.play();
+    } catch (err) {
+      console.error("Voice preview error:", err);
+      setPlayingVoice(null);
+    }
+  };
 
   // ── Video: create videos ──
   const handleCreateVideos = async () => {
@@ -409,7 +411,7 @@ function EditorContent() {
               <textarea
                 value={s.script}
                 onChange={(e) => updateScript(i, e.target.value)}
-                className="w-full min-h-[160px] bg-surface text-on-surface-variant font-body leading-relaxed p-6 rounded-md border-none focus:ring-2 focus:ring-primary/40 resize-none"
+                className="w-full min-h-[200px] bg-surface text-on-surface-variant font-body leading-relaxed p-6 rounded-md border-none focus:ring-2 focus:ring-primary/40 resize-none"
                 placeholder="Enter script here..."
               />
               <div className="absolute bottom-4 right-4 text-[10px] font-bold text-outline-variant uppercase tracking-tighter">
@@ -485,9 +487,7 @@ function EditorContent() {
                     className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold font-headline transition-all ${
                       isOpen
                         ? "bg-secondary-container text-on-secondary-container ring-2 ring-primary"
-                        : setting.key === "tone"
-                          ? "bg-primary text-on-primary shadow-lg shadow-primary/20"
-                          : "bg-surface-container-highest text-on-surface hover:bg-surface-dim"
+                        : "bg-surface-container-highest text-on-surface hover:bg-surface-dim"
                     }`}
                   >
                     <span>{currentEmoji}</span>
@@ -615,16 +615,29 @@ function EditorContent() {
                                     {opt.label}
                                   </span>
                                 </div>
-                                {opt.badge && (
-                                  <span className="bg-primary-container text-on-primary-container text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest">
-                                    {opt.badge}
-                                  </span>
-                                )}
-                                {currentValue === opt.label && (
-                                  <span className="material-symbols-outlined text-primary text-sm">
-                                    check
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {setting.key === "voice" && (
+                                    <span
+                                      onClick={(e) => playVoicePreview(opt.label, e)}
+                                      className={`material-symbols-outlined text-sm p-1 rounded-full hover:bg-primary/20 transition-colors ${
+                                        playingVoice === opt.label ? "text-primary animate-pulse" : "text-on-surface-variant"
+                                      }`}
+                                      style={{ fontVariationSettings: "'FILL' 1" }}
+                                    >
+                                      {playingVoice === opt.label ? "stop_circle" : "play_circle"}
+                                    </span>
+                                  )}
+                                  {opt.badge && (
+                                    <span className="bg-primary-container text-on-primary-container text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest">
+                                      {opt.badge}
+                                    </span>
+                                  )}
+                                  {currentValue === opt.label && (
+                                    <span className="material-symbols-outlined text-primary text-sm">
+                                      check
+                                    </span>
+                                  )}
+                                </div>
                               </button>
                             ))}
                           </div>

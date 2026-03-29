@@ -51,6 +51,21 @@ const characterMap: Record<string, string> = {
   Alien: "alien",
 };
 
+// Frontend background options → Flask bg_mode values
+const bgModeMap: Record<string, string> = {
+  "Stock footage": "pexels",
+  "AI images": "ai",
+  "Kling video": "pexels",   // Pro feature — falls back to Pexels for now
+  "Upload own": "pexels",    // Upload not yet implemented — falls back to Pexels
+};
+
+// Frontend layout options → Flask layout values (passed through for Remotion)
+const layoutMap: Record<string, string> = {
+  Standard: "standard",
+  "Split screen": "split",
+  "Text only": "text_only",
+};
+
 // ── SSE event types from Flask /vg/events/<job_id> ──
 
 interface FlaskSSEEvent {
@@ -139,6 +154,10 @@ export const renderVideo = task({
     const character = characterMap[payload.settings.presenter] ?? "doctor";
     const voice = getVoiceByName(payload.settings.voice ?? defaultVoice.name);
     const voiceId = voice.fishAudioId;
+    const bgMode = bgModeMap[payload.settings.background] ?? "pexels";
+    const layout = layoutMap[payload.settings.layout] ?? "standard";
+
+    logger.log("Settings mapped", { tone, duration, character, voiceId, bgMode, layout });
 
     const scriptRes = await fetch(`${flaskUrl}/vg/generate_script`, {
       method: "POST",
@@ -180,6 +199,8 @@ export const renderVideo = task({
       body: JSON.stringify({
         vg_job_id: jobId,
         voice_id: voiceId,
+        bg_mode: bgMode,
+        layout,
       }),
     });
 

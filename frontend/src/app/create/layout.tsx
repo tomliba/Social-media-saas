@@ -1,4 +1,5 @@
 import DashboardNav from "@/components/dashboard/DashboardNav";
+import Sidebar from "@/components/dashboard/Sidebar";
 
 export default function CreateLayout({
   children,
@@ -8,7 +9,8 @@ export default function CreateLayout({
   return (
     <>
       <DashboardNav />
-      {children}
+      <Sidebar />
+      <div className="md:ml-64">{children}</div>
     </>
   );
 }

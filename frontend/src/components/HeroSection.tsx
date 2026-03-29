@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function HeroSection() {
   return (
     <section className="pt-32 pb-20 px-6 mx-auto max-w-screen-2xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -12,9 +14,9 @@ export default function HeroSection() {
           finished video in 2 minutes.
         </p>
         <div className="flex flex-col gap-3 pt-4">
-          <button className="primary-gradient text-white text-lg font-bold px-10 py-5 rounded-lg w-fit hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20">
+          <Link href="/signup" className="primary-gradient text-white text-lg font-bold px-10 py-5 rounded-lg w-fit hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20">
             Start creating — it&apos;s free
-          </button>
+          </Link>
           <p className="flex items-center gap-2 text-on-surface-variant text-sm font-medium ml-4">
             <span
               className="material-symbols-outlined text-sm"

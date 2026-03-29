@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function FinalCTA() {
   return (
     <section className="py-24 px-6">
@@ -9,9 +11,9 @@ export default function FinalCTA() {
           Join 10,000+ creators who stopped making content and started curating
           their presence.
         </p>
-        <button className="bg-white text-primary font-black text-xl px-12 py-6 rounded-lg hover:scale-105 active:scale-95 transition-all shadow-xl">
+        <Link href="/signup" className="bg-white text-primary font-black text-xl px-12 py-6 rounded-lg hover:scale-105 active:scale-95 transition-all shadow-xl inline-block">
           Start creating for free
-        </button>
+        </Link>
       </div>
     </section>
   );

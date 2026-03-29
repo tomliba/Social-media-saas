@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const plans = [
   {
     name: "Free",
@@ -83,15 +85,16 @@ export default function PricingSection() {
                   </li>
                 ))}
               </ul>
-              <button
-                className={`w-full py-3 rounded-md font-bold transition-all ${
+              <Link
+                href="/signup"
+                className={`w-full py-3 rounded-md font-bold transition-all block text-center ${
                   plan.highlighted
                     ? "primary-gradient text-white hover:opacity-90"
                     : "bg-surface-container-highest hover:bg-surface-variant"
                 }`}
               >
                 {plan.cta}
-              </button>
+              </Link>
             </div>
           ))}
         </div>

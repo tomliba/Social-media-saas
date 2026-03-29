@@ -13,6 +13,10 @@ const videoTemplates = [
   { name: "How-To", icon: "construction", example: '"Fall asleep in 2 minutes"' },
   { name: "Hot Take", icon: "bolt", example: '"Stretching is useless"' },
   { name: "What Happens If", icon: "quiz", example: '"No sugar for 30 days"' },
+  { name: "Before & After", icon: "swap_horiz", example: '"30 days without sugar"' },
+  { name: "Problem \u2192 Solution", icon: "healing", example: '"Stop stretching cold muscles"' },
+  { name: "Ranking / Tier List", icon: "emoji_events", example: '"Rating every protein source"' },
+  { name: "Mini Series", icon: "library_books", example: '"Part 1: Why planes dim lights"' },
 ];
 
 interface VideoIdea {
@@ -42,6 +46,8 @@ function TemplatesContent() {
   const [loading, setLoading] = useState(false);
   const [niche, setNiche] = useState("health and wellness");
   const [topic, setTopic] = useState("");
+  const [tone, setTone] = useState("Funny");
+  const [duration, setDuration] = useState("30s");
 
   const ideasContentRef = useRef<HTMLDivElement>(null);
   const ideasSectionRef = useRef<HTMLDivElement>(null);
@@ -151,6 +157,8 @@ function TemplatesContent() {
   const handleContinue = () => {
     const params = new URLSearchParams();
     params.set("format", format);
+    params.set("tone", tone);
+    if (!isImage) params.set("duration", duration);
 
     if (isImage) {
       // Pass selected post idea numbers and topics
@@ -208,6 +216,61 @@ function TemplatesContent() {
         />
       </div>
 
+      {/* Tone & Duration selectors — applies to both formats */}
+      <div className="mb-8 space-y-4">
+        {/* Tone */}
+        <div>
+          <span className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Tone</span>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Funny", emoji: "\u{1F604}" },
+              { label: "Serious", emoji: "\u{1F3AF}" },
+              { label: "Cursing", emoji: "\u{1F92C}" },
+              { label: "Edgy", emoji: "\u{1F525}" },
+              { label: "Motivational", emoji: "\u{1F4AA}" },
+              { label: "Storytelling", emoji: "\u{1F4D6}" },
+              { label: "Sarcastic", emoji: "\u{1F644}" },
+              { label: "Shocked", emoji: "\u{1F92F}" },
+              { label: "Conspiracy", emoji: "\u{1F575}\uFE0F" },
+              { label: "Friendly", emoji: "\u2615" },
+            ].map((t) => (
+              <button
+                key={t.label}
+                onClick={() => setTone(t.label)}
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+                  tone === t.label
+                    ? "bg-primary text-on-primary shadow-lg shadow-primary/20"
+                    : "bg-surface-container-highest text-on-surface hover:bg-surface-dim"
+                }`}
+              >
+                {t.emoji} {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Duration — video only */}
+        {!isImage && (
+          <div>
+            <span className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Duration</span>
+            <div className="flex gap-2">
+              {["15s", "30s", "60s"].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDuration(d)}
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+                    duration === d
+                      ? "bg-primary text-on-primary shadow-lg shadow-primary/20"
+                      : "bg-surface-container-highest text-on-surface hover:bg-surface-dim"
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {isImage ? (
         /* ── Image Post: Topic input + Generate button ── */
         <div className="mb-16 max-w-xl">
@@ -243,7 +306,7 @@ function TemplatesContent() {
       ) : (
         /* ── Video: Template Grid ── */
         <>
-          <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <section className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             {videoTemplates.map((t) => {
               const isSelected = selectedTemplate === t.name;
               return (

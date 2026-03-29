@@ -33,12 +33,12 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="hidden md:block text-neutral-500 hover:text-violet-500 font-semibold transition-all duration-300 px-4 py-2">
+          <Link href="/login" className="hidden md:block text-neutral-500 hover:text-violet-500 font-semibold transition-all duration-300 px-4 py-2">
             Login
-          </button>
-          <button className="primary-gradient text-white font-bold px-6 py-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-md">
+          </Link>
+          <Link href="/signup" className="primary-gradient text-white font-bold px-6 py-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-md">
             Get Started
-          </button>
+          </Link>
         </div>
       </div>
     </nav>

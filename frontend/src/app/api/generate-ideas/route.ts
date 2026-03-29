@@ -10,6 +10,10 @@ const templateStructures: Record<string, string> = {
   "How-To": "simple step-by-step solutions to common problems",
   "Hot Take": "controversial but defensible opinions that spark debate",
   "What Happens If": "hypothetical scenarios with surprising consequences",
+  "Before & After": "transformation stories showing what changes when you start or stop doing something",
+  "Problem \u2192 Solution": "calling out common mistakes people make and giving the correct alternative",
+  "Ranking / Tier List": "rating or ranking multiple items from worst to best with opinions that spark debate",
+  "Mini Series": "multi-part topics too big for one video that make viewers follow for the next part",
 };
 
 export async function POST(req: NextRequest) {
@@ -38,7 +42,8 @@ For each idea, provide:
 Return ONLY a JSON array, no markdown, no code fences. Example format:
 [{"title": "Your catchy title here", "tag": "Category"}]
 
-Make titles provocative, curiosity-driven, and optimized for clicks. Use power words. Each title should make someone stop scrolling.`;
+Make titles provocative, curiosity-driven, and optimized for clicks. Use power words. Each title should make someone stop scrolling.
+Include specific numbers or statistics in at least 3 of the 10 titles (e.g., "97% of people get this wrong", "This $2 trick saved me 10 hours").`;
 
     const result = await geminiFlash.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
