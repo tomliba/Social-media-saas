@@ -30,16 +30,14 @@ const templatePrompts: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const { template, ideas, tone, duration } = await req.json();
+    const { template, ideas, tone, duration, customPrompt } = await req.json();
 
-    if (!ideas || !Array.isArray(ideas) || ideas.length === 0) {
+    if (!customPrompt && (!ideas || !Array.isArray(ideas) || ideas.length === 0)) {
       return NextResponse.json(
-        { error: "ideas array is required" },
+        { error: "ideas array or customPrompt is required" },
         { status: 400 }
       );
     }
-
-    const structure = templatePrompts[template] || "Write an engaging short-form video script.";
 
     // Map tone setting to prompt instructions
     const toneGuide: Record<string, string> = {
@@ -64,7 +62,34 @@ export async function POST(req: NextRequest) {
     };
     const wordCount = durationWords[duration] || durationWords["30s"];
 
-    const prompt = `You are a viral short-form video scriptwriter. Write scripts for ${ideas.length} videos.
+    let prompt: string;
+
+    if (customPrompt) {
+      // "My Own Prompt" flow — user wrote their own instructions
+      prompt = `You are a viral short-form video scriptwriter. The user has given you custom instructions for a video they want.
+
+User's instructions:
+${customPrompt}
+
+Tone: ${toneInstruction}
+
+Guidelines:
+- The script should be ${wordCount}
+- Write in the specified tone as if speaking directly to the viewer
+- Use short punchy sentences. No long paragraphs.
+- Include natural pauses (use "..." for dramatic effect)
+- Don't include stage directions, just the spoken words
+- Make the opening line a scroll-stopper
+- NEVER start with these banned phrases: "Did you know", "What if I told you", "Here's the thing", "So", "Okay so", "Let me tell you". Instead, open with a bold claim, shocking stat, or direct statement
+- NEVER use asterisks, em dashes (—), markdown formatting, bold markers, or any special characters like * or ** or — in the script. This text will be read aloud by text-to-speech. Write plain text only. Use CAPS for emphasis. Use ... for pauses.
+
+Return ONLY a JSON array with exactly 1 object, no markdown, no code fences. Format:
+[{"title": "Video Title", "script": "The full script text here..."}]`;
+    } else {
+      // Standard template flow
+      const structure = templatePrompts[template] || "Write an engaging short-form video script.";
+
+      prompt = `You are a viral short-form video scriptwriter. Write scripts for ${ideas.length} videos.
 
 Template format: "${template}"
 ${structure}
@@ -82,9 +107,11 @@ Guidelines:
 - Don't include stage directions, just the spoken words
 - Make the opening line a scroll-stopper
 - NEVER start with these banned phrases: "Did you know", "What if I told you", "Here's the thing", "So", "Okay so", "Let me tell you". Instead, open with a bold claim, shocking stat, or direct statement
+- NEVER use asterisks, em dashes (—), markdown formatting, bold markers, or any special characters like * or ** or — in the script. This text will be read aloud by text-to-speech. Write plain text only. Use CAPS for emphasis. Use ... for pauses.
 
 Return ONLY a JSON array of objects, no markdown, no code fences. Format:
 [{"title": "Video Title", "script": "The full script text here..."}]`;
+    }
 
     const result = await geminiFlash.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -93,7 +120,10 @@ Return ONLY a JSON array of objects, no markdown, no code fences. Format:
       },
     });
     const text = result.response.text().trim();
-    const scripts = JSON.parse(text);
+    const scripts = JSON.parse(text).map((s: { title: string; script: string }) => ({
+      ...s,
+      script: s.script.replace(/\*+/g, "").replace(/—/g, ","),
+    }));
 
     return NextResponse.json({ scripts });
   } catch (error) {

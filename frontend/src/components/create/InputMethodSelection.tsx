@@ -33,22 +33,25 @@ const inputMethods = [
     ),
   },
   {
-    id: "free-type",
+    id: "paste-script",
     icon: "edit_note",
-    title: "Type your own idea",
-    description: "Describe your video, AI handles the rest",
+    title: "Paste your own script",
+    description: "Paste your text — AI turns it into a video",
+    formats: ["Video"],
   },
   {
     id: "remix",
     icon: "link",
     title: "Remix a viral video",
     description: "Paste a link — AI analyzes and creates your version",
+    formats: ["Video"],
   },
   {
     id: "upload",
     icon: "upload_file",
     title: "Upload content",
     description: "PDF, document, or text — AI turns it into a video",
+    formats: ["Video"],
   },
   {
     id: "trending",
@@ -101,7 +104,15 @@ export default function InputMethodSelection({
               onClick={() => {
                 if (isEnabled) {
                   const format = selectedFormat === "Image Post" ? "image" : "video";
-                  router.push(`/create/templates?format=${format}`);
+                  if (method.id === "paste-script") {
+                    router.push("/create/paste-script");
+                  } else if (method.id === "remix") {
+                    router.push("/create/remix");
+                  } else if (method.id === "upload") {
+                    router.push("/create/upload-content");
+                  } else {
+                    router.push(`/create/templates?format=${format}`);
+                  }
                 }
               }}
               className={`group flex items-center gap-6 p-6 bg-surface-container-lowest rounded-xl transition-all text-left relative overflow-hidden ${

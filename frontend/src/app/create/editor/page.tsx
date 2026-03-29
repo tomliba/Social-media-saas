@@ -101,14 +101,18 @@ function EditorContent() {
   const ideasParam = searchParams.get("ideas");
   const toneParam = searchParams.get("tone") || "Funny";
   const durationParam = searchParams.get("duration") || "30s";
+  const customPrompt = searchParams.get("customPrompt") || "";
+  const pastedScript = searchParams.get("pastedScript") || "";
 
   // Parse ideas based on format
   const videoIdeaTitles: string[] = !isImage && ideasParam ? JSON.parse(ideasParam) : [];
   const postIdeas: PostIdea[] = isImage && ideasParam ? JSON.parse(ideasParam) : [];
 
   // ── Video state ──
-  const [scripts, setScripts] = useState<Script[]>([]);
-  const [loading, setLoading] = useState(!isImage); // Video auto-fetches scripts
+  const [scripts, setScripts] = useState<Script[]>(
+    pastedScript ? [{ title: "My Script", script: pastedScript }] : []
+  );
+  const [loading, setLoading] = useState(!isImage && !pastedScript); // Video auto-fetches scripts (not for pasted)
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
 
   // ── Image state — editable hooks ──
@@ -132,7 +136,11 @@ function EditorContent() {
 
   // ── Video: fetch scripts from Gemini ──
   const fetchScripts = useCallback(async () => {
-    if (isImage || videoIdeaTitles.length === 0) {
+    if (isImage || pastedScript) {
+      setLoading(false);
+      return;
+    }
+    if (!customPrompt && videoIdeaTitles.length === 0) {
       setLoading(false);
       return;
     }
@@ -141,7 +149,13 @@ function EditorContent() {
       const res = await fetch("/api/generate-scripts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ template, ideas: videoIdeaTitles, tone: settings.tone, duration: settings.duration }),
+        body: JSON.stringify({
+          template,
+          ideas: customPrompt ? [] : videoIdeaTitles,
+          tone: settings.tone,
+          duration: settings.duration,
+          ...(customPrompt ? { customPrompt } : {}),
+        }),
       });
       const data = await res.json();
       if (data.scripts) {
@@ -322,7 +336,7 @@ function EditorContent() {
           <span className="hover:text-primary cursor-pointer transition-colors">
             {isImage ? "Image Post" : "Video"}
           </span>
-          {!isImage && (
+          {!isImage && template !== "Custom" && (
             <>
               <span className="material-symbols-outlined text-xs">
                 chevron_right

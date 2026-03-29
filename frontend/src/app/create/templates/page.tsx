@@ -17,6 +17,7 @@ const videoTemplates = [
   { name: "Problem \u2192 Solution", icon: "healing", example: '"Stop stretching cold muscles"' },
   { name: "Ranking / Tier List", icon: "emoji_events", example: '"Rating every protein source"' },
   { name: "Mini Series", icon: "library_books", example: '"Part 1: Why planes dim lights"' },
+  { name: "My Own Prompt", icon: "draw", example: 'Tell AI exactly what to make' },
 ];
 
 interface VideoIdea {
@@ -48,6 +49,7 @@ function TemplatesContent() {
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("Funny");
   const [duration, setDuration] = useState("30s");
+  const [customPrompt, setCustomPrompt] = useState("");
 
   const ideasContentRef = useRef<HTMLDivElement>(null);
   const ideasSectionRef = useRef<HTMLDivElement>(null);
@@ -367,31 +369,62 @@ function TemplatesContent() {
             })}
           </section>
 
-          {/* Generate Ideas button */}
-          <div ref={generateBtnRef} className="flex items-center gap-4 mb-16">
-            <button
-              onClick={handleGenerateIdeas}
-              disabled={loading}
-              className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
-                  Generating ideas...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-                  {selectedTemplate ? `Generate "${selectedTemplate}" ideas` : "Generate viral ideas"}
-                </>
+          {/* My Own Prompt — custom textarea */}
+          {selectedTemplate === "My Own Prompt" ? (
+            <div ref={generateBtnRef} className="mb-16 max-w-2xl">
+              <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">
+                Tell AI exactly what video to make
+              </label>
+              <textarea
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                placeholder="e.g., Make a 30-second video explaining why cold showers boost testosterone. Open with a shocking stat, use a confident tone, and end with a challenge."
+                className="w-full min-h-[160px] bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-4 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface placeholder:text-on-surface-variant/50 transition-all font-body resize-none mb-4"
+              />
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  params.set("format", "video");
+                  params.set("template", "My Own Prompt");
+                  params.set("tone", tone);
+                  params.set("duration", duration);
+                  params.set("customPrompt", customPrompt);
+                  router.push(`/create/editor?${params.toString()}`);
+                }}
+                disabled={!customPrompt.trim()}
+                className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                Generate script
+              </button>
+            </div>
+          ) : (
+            /* Generate Ideas button */
+            <div ref={generateBtnRef} className="flex items-center gap-4 mb-16">
+              <button
+                onClick={handleGenerateIdeas}
+                disabled={loading}
+                className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                    Generating ideas...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                    {selectedTemplate ? `Generate "${selectedTemplate}" ideas` : "Generate viral ideas"}
+                  </>
+                )}
+              </button>
+              {!selectedTemplate && (
+                <span className="text-sm text-on-surface-variant">
+                  Pick a template above, or generate ideas from all formats
+                </span>
               )}
-            </button>
-            {!selectedTemplate && (
-              <span className="text-sm text-on-surface-variant">
-                Pick a template above, or generate ideas from all formats
-              </span>
-            )}
-          </div>
+            </div>
+          )}
         </>
       )}
 
