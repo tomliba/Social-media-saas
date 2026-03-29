@@ -10,6 +10,7 @@ export interface VideoRenderRequest {
   settings: {
     tone: string;
     presenter: string;
+    voice: string;
     background: string;
     duration: string;
     layout: string;

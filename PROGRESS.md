@@ -186,21 +186,23 @@ TRIGGER_PROJECT_REF   — Trigger.dev project reference ID
 - **Review page shows live progress** via `useRealtimeRun` hooks — each card displays real-time progress bar + stage label (generating audio, rendering video, etc.) and transitions to the full ready card when complete
 - **`render-video.ts` connected to real Flask backend** — calls `/vg/generate_script` (mode: "script"), `/vg/start`, then streams `/vg/events/<job_id>` SSE for live progress. Falls back to simulation if `FLASK_API_URL` not set
 - **Review page shows real video player** — HTML5 `<video>` element with controls when render completes, gradient fallback if video URL unavailable
+- **Voice system implemented** — voices are independent of characters (see below). Voice settings pill on editor page. Full pipeline tested end-to-end with real Fish Audio voice — 3.6MB video rendered successfully
 
-## Voice System (Important Architecture Note)
+## Voice System (Architecture)
 
 Voices are **NOT** tied to characters. Voice is a separate setting chosen independently:
-1. A "Voice" settings pill will be added to the script editor page (next to Tone, Presenter, Background, Duration, Layout)
-2. Voice options come from a voices config file — NOT from character `config.json`
-3. Each voice has: `name`, `fish_audio_voice_id`, `sample_preview_url`
-4. Tom will provide the Fish Audio voice IDs
-5. The `render-video` task sends the selected `voice_id` to Flask instead of deriving it from the character
+1. **Voice settings pill** on editor page (between Presenter and Background) — users pick a voice independently of character
+2. **`src/lib/voices.ts`** — central config file for all Fish Audio voices
+3. Each voice has: `name`, `fishAudioId`, `emoji`, optional `previewUrl`
+4. Two real voices working: Geography Guy (`728f6ff2240d49308e8137ffe66008e2`), Sports Bro (`c203ca8e441c4e8e80562be2eef75a10`)
+5. The `render-video` task looks up `fishAudioId` from the voice config and sends it as `voice_id` override to Flask `/vg/start`
 6. Characters are visual only (body frames, mouth PNGs), voices are audio only (Fish Audio TTS)
+7. To add a new voice: get Fish Audio reference ID from fish.audio, add entry to `voices.ts`
 
 ## What's NOT Yet Connected
 
 - **Google OAuth** — placeholder credentials, need real Google Cloud Console project
-- **Video rendering** — Full pipeline tested (API key auth, script generation, Pexels backgrounds all work). Blocked on Fish Audio voice IDs (characters have placeholder voice_id)
+- **Video rendering** — Full pipeline works end-to-end (script → TTS → backgrounds → lipsync → Remotion → final video). Need Trigger.dev cloud keys to test via the UI (currently tested via curl)
 - **Platform posting** — Ayrshare SDK not installed, platform toggle buttons are UI-only
 - **Scheduling** — date/time picker on review page is UI-only, no Trigger.dev jobs
 - **User preferences** — settings pills don't read/write from database User model
@@ -224,6 +226,8 @@ Voices are **NOT** tied to characters. Voice is a separate setting chosen indepe
 - [x] Build review/preview screen (wired to Trigger.dev realtime hooks)
 - [x] **Connect Flask backend** — `render-video.ts` calls `/vg/generate_script` → `/vg/start` → SSE `/vg/events/<job_id>` with realtime metadata updates
 - [x] **Add API key auth to Flask** — `X-API-Key` header + `ServiceUser` via Flask-Login `request_loader`, CSRF exemption for API requests
+- [x] **Voice system** — separate Voice settings pill, `voices.ts` config, `voice_id` override passed to Flask. Full E2E test: real 3.6MB video rendered with Geography Guy voice
+- [ ] Make all settings pills functional (read/write user defaults from database)
 - [ ] Integrate Ayrshare for posting
 - [x] Build visual content calendar / dashboard (UI done with mock data)
 - [ ] Deploy: Next.js to Vercel, Flask stays on Railway

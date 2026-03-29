@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
+import { voices, defaultVoice } from "@/lib/voices";
 
 const characters = [
   { name: "Doctor", emoji: "\u{1F9D1}\u200D\u2695\uFE0F", color: "from-blue-400 to-cyan-300" },
@@ -17,7 +18,7 @@ const characters = [
   { name: "Alien", emoji: "\u{1F47D}", color: "from-lime-400 to-green-300" },
 ];
 
-type SettingKey = "tone" | "presenter" | "background" | "duration" | "layout";
+type SettingKey = "tone" | "presenter" | "voice" | "background" | "duration" | "layout";
 
 interface SettingConfig {
   key: SettingKey;
@@ -43,6 +44,12 @@ const settingsConfig: SettingConfig[] = [
     label: "Presenter",
     emoji: "\u{1F9D1}\u200D\u2695\uFE0F",
     options: [],
+  },
+  {
+    key: "voice",
+    label: "Voice",
+    emoji: "\u{1F3A4}",
+    options: voices.map((v) => ({ label: v.name, emoji: v.emoji })),
   },
   {
     key: "background",
@@ -98,6 +105,7 @@ function EditorContent() {
   const [settings, setSettings] = useState<Record<SettingKey, string>>({
     tone: "Funny",
     presenter: "Doctor",
+    voice: defaultVoice.name,
     background: "Stock footage",
     duration: "30s",
     layout: "Standard",

@@ -1,4 +1,5 @@
 import { task, metadata, logger } from "@trigger.dev/sdk";
+import { getVoiceByName, defaultVoice } from "../src/lib/voices";
 
 export interface RenderVideoPayload {
   title: string;
@@ -7,6 +8,7 @@ export interface RenderVideoPayload {
   settings: {
     tone: string;
     presenter: string;
+    voice: string;
     background: string;
     duration: string;
     layout: string;
@@ -135,6 +137,8 @@ export const renderVideo = task({
     const tone = toneMap[payload.settings.tone] ?? "funny_clean";
     const duration = durationMap[payload.settings.duration] ?? 60;
     const character = characterMap[payload.settings.presenter] ?? "doctor";
+    const voice = getVoiceByName(payload.settings.voice ?? defaultVoice.name);
+    const voiceId = voice.fishAudioId;
 
     const scriptRes = await fetch(`${flaskUrl}/vg/generate_script`, {
       method: "POST",
@@ -175,6 +179,7 @@ export const renderVideo = task({
       headers,
       body: JSON.stringify({
         vg_job_id: jobId,
+        voice_id: voiceId,
       }),
     });
 
