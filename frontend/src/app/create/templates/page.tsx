@@ -69,12 +69,15 @@ function TemplatesContent() {
     }
   }, [showIdeas, videoIdeas, postIdeas, loading]);
 
+  const [error, setError] = useState<string | null>(null);
+
   // ── Video idea generation (Gemini via Next.js API) ──
   const fetchVideoIdeas = useCallback(async (template: string | null) => {
     setLoading(true);
     setVideoIdeas([]);
     setSelectedIdeas(new Set());
     setShowIdeas(true);
+    setError(null);
 
     try {
       const res = await fetch("/api/generate-ideas", {
@@ -85,12 +88,19 @@ function TemplatesContent() {
           niche,
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `API returned ${res.status}`);
+      }
       const data = await res.json();
-      if (data.ideas) {
+      if (data.ideas && data.ideas.length > 0) {
         setVideoIdeas(data.ideas);
+      } else {
+        setError("No ideas returned — try a different niche or template");
       }
     } catch (err) {
       console.error("Failed to fetch video ideas:", err);
+      setError(err instanceof Error ? err.message : "Failed to generate ideas");
     } finally {
       setLoading(false);
     }
@@ -426,6 +436,13 @@ function TemplatesContent() {
                 Generate new ideas
               </button>
             </div>
+
+            {/* Error State */}
+            {!loading && error && (
+              <div className="p-6 rounded-[1rem] bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
+                {error}
+              </div>
+            )}
 
             {/* Loading State */}
             {loading && (
