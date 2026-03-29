@@ -285,9 +285,10 @@ export const renderVideo = task({
       throw new Error("SSE stream ended without a complete event");
     }
 
-    // ── Build video URLs ──
-    const videoUrl = `${flaskUrl}/vg/preview/${outputDir}/${videoFilename}`;
-    const previewUrl = videoUrl; // Same URL for now, download uses /vg/download/
+    // ── Build video URLs (proxied through Next.js to bypass Flask auth) ──
+    const flaskPath = `/vg/preview/${outputDir}/${videoFilename}`;
+    const videoUrl = `/api/video-proxy?path=${encodeURIComponent(flaskPath)}`;
+    const previewUrl = videoUrl;
 
     metadata.set("stage", "complete");
     metadata.set("stageLabel", "Complete!");
