@@ -125,20 +125,18 @@ function TemplatesContent() {
   }, [topic, niche]);
 
   const handleTemplateClick = (name: string) => {
-    setSelectedTemplate(name);
-    fetchVideoIdeas(name);
+    setSelectedTemplate((prev) => (prev === name ? null : name));
   };
 
-  const handleSkip = () => {
-    setSelectedTemplate(null);
-    fetchVideoIdeas(null);
+  const handleGenerateIdeas = () => {
+    fetchVideoIdeas(selectedTemplate);
   };
 
   const handleRefresh = () => {
     if (isImage) {
       fetchPostIdeas();
     } else {
-      fetchVideoIdeas(selectedTemplate);
+      handleGenerateIdeas();
     }
   };
 
@@ -355,15 +353,30 @@ function TemplatesContent() {
             })}
           </section>
 
-          {/* Skip link */}
-          <div className="text-center mb-16">
+          {/* Generate Ideas button */}
+          <div className="flex items-center gap-4 mb-16">
             <button
-              onClick={handleSkip}
-              className="text-primary text-lg font-bold bg-primary/10 hover:bg-primary/15 px-8 py-3 rounded-full transition-all inline-flex items-center gap-2"
+              onClick={handleGenerateIdeas}
+              disabled={loading}
+              className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              <span className="material-symbols-outlined">skip_next</span>
-              Skip — just give me viral ideas
+              {loading ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  Generating ideas...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                  {selectedTemplate ? `Generate "${selectedTemplate}" ideas` : "Generate viral ideas"}
+                </>
+              )}
             </button>
+            {!selectedTemplate && (
+              <span className="text-sm text-on-surface-variant">
+                Pick a template above, or generate ideas from all formats
+              </span>
+            )}
           </div>
         </>
       )}
