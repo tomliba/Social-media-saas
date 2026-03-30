@@ -184,7 +184,7 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
           <h2 className="text-2xl font-bold font-headline mb-2">Pick a color theme</h2>
           <p className="text-on-surface-variant text-sm mb-6">Each theme transforms the entire look of your post</p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
             {carouselThemes.map((theme) => (
               <button key={theme.id} onClick={() => handleThemeSelect(theme.id)}>
                 <ThemePreviewCard

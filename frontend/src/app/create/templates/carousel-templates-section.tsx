@@ -46,17 +46,17 @@ function ThemePreviewCard({
 // Default showcase theme per template for visual variety in the gallery
 const defaultShowcaseTheme: Record<string, string> = {
   editorial: "dark",
-  magazine: "dark",
+  magazine: "midnight_purple",
   split: "light",
-  comparison: "light",
+  comparison: "sunset_coral",
   checklist: "warm",
-  timeline: "dark",
+  timeline: "ocean",
   scrapbook: "warm",
   before_after: "neon",
   notes_app: "light",
-  bold_text: "dark",
-  numbered_steps: "light",
-  do_this_not_that: "neon",
+  bold_text: "mocha",
+  numbered_steps: "electric_blue",
+  do_this_not_that: "forest",
 };
 
 export default function CarouselTemplatesSection({ niche, tone }: { niche: string; tone: string }) {
@@ -195,7 +195,7 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
           <h2 className="text-2xl font-bold font-headline mb-2">Pick a color theme</h2>
           <p className="text-on-surface-variant text-sm mb-6">Each theme transforms the entire look of your carousel</p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
             {carouselThemes.map((theme) => (
               <button key={theme.id} onClick={() => handleThemeSelect(theme.id)}>
                 <ThemePreviewCard
