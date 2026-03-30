@@ -389,9 +389,38 @@ function EditorContent() {
           settings,
         }))
       );
+
+      // Create library items for each render
+      await Promise.all(
+        handles.map(async (h) => {
+          const res = await fetch("/api/library", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jobId: h.runId,
+              title: h.title,
+              format: "video",
+              backgroundMode: settings.backgroundMode ?? null,
+              script: scripts.find((s) => s.title === h.title)?.script ?? null,
+              durationSec: parseInt(settings.duration) || null,
+              // Direct mode: item is already ready (or failed)
+              ...(h.directResult && {
+                status: h.directResult.status,
+                videoUrl: h.directResult.videoUrl ?? null,
+              }),
+            }),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            console.error("Failed to create library item:", res.status, err);
+          }
+        })
+      );
+
+      // Also store in sessionStorage for backward compatibility with review page
       sessionStorage.setItem("pending-renders", JSON.stringify(handles));
       sessionStorage.setItem("pending-format", "video");
-      router.push("/create/review");
+      router.push("/library");
     } catch (err) {
       console.error("Failed to trigger video renders:", err);
       setCreating(false);
@@ -417,9 +446,25 @@ function EditorContent() {
           platform: settings.platform,
         },
       });
+
+      // Create library item for the render
+      await fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: handle.runId,
+          title: postIdeas.map((i) => i.topic).join(", "),
+          format: "image",
+          // Direct mode: item is already ready (or failed)
+          ...(handle.directResult && {
+            status: handle.directResult.status,
+          }),
+        }),
+      });
+
       sessionStorage.setItem("pending-renders", JSON.stringify([handle]));
       sessionStorage.setItem("pending-format", "image");
-      router.push("/create/review");
+      router.push("/library");
     } catch (err) {
       console.error("Failed to trigger post renders:", err);
       setCreating(false);
@@ -451,9 +496,24 @@ function EditorContent() {
           caption: imagePostSlides[i].caption,
         });
       }
+      // Create library items for each rendered image post
+      for (const r of results) {
+        await fetch("/api/library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jobId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            title: r.title,
+            format: "image",
+            status: "ready",
+            videoUrl: r.image,
+          }),
+        });
+      }
+
       sessionStorage.setItem("pending-image-post-results", JSON.stringify(results));
       sessionStorage.setItem("pending-format", "image");
-      router.push("/create/review");
+      router.push("/library");
     } catch (err) {
       console.error("Failed to render image posts:", err);
       setCreating(false);
@@ -486,9 +546,24 @@ function EditorContent() {
           caption: carouselSlides[i].caption,
         });
       }
+      // Create library items for each rendered carousel
+      for (const r of results) {
+        await fetch("/api/library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jobId: `car-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            title: r.title,
+            format: "carousel",
+            templateId: templateId ?? null,
+            status: "ready",
+          }),
+        });
+      }
+
       sessionStorage.setItem("pending-carousel-results", JSON.stringify(results));
       sessionStorage.setItem("pending-format", "carousel");
-      router.push("/create/review");
+      router.push("/library");
     } catch (err) {
       console.error("Failed to render carousels:", err);
       setCreating(false);
@@ -496,15 +571,30 @@ function EditorContent() {
   };
 
   // ── Text: just pass through to review ──
-  const handleCreateTexts = () => {
+  const handleCreateTexts = async () => {
     const results = textIdeas.map((idea, i) => ({
       title: idea.title,
       text: editableTexts[i] || idea.text,
       type: idea.type,
     }));
+    // Create library items for each text post
+    for (const r of results) {
+      await fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: `txt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          title: r.title,
+          format: "text",
+          script: r.text,
+          status: "ready",
+        }),
+      });
+    }
+
     sessionStorage.setItem("pending-text-results", JSON.stringify(results));
     sessionStorage.setItem("pending-format", "text");
-    router.push("/create/review");
+    router.push("/library");
   };
 
   const itemCount = isCarousel

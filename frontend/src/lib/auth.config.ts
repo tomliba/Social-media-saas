@@ -43,6 +43,7 @@ export const authConfig: NextAuthConfig = {
         publicPaths.some((p) => pathname === p) ||
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/_next") ||
+        pathname.endsWith("/complete") || // Trigger.dev server-to-server callback
         pathname.includes(".");
 
       if (isPublic) return true;

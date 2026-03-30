@@ -85,7 +85,21 @@ export const renderPost = task({
   queue: {
     concurrencyLimit: 3,
   },
-  run: async (payload: RenderPostPayload): Promise<RenderPostOutput> => {
+  onFailure: async (params: { ctx: { run: { id: string } }; error: unknown }) => {
+    const runId = params.ctx.run.id;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const errMsg = params.error instanceof Error ? params.error.message : "Post render failed";
+    try {
+      await fetch(`${appUrl}/api/library/${runId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "failed", error: errMsg }),
+      });
+    } catch (err) {
+      logger.warn("Failed to update library item on failure", { error: String(err) });
+    }
+  },
+  run: async (payload: RenderPostPayload, { ctx }): Promise<RenderPostOutput> => {
     logger.log("Starting post render", {
       pgJobId: payload.pgJobId,
       selectedCount: payload.selectedIdeas.length,
@@ -96,11 +110,24 @@ export const renderPost = task({
     metadata.set("progress", 0);
     metadata.set("ideaTopics", payload.ideaTopics);
 
+    const runId = ctx.run.id;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
     const flaskUrl = process.env.FLASK_API_URL;
 
     if (!flaskUrl) {
       logger.warn("FLASK_API_URL not set — using simulated render");
-      return runSimulation(payload);
+      const result = await runSimulation(payload);
+      try {
+        await fetch(`${appUrl}/api/library/${runId}/complete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "ready" }),
+        });
+      } catch (err) {
+        logger.warn("Failed to update library item (simulation)", { error: String(err) });
+      }
+      return result;
     }
 
     const headers: Record<string, string> = {
@@ -222,6 +249,17 @@ export const renderPost = task({
     metadata.set("stageLabel", "Complete!");
     metadata.set("progress", 100);
     metadata.set("results", JSON.parse(JSON.stringify(finalResults)));
+
+    // Update library item status to ready
+    try {
+      await fetch(`${appUrl}/api/library/${runId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ready" }),
+      });
+    } catch (err) {
+      logger.warn("Failed to update library item", { error: String(err) });
+    }
 
     return { results: finalResults, succeeded, failed };
   },

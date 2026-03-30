@@ -11,8 +11,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   callbacks: {
     ...authConfig.callbacks,
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
+        // Ensure the user row exists in the DB (Credentials provider
+        // doesn't go through the PrismaAdapter createUser flow)
+        await prisma.user.upsert({
+          where: { id: user.id! },
+          update: {},
+          create: {
+            id: user.id!,
+            email: user.email!,
+            name: user.name ?? "Dev User",
+          },
+        });
         token.id = user.id;
       }
       return token;

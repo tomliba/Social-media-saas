@@ -1,11 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
   { icon: "home", label: "Home", href: "/dashboard", match: "/dashboard" },
   { icon: "add_circle", label: "Create", href: "/create", match: "/create" },
+  { icon: "video_library", label: "Library", href: "/library", match: "/library" },
   { icon: "auto_awesome", label: "Autopilot", href: "/autopilot", match: "/autopilot" },
   { icon: "manage_accounts", label: "Accounts", href: "/accounts", match: "/accounts" },
   { icon: "settings", label: "Preferences", href: "/preferences", match: "/preferences" },
@@ -13,6 +15,24 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [readyCount, setReadyCount] = useState(0);
+  const [renderingCount, setRenderingCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCounts = async () => {
+      try {
+        const res = await fetch("/api/library");
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        setReadyCount(data.readyCount ?? 0);
+        setRenderingCount(data.renderingCount ?? 0);
+      } catch {}
+    };
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 15000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
 
   return (
     <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-zinc-50 hidden md:flex flex-col py-4 space-y-2">
@@ -38,6 +58,7 @@ export default function Sidebar() {
       <nav className="flex-1 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.match || pathname.startsWith(item.match + "/");
+          const isLibrary = item.label === "Library";
           return (
           <Link
             key={item.label}
@@ -48,8 +69,18 @@ export default function Sidebar() {
                 : "text-zinc-600 hover:bg-zinc-200"
             }`}
           >
-            <span className="material-symbols-outlined">{item.icon}</span>
+            <span className="material-symbols-outlined relative">
+              {item.icon}
+              {isLibrary && renderingCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
+              )}
+            </span>
             <span>{item.label}</span>
+            {isLibrary && readyCount > 0 && (
+              <span className="ml-auto bg-primary text-on-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                {readyCount}
+              </span>
+            )}
           </Link>
           );
         })}
