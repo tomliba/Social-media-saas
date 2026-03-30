@@ -78,6 +78,10 @@ Social_media_saas/
 | `/api/generate-scripts` | POST | `{template, ideas[], tone, duration}` | Script per idea with tone/duration-aware generation. 10 tones, 12 templates, banned opening phrases | Working (Gemini 2.5 Flash, JSON mode) |
 | `/api/generate-post-ideas` | POST | `{topic, tone, niche, platform}` | Proxies to Flask `/pg/generate_ideas`, returns 10 post ideas with `pg_job_id` | Working |
 | `/api/voice-preview` | POST | `{voice_id}` | Proxies to Flask `/vg/voice-preview`, returns MP3 audio sample | Working (used for generating static samples) |
+| `/api/generate-carousel-ideas` | POST | `{topic, niche, templateName}` | 10 carousel topic ideas via Gemini 2.5 Flash | Working |
+| `/api/generate-carousel-slides` | POST | `{templateId, title, hook, slideCount, tone, niche}` | Slide content per template placeholders via Gemini | Working |
+| `/api/generate-text-ideas` | POST | `{topic, niche, tone, platform}` | 10 text post ideas (caption/thread/hook/story) via Gemini | Working |
+| `/api/render-carousel` | POST | `{templateId, themeId, slides[], width, height}` | Renders HTML templates to PNG via node-html-to-image | Working |
 | `/api/video-proxy` | GET | `?path=/vg/preview/...` | Proxies video files from Flask with API key auth, bypassing Flask `@login_required` | Working |
 
 ## Trigger.dev Integration (Async Video Rendering)
@@ -234,7 +238,8 @@ Voices are **NOT** tied to characters. Voice is a separate setting chosen indepe
 - **Usage tracking** — videosUsed/postsUsed counters not incremented
 - **Billing** — Lemon Squeezy not integrated, pricing page not built
 - **Real-time updates** — Trigger.dev realtime hooks wired up, but need real TRIGGER_SECRET_KEY to test end-to-end
-- **Carousel/Text formats** — Video and Image Post are wired up end-to-end, Carousel and Text still need implementation
+- **Carousel format fully built** — 10 HTML templates (editorial, magazine, split, centered, quote, stats, comparison, checklist, timeline, polaroid) + 4 color themes (dark, light, warm, neon) + 5 slide sizes + Gemini idea/slide gen + node-html-to-image rendering in Next.js API route + review page with slide gallery
+- **Text format fully built** — Topic input → Gemini generates 10 text posts (captions, threads, hooks, stories) → editable text editor → review page with copy button + platform toggles
 - **Other input methods** — "Free type", "Viral link", "Upload content", "Viral right now" show "Coming soon"
 
 ## Next Steps (from Product Spec Build Order)
@@ -257,9 +262,9 @@ Voices are **NOT** tied to characters. Voice is a separate setting chosen indepe
 - [x] Fix UX issues — voice preview speed, create button feedback, tone/duration placement, banned prompts, 10 tones, 12 templates
 - [x] **Trigger.dev connected with real credentials** — tasks fire from browser, worker executes, Flask pipeline completes
 - [x] **Video renders end-to-end** — 23.7MB video, 4m 31s. Fixed video playback via API proxy + Flask character mouth validation
-- [ ] Test video playback in browser, verify proxy works
-- [ ] Fix platform toggles on review page
-- [ ] Fix caption display/size on review page
+- [x] Video playback verified — proxy route `/api/video-proxy` correctly proxies Flask video files with API key auth, `<video>` element renders with `onError` fallback to gradient
+- [x] Platform toggles on review page — clickable pill buttons with label text, filled icon when active (purple + ring), outline when inactive (gray), toggle on/off
+- [x] Caption display on review page — shows full caption text (no truncation), minimum 5 lines visible, "Caption" label header, removed show more/less collapse
 - [ ] Add render timer / elapsed time display
 - [ ] Build library/history page (past renders)
 - [ ] Read/write user defaults from database to settings pills
@@ -269,7 +274,8 @@ Voices are **NOT** tied to characters. Voice is a separate setting chosen indepe
 
 ### Phase 2: Other Formats
 - [x] Image post — full pipeline with Flask `/pg/*` endpoints
-- [ ] Carousel, quote card, caption, thread pipelines
+- [x] Carousel — 10 HTML templates + 4 themes + Gemini content gen + node-html-to-image rendering + review gallery
+- [x] Text post — Gemini text gen + editor + review with copy/paste
 
 ### Phase 3: Additional Input Methods
 - [ ] Free type, viral link, upload content, viral right now

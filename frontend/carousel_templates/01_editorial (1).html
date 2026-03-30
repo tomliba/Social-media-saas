@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&family=Caveat:wght@400;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  position: relative;
+}
+
+:root {
+  --bg: #0D1B2A;
+  --bg-card: #152238;
+  --accent: #5DCCFF;
+  --accent2: #E91E63;
+  --text: #FFFFFF;
+  --text-body: #F0F0F0;
+  --text-muted: #94A3B8;
+  --grid: rgba(26,45,66,.18);
+  --bar-left: #1976D2;
+  --bar-right: #E91E63;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 0;
+}
+
+.glow {
+  position: absolute;
+  width: 1200px;
+  height: 1400px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(20,55,100,.3) 0%, transparent 70%);
+  z-index: 0;
+}
+
+.top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--bar-left), var(--bar-right));
+  z-index: 10;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  padding: 80px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 110px;
+  line-height: 1.05;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+
+.section-title .accent { color: var(--accent); }
+
+.accent-bar {
+  width: 80px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 3px;
+  margin: 16px 0 32px;
+}
+
+.body-text {
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+.body-text .accent { color: var(--accent); }
+
+.bullets {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.bullet-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 18px;
+}
+
+.bullet-text {
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-body);
+}
+
+.bullet-text .accent { color: var(--accent); }
+
+.annotation {
+  font-family: 'Caveat', cursive;
+  font-size: 48px;
+  color: var(--accent);
+  margin-top: 24px;
+}
+
+.footer {
+  position: absolute;
+  bottom: 40px;
+  left: 80px;
+  right: 80px;
+  display: flex;
+  justify-content: space-between;
+  z-index: 3;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-body);
+}
+</style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+  <div class="glow"></div>
+  <div class="top-bar"></div>
+  
+  <div class="content">
+    <div class="section-title">THE <span class="accent">PROBLEM.</span></div>
+    <div class="accent-bar"></div>
+    <div class="body-text">Most teams are still doing everything <span class="accent">manually</span>. Content, reporting, onboarding.</div>
+    
+    <div class="bullets">
+      <div class="bullet">
+        <div class="bullet-dot"></div>
+        <div class="bullet-text">Content creation takes <span class="accent">hours</span> every day</div>
+      </div>
+      <div class="bullet">
+        <div class="bullet-dot"></div>
+        <div class="bullet-text">Reporting is a <span class="accent">full-time job</span></div>
+      </div>
+      <div class="bullet">
+        <div class="bullet-dot"></div>
+        <div class="bullet-text">Scaling means <span class="accent">hiring</span>, not automating</div>
+      </div>
+    </div>
+    
+    <div class="annotation">sound familiar? ↗</div>
+  </div>
+  
+  <div class="footer">
+    <span>{{handle}}</span>
+    <span>save for later ⚑</span>
+  </div>
+</body>
+</html>

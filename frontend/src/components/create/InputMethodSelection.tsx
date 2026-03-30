@@ -18,7 +18,7 @@ const inputMethods = [
     title: "Pick a template",
     description: "10 AI-generated viral ideas based on your niche",
     highlighted: true,
-    formats: ["Video", "Image Post"],
+    formats: ["Video", "Image Post", "Carousel", "Text"],
     extra: (
       <div className="flex flex-wrap gap-2">
         {templatePills.map((pill) => (
@@ -103,7 +103,13 @@ export default function InputMethodSelection({
               disabled={isDisabled}
               onClick={() => {
                 if (isEnabled) {
-                  const format = selectedFormat === "Image Post" ? "image" : "video";
+                  const formatMap: Record<string, string> = {
+                    "Video": "video",
+                    "Image Post": "image",
+                    "Carousel": "carousel",
+                    "Text": "text",
+                  };
+                  const format = formatMap[selectedFormat ?? ""] || "video";
                   if (method.id === "paste-script") {
                     router.push("/create/paste-script");
                   } else if (method.id === "remix") {

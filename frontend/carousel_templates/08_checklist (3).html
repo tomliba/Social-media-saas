@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Caveat:wght@400;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+}
+
+:root {
+  --bg: #FAF5EE;
+  --accent: #C67B5C;
+  --accent-light: #F3E5D8;
+  --bar-left: #D4A574;
+  --bar-right: #C67B5C;
+  --text: #2C1810;
+  --text-body: #4A3628;
+  --text-muted: #8B6B52;
+  --text-footer: #B09A87;
+  --check-border: #D4A574;
+}
+
+.top-bar {
+  height: 6px;
+  background: linear-gradient(90deg, var(--bar-left), var(--bar-right));
+}
+
+.content {
+  padding: 72px 80px;
+  height: calc(100% - 6px);
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: 24px;
+  color: var(--text-muted);
+  letter-spacing: 4px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.headline {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+  margin-bottom: 20px;
+}
+
+.divider {
+  width: 60px;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin-bottom: 48px;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.check-item {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.check-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check-box.checked {
+  background: var(--accent);
+}
+
+.check-box.unchecked {
+  border: 3px solid var(--check-border);
+  background: transparent;
+}
+
+.check-box svg {
+  width: 28px;
+  height: 28px;
+}
+
+.check-content {}
+
+.check-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.check-title.dimmed {
+  opacity: 0.45;
+}
+
+.check-desc {
+  font-size: 24px;
+  color: var(--text-muted);
+}
+
+.check-desc.dimmed {
+  opacity: 0.45;
+}
+
+.annotation {
+  font-family: 'Caveat', cursive;
+  font-size: 40px;
+  color: var(--accent);
+  margin-top: 32px;
+}
+
+.footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  font-size: 24px;
+  color: var(--text-footer);
+}
+</style>
+</head>
+<body>
+  <div class="top-bar"></div>
+  <div class="content">
+    <div class="label">{{label}}</div>
+    <div class="headline">{{headline}}</div>
+    <div class="divider"></div>
+    
+    <div class="checklist">
+      <div class="check-item">
+        <div class="check-box checked">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5.5 5.5L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="check-content">
+          <div class="check-title">{{item1Title}}</div>
+          <div class="check-desc">{{item1Desc}}</div>
+        </div>
+      </div>
+      
+      <div class="check-item">
+        <div class="check-box checked">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5.5 5.5L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="check-content">
+          <div class="check-title">{{item2Title}}</div>
+          <div class="check-desc">{{item2Desc}}</div>
+        </div>
+      </div>
+      
+      <div class="check-item">
+        <div class="check-box checked">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5.5 5.5L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="check-content">
+          <div class="check-title">{{item3Title}}</div>
+          <div class="check-desc">{{item3Desc}}</div>
+        </div>
+      </div>
+      
+      <div class="check-item">
+        <div class="check-box unchecked"></div>
+        <div class="check-content">
+          <div class="check-title dimmed">{{item4Title}}</div>
+          <div class="check-desc dimmed">{{item4Desc}}</div>
+        </div>
+      </div>
+      
+      <div class="check-item">
+        <div class="check-box unchecked"></div>
+        <div class="check-content">
+          <div class="check-title dimmed">{{item5Title}}</div>
+          <div class="check-desc dimmed">{{item5Desc}}</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="annotation">{{annotation}}</div>
+    
+    <div class="footer">
+      <span>{{handle}}</span>
+      <span>save for later ⚑</span>
+    </div>
+  </div>
+</body>
+</html>

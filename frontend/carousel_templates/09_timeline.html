@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+}
+
+:root {
+  --bg: #0D1B2A;
+  --accent1: #5DCCFF;
+  --accent2: #7C6AE8;
+  --accent3: #D453A0;
+  --accent4: #E91E63;
+  --text: #FFFFFF;
+  --text-muted: #94A3B8;
+  --line-gradient-start: #5DCCFF;
+  --line-gradient-end: #E91E63;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(26,45,66,.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,45,66,.12) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.glow {
+  position: absolute;
+  width: 1200px;
+  height: 1400px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(20,55,100,.25) 0%, transparent 70%);
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  padding: 72px 80px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent1);
+  letter-spacing: 4px;
+  margin-bottom: 16px;
+}
+
+.headline {
+  font-size: 52px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 56px;
+}
+
+.headline .accent { color: var(--accent1); }
+
+.timeline {
+  flex: 1;
+  position: relative;
+  padding-left: 72px;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 16px;
+  top: 12px;
+  bottom: 60px;
+  width: 4px;
+  background: linear-gradient(var(--line-gradient-start), var(--line-gradient-end));
+  border-radius: 2px;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 64px;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -60px;
+  top: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.timeline-item:nth-child(1) .timeline-dot { background: var(--accent1); }
+.timeline-item:nth-child(2) .timeline-dot { background: var(--accent2); }
+.timeline-item:nth-child(3) .timeline-dot { background: var(--accent3); }
+.timeline-item:nth-child(4) .timeline-dot { background: var(--accent4); }
+
+.timeline-phase {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.timeline-item:nth-child(1) .timeline-phase { color: var(--accent1); }
+.timeline-item:nth-child(2) .timeline-phase { color: var(--accent2); }
+.timeline-item:nth-child(3) .timeline-phase { color: var(--accent3); }
+.timeline-item:nth-child(4) .timeline-phase { color: var(--accent4); }
+
+.timeline-title {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.timeline-desc {
+  font-size: 26px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 24px;
+  color: var(--text-muted);
+  margin-top: auto;
+}
+</style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+  <div class="glow"></div>
+  
+  <div class="content">
+    <div class="label">{{label}}</div>
+    <div class="headline">From Manual to <span class="accent">Automated</span></div>
+    
+    <div class="timeline">
+      <div class="timeline-line"></div>
+      
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-phase">{{phase1Label}}</div>
+        <div class="timeline-title">{{phase1Title}}</div>
+        <div class="timeline-desc">{{phase1Desc}}</div>
+      </div>
+      
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-phase">{{phase2Label}}</div>
+        <div class="timeline-title">{{phase2Title}}</div>
+        <div class="timeline-desc">{{phase2Desc}}</div>
+      </div>
+      
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-phase">{{phase3Label}}</div>
+        <div class="timeline-title">{{phase3Title}}</div>
+        <div class="timeline-desc">{{phase3Desc}}</div>
+      </div>
+      
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-phase">{{phase4Label}}</div>
+        <div class="timeline-title">{{phase4Title}}</div>
+        <div class="timeline-desc">{{phase4Desc}}</div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <span>{{handle}}</span>
+      <span>swipe ›</span>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+:root {
+  --bg: #FFFFFF;
+  --text: #111111;
+  --text-muted: #999999;
+  --bad-bg: #FFF0F0;
+  --bad-color: #C62828;
+  --bad-light: #FFCDD2;
+  --bad-border: #FCE4EC;
+  --good-bg: #E8F5E9;
+  --good-color: #2E7D32;
+  --good-light: #C8E6C9;
+  --good-border: #C8E6C9;
+}
+
+.header {
+  padding: 60px 60px 0;
+  text-align: center;
+}
+
+.header-label {
+  font-size: 24px;
+  color: var(--text-muted);
+  letter-spacing: 4px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.header-title {
+  font-size: 52px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 40px;
+}
+
+.header-title .vs {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.columns {
+  display: flex;
+  flex: 1;
+  gap: 3px;
+  padding: 0 48px 48px;
+}
+
+.column {
+  flex: 1;
+  border-radius: 24px;
+  padding: 48px 36px;
+  display: flex;
+  flex-direction: column;
+}
+
+.column.bad { background: var(--bad-bg); }
+.column.good { background: var(--good-bg); }
+
+.column-title {
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.column.bad .column-title { color: var(--bad-color); }
+.column.good .column-title { color: var(--good-color); }
+
+.column-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin: 0 auto 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+}
+
+.column.bad .column-icon { 
+  background: var(--bad-light); 
+  color: var(--bad-color); 
+}
+.column.good .column-icon { 
+  background: var(--good-light); 
+  color: var(--good-color); 
+}
+
+.column-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-item {
+  font-size: 26px;
+  color: #555;
+  line-height: 1.5;
+  padding: 20px 0;
+}
+
+.column.bad .column-item { border-bottom: 1px solid var(--bad-border); }
+.column.good .column-item { border-bottom: 1px solid var(--good-border); }
+
+.column-item:last-child { border-bottom: none; }
+
+.footer {
+  padding: 24px 60px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 24px;
+  color: var(--text-muted);
+}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-label">COMPARISON</div>
+    <div class="header-title">{{leftTitle}} <span class="vs">vs</span> {{rightTitle}}</div>
+  </div>
+  
+  <div class="columns">
+    <div class="column bad">
+      <div class="column-title">{{leftLabel}}</div>
+      <div class="column-icon">✕</div>
+      <div class="column-items">
+        <div class="column-item">{{leftItem1}}</div>
+        <div class="column-item">{{leftItem2}}</div>
+        <div class="column-item">{{leftItem3}}</div>
+        <div class="column-item">{{leftItem4}}</div>
+      </div>
+    </div>
+    <div class="column good">
+      <div class="column-title">{{rightLabel}}</div>
+      <div class="column-icon">✓</div>
+      <div class="column-items">
+        <div class="column-item">{{rightItem1}}</div>
+        <div class="column-item">{{rightItem2}}</div>
+        <div class="column-item">{{rightItem3}}</div>
+        <div class="column-item">{{rightItem4}}</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <span>{{handle}}</span>
+    <span>swipe ›</span>
+  </div>
+</body>
+</html>

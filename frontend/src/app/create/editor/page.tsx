@@ -6,6 +6,7 @@ import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
 import { triggerPostRenders } from "@/app/actions/create-posts";
 import { voices, defaultVoice, getVoiceByName } from "@/lib/voices";
+import { slideSizes, getTemplateById } from "@/lib/carousel-templates";
 
 const characters = [
   { name: "Doctor", emoji: "\u{1F9D1}\u200D\u2695\uFE0F", color: "from-blue-400 to-cyan-300" },
@@ -91,12 +92,33 @@ interface PostIdea {
   headline: string;
 }
 
+interface CarouselIdea {
+  title: string;
+  hook: string;
+  slideCount: number;
+  tag: string;
+}
+
+interface TextIdea {
+  title: string;
+  text: string;
+  type: string;
+  tag: string;
+}
+
+interface CarouselSlideData {
+  slides: Record<string, string>[];
+  caption: string;
+}
+
 function EditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const format = searchParams.get("format") || "video";
   const isImage = format === "image";
+  const isCarousel = format === "carousel";
+  const isText = format === "text";
   const template = searchParams.get("template") || "Did You Know";
   const ideasParam = searchParams.get("ideas");
   const toneParam = searchParams.get("tone") || "Funny";
@@ -104,20 +126,37 @@ function EditorContent() {
   const customPrompt = searchParams.get("customPrompt") || "";
   const pastedScript = searchParams.get("pastedScript") || "";
 
+  // Carousel-specific params
+  const carouselTemplateId = searchParams.get("templateId") || "editorial";
+  const carouselThemeId = searchParams.get("themeId") || "dark";
+  const nicheParam = searchParams.get("niche") || "";
+
   // Parse ideas based on format
-  const videoIdeaTitles: string[] = !isImage && ideasParam ? JSON.parse(ideasParam) : [];
+  const videoIdeaTitles: string[] = !isImage && !isCarousel && !isText && ideasParam ? JSON.parse(ideasParam) : [];
   const postIdeas: PostIdea[] = isImage && ideasParam ? JSON.parse(ideasParam) : [];
+  const carouselIdeas: CarouselIdea[] = isCarousel && ideasParam ? JSON.parse(ideasParam) : [];
+  const textIdeas: TextIdea[] = isText && ideasParam ? JSON.parse(ideasParam) : [];
 
   // ── Video state ──
   const [scripts, setScripts] = useState<Script[]>(
     pastedScript ? [{ title: "My Script", script: pastedScript }] : []
   );
-  const [loading, setLoading] = useState(!isImage && !pastedScript); // Video auto-fetches scripts (not for pasted)
+  const [loading, setLoading] = useState(!isImage && !isCarousel && !isText && !pastedScript);
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
 
   // ── Image state — editable hooks ──
   const [editableHooks, setEditableHooks] = useState<string[]>(
     postIdeas.map((idea) => idea.hook)
+  );
+
+  // ── Carousel state ──
+  const [carouselSlides, setCarouselSlides] = useState<CarouselSlideData[]>([]);
+  const [carouselLoading, setCarouselLoading] = useState(isCarousel);
+  const [carouselSize, setCarouselSize] = useState("instagram");
+
+  // ── Text state ──
+  const [editableTexts, setEditableTexts] = useState<string[]>(
+    textIdeas.map((idea) => idea.text)
   );
 
   const [settings, setSettings] = useState<Record<SettingKey, string>>({
@@ -172,6 +211,37 @@ function EditorContent() {
   useEffect(() => {
     fetchScripts();
   }, [fetchScripts]);
+
+  // ── Carousel: fetch slide content from Gemini ──
+  useEffect(() => {
+    if (!isCarousel || carouselIdeas.length === 0) {
+      if (isCarousel) setCarouselLoading(false);
+      return;
+    }
+    setCarouselLoading(true);
+    Promise.all(
+      carouselIdeas.map(async (idea) => {
+        const res = await fetch("/api/generate-carousel-slides", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templateId: carouselTemplateId,
+            title: idea.title,
+            hook: idea.hook,
+            slideCount: idea.slideCount,
+            tone: toneParam,
+            niche: nicheParam,
+          }),
+        });
+        const data = await res.json();
+        return { slides: data.slides || [], caption: data.caption || "" };
+      })
+    )
+      .then((results) => setCarouselSlides(results))
+      .catch((err) => console.error("Failed to generate carousel slides:", err))
+      .finally(() => setCarouselLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const regenerateScript = async (index: number) => {
     setRegeneratingIndex(index);
@@ -309,9 +379,68 @@ function EditorContent() {
     }
   };
 
-  const itemCount = isImage ? postIdeas.length : (scripts.length || videoIdeaTitles.length);
-  const itemLabel = isImage ? "post" : "video";
-  const hasContent = isImage ? postIdeas.length > 0 : scripts.length > 0;
+  // ── Carousel: render slides ──
+  const handleCreateCarousels = async () => {
+    if (carouselSlides.length === 0) return;
+    setCreating(true);
+    try {
+      const size = slideSizes.find((s) => s.id === carouselSize) || slideSizes[0];
+      const results = [];
+      for (let i = 0; i < carouselSlides.length; i++) {
+        const res = await fetch("/api/render-carousel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templateId: carouselTemplateId,
+            themeId: carouselThemeId,
+            slides: carouselSlides[i].slides,
+            width: size.width,
+            height: size.height,
+          }),
+        });
+        const data = await res.json();
+        results.push({
+          title: carouselIdeas[i]?.title || `Carousel ${i + 1}`,
+          images: data.images || [],
+          caption: carouselSlides[i].caption,
+        });
+      }
+      sessionStorage.setItem("pending-carousel-results", JSON.stringify(results));
+      sessionStorage.setItem("pending-format", "carousel");
+      router.push("/create/review");
+    } catch (err) {
+      console.error("Failed to render carousels:", err);
+      setCreating(false);
+    }
+  };
+
+  // ── Text: just pass through to review ──
+  const handleCreateTexts = () => {
+    const results = textIdeas.map((idea, i) => ({
+      title: idea.title,
+      text: editableTexts[i] || idea.text,
+      type: idea.type,
+    }));
+    sessionStorage.setItem("pending-text-results", JSON.stringify(results));
+    sessionStorage.setItem("pending-format", "text");
+    router.push("/create/review");
+  };
+
+  const itemCount = isCarousel
+    ? carouselIdeas.length
+    : isText
+      ? textIdeas.length
+      : isImage
+        ? postIdeas.length
+        : (scripts.length || videoIdeaTitles.length);
+  const itemLabel = isCarousel ? "carousel" : isText ? "text post" : isImage ? "post" : "video";
+  const hasContent = isCarousel
+    ? carouselSlides.length > 0
+    : isText
+      ? textIdeas.length > 0
+      : isImage
+        ? postIdeas.length > 0
+        : scripts.length > 0;
 
   return (
     <main className="pt-24 pb-72 px-6 max-w-4xl mx-auto">
@@ -334,7 +463,7 @@ function EditorContent() {
             chevron_right
           </span>
           <span className="hover:text-primary cursor-pointer transition-colors">
-            {isImage ? "Image Post" : "Video"}
+            {isCarousel ? "Carousel" : isText ? "Text" : isImage ? "Image Post" : "Video"}
           </span>
           {!isImage && template !== "Custom" && (
             <>
@@ -358,7 +487,7 @@ function EditorContent() {
       {/* Content Cards */}
       <section className="space-y-8 mb-16">
         <h2 className="text-3xl font-bold font-headline tracking-tight text-on-surface mb-6">
-          {isImage ? "Review Post Ideas" : "Review Scripts"}
+          {isCarousel ? "Review Slide Content" : isText ? "Review Text Posts" : isImage ? "Review Post Ideas" : "Review Scripts"}
         </h2>
 
         {/* ── Video: Loading skeleton ── */}
@@ -425,6 +554,136 @@ function EditorContent() {
           </div>
         ))}
 
+        {/* ── Carousel: Slide content cards ── */}
+        {isCarousel && carouselLoading && (
+          Array.from({ length: carouselIdeas.length || 2 }).map((_, i) => (
+            <div key={i} className="bg-surface-container-lowest rounded-[1rem] p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10">
+              <div className="space-y-3">
+                <div className="h-6 w-48 shimmer rounded-full" />
+                <div className="h-4 w-full shimmer rounded-full" />
+                <div className="h-4 w-3/4 shimmer rounded-full" />
+                <div className="h-4 w-5/6 shimmer rounded-full" />
+              </div>
+            </div>
+          ))
+        )}
+
+        {isCarousel && !carouselLoading && carouselSlides.map((slideData, ci) => (
+          <div
+            key={ci}
+            className="bg-surface-container-lowest rounded-[1rem] p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10 relative overflow-hidden"
+          >
+            <div className="flex justify-between items-start mb-6">
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">
+                  Carousel {ci + 1} of {carouselIdeas.length}
+                </span>
+                <h3 className="text-xl font-bold font-headline text-on-surface">
+                  {carouselIdeas[ci]?.title}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-container/20 rounded-full">
+                <span className="material-symbols-outlined text-primary text-sm">view_carousel</span>
+                <span className="text-xs font-bold text-primary">{slideData.slides.length} slides</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {slideData.slides.map((slide, si) => (
+                <div key={si} className="bg-surface rounded-lg p-4 border border-outline-variant/10">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-primary/40 mb-2">
+                    Slide {si + 1}
+                  </div>
+                  {Object.entries(slide)
+                    .filter(([key]) => !["slideNumber", "totalSlides", "handle"].includes(key))
+                    .map(([key, value]) => (
+                      <div key={key} className="mb-2">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/50 block mb-1">
+                          {key.replace(/([A-Z])/g, " $1").trim()}
+                        </label>
+                        <input
+                          type="text"
+                          value={value}
+                          onChange={(e) => {
+                            setCarouselSlides((prev) => {
+                              const next = [...prev];
+                              const newSlides = [...next[ci].slides];
+                              newSlides[si] = { ...newSlides[si], [key]: e.target.value };
+                              next[ci] = { ...next[ci], slides: newSlides };
+                              return next;
+                            });
+                          }}
+                          className="w-full bg-surface-container-low text-on-surface font-body text-sm p-2 rounded border-none focus:ring-2 focus:ring-primary/40"
+                        />
+                      </div>
+                    ))}
+                </div>
+              ))}
+            </div>
+
+            {slideData.caption && (
+              <div className="mt-4 p-4 bg-surface-container-low rounded-lg">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/50 block mb-1">Caption</label>
+                <textarea
+                  value={slideData.caption}
+                  onChange={(e) => {
+                    setCarouselSlides((prev) => {
+                      const next = [...prev];
+                      next[ci] = { ...next[ci], caption: e.target.value };
+                      return next;
+                    });
+                  }}
+                  className="w-full min-h-[80px] bg-surface text-on-surface-variant font-body text-sm p-2 rounded border-none focus:ring-2 focus:ring-primary/40 resize-none"
+                />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* ── Text: Post cards ── */}
+        {isText && textIdeas.map((idea, i) => (
+          <div
+            key={i}
+            className="bg-surface-container-lowest rounded-[1rem] p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10 relative overflow-hidden"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">
+                  Post {i + 1} of {itemCount}
+                </span>
+                <h3 className="text-xl font-bold font-headline text-on-surface">
+                  {idea.title}
+                </h3>
+              </div>
+              <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
+                idea.type === "thread" ? "bg-blue-100 text-blue-700" :
+                idea.type === "hook" ? "bg-amber-100 text-amber-700" :
+                idea.type === "story" ? "bg-emerald-100 text-emerald-700" :
+                "bg-violet-100 text-violet-700"
+              }`}>
+                {idea.type}
+              </span>
+            </div>
+            <div className="relative">
+              <textarea
+                value={editableTexts[i] || ""}
+                onChange={(e) => {
+                  setEditableTexts((prev) => {
+                    const next = [...prev];
+                    next[i] = e.target.value;
+                    return next;
+                  });
+                }}
+                className="w-full min-h-[200px] bg-surface text-on-surface-variant font-body leading-relaxed p-6 rounded-md border-none focus:ring-2 focus:ring-primary/40 resize-none"
+                placeholder="Edit the text post..."
+              />
+              <div className="absolute bottom-4 right-4 text-[10px] font-bold text-outline-variant uppercase tracking-tighter">
+                AI Generated
+              </div>
+            </div>
+          </div>
+        ))}
+
         {/* ── Image: Post idea cards ── */}
         {isImage && postIdeas.map((idea, i) => (
           <div
@@ -465,8 +724,8 @@ function EditorContent() {
         ))}
       </section>
 
-      {/* Settings Section */}
-      {!loading && hasContent && (
+      {/* Settings Section — Video/Image only */}
+      {!loading && hasContent && !isCarousel && !isText && (
         <section className="mt-16 relative">
           <h2 className="text-3xl font-bold font-headline tracking-tight text-on-surface mb-8">
             Creative Settings
@@ -659,30 +918,55 @@ function EditorContent() {
         </section>
       )}
 
+      {/* Carousel: Size picker */}
+      {isCarousel && !carouselLoading && carouselSlides.length > 0 && (
+        <section className="mt-16">
+          <h2 className="text-3xl font-bold font-headline tracking-tight text-on-surface mb-8">
+            Slide Size
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            {slideSizes.map((size) => (
+              <button
+                key={size.id}
+                onClick={() => setCarouselSize(size.id)}
+                className={`px-5 py-3 rounded-full font-bold text-sm transition-all ${
+                  carouselSize === size.id
+                    ? "bg-primary text-on-primary shadow-lg shadow-primary/20"
+                    : "bg-surface-container-highest text-on-surface hover:bg-surface-dim"
+                }`}
+              >
+                {size.label}
+                <span className="text-xs opacity-60 ml-1">({size.width}x{size.height})</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Sticky Bottom Bar */}
       <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center">
         <button
-          onClick={isImage ? handleCreatePosts : handleCreateVideos}
-          disabled={loading || creating || !hasContent}
+          onClick={isCarousel ? handleCreateCarousels : isText ? handleCreateTexts : isImage ? handleCreatePosts : handleCreateVideos}
+          disabled={(loading || carouselLoading) || creating || !hasContent}
           className={`w-full max-w-xl py-5 rounded-full text-xl font-bold font-headline flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95 ${
             creating
               ? "bg-primary/80 text-on-primary shadow-primary/20 cursor-wait"
               : "primary-gradient text-on-primary shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
           }`}
         >
-          {loading ? (
+          {(loading || carouselLoading) ? (
             <>
               <span className="material-symbols-outlined animate-spin">
                 progress_activity
               </span>
-              Generating scripts...
+              {isCarousel ? "Generating slide content..." : "Generating scripts..."}
             </>
           ) : creating ? (
             <>
               <span className="material-symbols-outlined animate-spin">
                 progress_activity
               </span>
-              {isImage ? "Launching post generation..." : "Launching render jobs..."}
+              {isCarousel ? "Rendering slides..." : isText ? "Preparing posts..." : isImage ? "Launching post generation..." : "Launching render jobs..."}
             </>
           ) : (
             <>
@@ -698,9 +982,13 @@ function EditorContent() {
         </button>
         <p className="mt-3 text-xs font-medium text-on-surface-variant flex items-center gap-2">
           <span className="w-1.5 h-1.5 bg-tertiary rounded-full" />
-          {isImage
-            ? "Posts generate in the background \u00B7 ~2 min estimated"
-            : "Videos render in the background \u00B7 We\u2019ll notify you when ready \u00B7 ~7 min estimated"}
+          {isCarousel
+            ? "Slides render in seconds \u00B7 No background processing needed"
+            : isText
+              ? "Ready instantly \u00B7 No rendering needed"
+              : isImage
+                ? "Posts generate in the background \u00B7 ~2 min estimated"
+                : "Videos render in the background \u00B7 We\u2019ll notify you when ready \u00B7 ~7 min estimated"}
         </p>
       </footer>
     </main>

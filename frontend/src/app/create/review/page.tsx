@@ -104,7 +104,6 @@ function ReadyVideoCard({
   total: number;
 }) {
   const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
-  const [showCaption, setShowCaption] = useState(false);
   const [showScheduler, setShowScheduler] = useState(false);
   const [videoError, setVideoError] = useState(false);
 
@@ -158,7 +157,7 @@ function ReadyVideoCard({
 
         <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{title}</h2>
         <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
-        <CaptionBlock caption={caption} showCaption={showCaption} onToggle={() => setShowCaption(!showCaption)} />
+        <CaptionBlock caption={caption} />
         <SchedulerBlock show={showScheduler} />
         <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
       </div>
@@ -232,7 +231,6 @@ function ReadyPostCard({
   total: number;
 }) {
   const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
-  const [showCaption, setShowCaption] = useState(false);
   const [showScheduler, setShowScheduler] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
 
@@ -296,7 +294,7 @@ function ReadyPostCard({
 
         <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{topic}</h2>
         <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
-        <CaptionBlock caption={caption} showCaption={showCaption} onToggle={() => setShowCaption(!showCaption)} />
+        <CaptionBlock caption={caption} />
         <SchedulerBlock show={showScheduler} />
         <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
       </div>
@@ -311,33 +309,43 @@ function ReadyPostCard({
 function PlatformSelector({ activePlatforms, onToggle }: { activePlatforms: Set<string>; onToggle: (key: string) => void }) {
   return (
     <div className="flex items-center gap-3 mb-6">
-      {platforms.map((p) => (
-        <button
-          key={p.key}
-          onClick={() => onToggle(p.key)}
-          title={p.label}
-          className={`p-2 rounded-full transition-colors ${
-            activePlatforms.has(p.key)
-              ? "bg-primary text-on-primary shadow-sm"
-              : "bg-surface-container-low text-on-surface-variant hover:bg-secondary-container hover:text-on-secondary-container"
-          }`}
-        >
-          <span className="material-symbols-outlined text-sm">{p.icon}</span>
-        </button>
-      ))}
+      {platforms.map((p) => {
+        const isActive = activePlatforms.has(p.key);
+        return (
+          <button
+            key={p.key}
+            onClick={() => onToggle(p.key)}
+            title={`${p.label}${isActive ? " (active)" : ""}`}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full transition-all duration-200 text-sm font-medium ${
+              isActive
+                ? "bg-primary text-on-primary shadow-md ring-2 ring-primary/30"
+                : "bg-surface-container-low text-on-surface-variant/50 hover:bg-surface-container-high hover:text-on-surface-variant"
+            }`}
+          >
+            <span
+              className="material-symbols-outlined text-lg"
+              style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+            >
+              {p.icon}
+            </span>
+            <span className="text-xs font-bold">{p.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function CaptionBlock({ caption, showCaption, onToggle }: { caption: string | null; showCaption: boolean; onToggle: () => void }) {
+function CaptionBlock({ caption }: { caption: string | null }) {
   if (!caption) return null;
   return (
-    <div className="mb-6 p-4 bg-surface-container-low rounded-md">
-      <p className="text-on-surface-variant text-sm leading-relaxed">
-        {showCaption ? caption : caption.slice(0, 100) + "... "}
-        <button onClick={onToggle} className="text-primary font-bold cursor-pointer">
-          {showCaption ? "show less" : "see more"}
-        </button>
+    <div className="mb-6 p-4 bg-surface-container-low rounded-lg">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="material-symbols-outlined text-sm text-on-surface-variant/60">notes</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant/60">Caption</span>
+      </div>
+      <p className="text-on-surface-variant text-sm leading-relaxed whitespace-pre-line min-h-[5lh]">
+        {caption}
       </p>
     </div>
   );
@@ -454,41 +462,250 @@ function ErrorCard({ title, message }: { title: string; message: string }) {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  CAROUSEL CARDS
+// ══════════════════════════════════════════════════════════════
+
+interface CarouselResult {
+  title: string;
+  images: string[];
+  caption: string;
+}
+
+function ReadyCarouselCard({
+  result,
+  index,
+  total,
+}: {
+  result: CarouselResult;
+  index: number;
+  total: number;
+}) {
+  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
+  const [showScheduler, setShowScheduler] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  const togglePlatform = (key: string) => {
+    setActivePlatforms((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  return (
+    <section className="group animate-in fade-in duration-500">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-tertiary text-on-primary text-xs font-bold">
+          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+        </span>
+        <span className="text-xs font-bold uppercase tracking-widest text-tertiary font-headline">
+          Carousel {index + 1} of {total} — Ready
+        </span>
+      </div>
+      <div
+        className={`bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)] ${
+          showScheduler ? "border-2 border-primary/20" : ""
+        }`}
+      >
+        {/* Horizontal scrollable slide preview */}
+        {result.images.length > 0 && (
+          <div className="mb-6">
+            <div className="relative aspect-[4/5] rounded-lg overflow-hidden bg-surface-container-low shadow-inner">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={result.images[activeSlide]}
+                alt={`Slide ${activeSlide + 1}`}
+                className="w-full h-full object-contain"
+              />
+              {/* Slide counter */}
+              <div className="absolute top-3 right-3 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold">
+                {activeSlide + 1} / {result.images.length}
+              </div>
+              {/* Nav arrows */}
+              {activeSlide > 0 && (
+                <button
+                  onClick={() => setActiveSlide((p) => p - 1)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white transition-colors"
+                >
+                  <span className="material-symbols-outlined text-on-surface">chevron_left</span>
+                </button>
+              )}
+              {activeSlide < result.images.length - 1 && (
+                <button
+                  onClick={() => setActiveSlide((p) => p + 1)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white transition-colors"
+                >
+                  <span className="material-symbols-outlined text-on-surface">chevron_right</span>
+                </button>
+              )}
+            </div>
+            {/* Thumbnail strip */}
+            <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-1">
+              {result.images.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveSlide(i)}
+                  className={`w-14 h-[70px] rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
+                    activeSlide === i ? "border-primary shadow-md" : "border-transparent opacity-50 hover:opacity-100"
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{result.title}</h2>
+        <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
+        <CaptionBlock caption={result.caption} />
+        <SchedulerBlock show={showScheduler} />
+        <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
+      </div>
+    </section>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TEXT CARDS
+// ══════════════════════════════════════════════════════════════
+
+interface TextResult {
+  title: string;
+  text: string;
+  type: string;
+}
+
+function ReadyTextCard({
+  result,
+  index,
+  total,
+}: {
+  result: TextResult;
+  index: number;
+  total: number;
+}) {
+  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
+  const [showScheduler, setShowScheduler] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const togglePlatform = (key: string) => {
+    setActivePlatforms((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(result.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const typeColors: Record<string, string> = {
+    caption: "bg-violet-100 text-violet-700",
+    thread: "bg-blue-100 text-blue-700",
+    hook: "bg-amber-100 text-amber-700",
+    story: "bg-emerald-100 text-emerald-700",
+  };
+
+  return (
+    <section className="group animate-in fade-in duration-500">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-tertiary text-on-primary text-xs font-bold">
+          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+        </span>
+        <span className="text-xs font-bold uppercase tracking-widest text-tertiary font-headline">
+          Text {index + 1} of {total} — Ready
+        </span>
+      </div>
+      <div
+        className={`bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)] ${
+          showScheduler ? "border-2 border-primary/20" : ""
+        }`}
+      >
+        <div className="flex justify-between items-start mb-4">
+          <h2 className="text-xl font-headline font-bold text-on-surface">{result.title}</h2>
+          <div className="flex items-center gap-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-bold ${typeColors[result.type] || "bg-gray-100 text-gray-600"}`}>
+              {result.type}
+            </span>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant text-xs font-bold transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm">{copied ? "check" : "content_copy"}</span>
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+        </div>
+
+        <div className="p-5 bg-surface rounded-lg mb-6 whitespace-pre-line text-on-surface-variant font-body leading-relaxed text-sm">
+          {result.text}
+        </div>
+
+        <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
+        <SchedulerBlock show={showScheduler} />
+        <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
+      </div>
+    </section>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
 //  MAIN REVIEW PAGE
 // ══════════════════════════════════════════════════════════════
 
 export default function ReviewPage() {
   const [handles, setHandles] = useState<RunHandle[]>([]);
   const [format, setFormat] = useState<string>("video");
+  const [carouselResults, setCarouselResults] = useState<CarouselResult[]>([]);
+  const [textResults, setTextResults] = useState<TextResult[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("pending-renders");
     const storedFormat = sessionStorage.getItem("pending-format") || "video";
-    if (stored) {
-      try {
-        setHandles(JSON.parse(stored));
-      } catch {
-        // invalid data
+    setFormat(storedFormat);
+
+    if (storedFormat === "carousel") {
+      const stored = sessionStorage.getItem("pending-carousel-results");
+      if (stored) {
+        try { setCarouselResults(JSON.parse(stored)); } catch { /* invalid */ }
+      }
+    } else if (storedFormat === "text") {
+      const stored = sessionStorage.getItem("pending-text-results");
+      if (stored) {
+        try { setTextResults(JSON.parse(stored)); } catch { /* invalid */ }
+      }
+    } else {
+      const stored = sessionStorage.getItem("pending-renders");
+      if (stored) {
+        try { setHandles(JSON.parse(stored)); } catch { /* invalid */ }
       }
     }
-    setFormat(storedFormat);
     setLoaded(true);
   }, []);
 
   const isImage = format === "image";
-  const totalItems = handles.length;
+  const isCarousel = format === "carousel";
+  const isText = format === "text";
+  const hasContent = isCarousel ? carouselResults.length > 0 : isText ? textResults.length > 0 : handles.length > 0;
+  const totalItems = isCarousel ? carouselResults.length : isText ? textResults.length : handles.length;
 
-  if (loaded && handles.length === 0) {
+  if (loaded && !hasContent) {
+    const icon = isCarousel ? "view_carousel" : isText ? "text_fields" : isImage ? "image" : "movie_creation";
+    const label = isCarousel ? "carousels" : isText ? "text posts" : isImage ? "posts" : "videos";
     return (
       <main className="pt-32 pb-40 px-6 max-w-3xl mx-auto text-center">
         <div className="mb-8">
-          <span className="material-symbols-outlined text-6xl text-outline-variant">
-            {isImage ? "image" : "movie_creation"}
-          </span>
+          <span className="material-symbols-outlined text-6xl text-outline-variant">{icon}</span>
         </div>
         <h1 className="text-2xl font-headline font-extrabold text-on-surface mb-4">
-          No {isImage ? "posts" : "videos"} generating
+          No {label} generating
         </h1>
         <p className="text-on-surface-variant mb-8">Start by creating content from the editor.</p>
         <Link
@@ -501,6 +718,22 @@ export default function ReviewPage() {
     );
   }
 
+  const headerText = isCarousel
+    ? "Your carousels are ready!"
+    : isText
+      ? "Your text posts are ready!"
+      : isImage
+        ? "Your posts are being created!"
+        : "Your videos are being created!";
+
+  const subText = isCarousel
+    ? `${totalItems} carousel${totalItems !== 1 ? "s" : ""} rendered successfully`
+    : isText
+      ? `${totalItems} text post${totalItems !== 1 ? "s" : ""} ready to publish`
+      : isImage
+        ? `${handles[0]?.ideaTopics?.length ?? 0} posts generating \u00B7 You\u2019re free to leave this page`
+        : `${totalItems} video${totalItems !== 1 ? "s" : ""} rendering in parallel \u00B7 You\u2019re free to leave this page`;
+
   return (
     <main className="pt-32 pb-40 px-6 max-w-3xl mx-auto">
       {/* Header */}
@@ -511,32 +744,36 @@ export default function ReviewPage() {
           </div>
           <div>
             <h1 className="text-2xl font-headline font-extrabold tracking-tight text-on-surface">
-              {isImage ? "Your posts are being created!" : "Your videos are being created!"}
+              {headerText}
             </h1>
-            <p className="text-sm text-on-surface-variant">
-              {isImage
-                ? `${handles[0]?.ideaTopics?.length ?? 0} posts generating \u00B7 You\u2019re free to leave this page`
-                : `${totalItems} video${totalItems !== 1 ? "s" : ""} rendering in parallel \u00B7 You\u2019re free to leave this page`}
-            </p>
+            <p className="text-sm text-on-surface-variant">{subText}</p>
           </div>
         </div>
       </div>
 
       {/* Content Cards */}
       <div className="space-y-10">
-        {isImage
-          ? handles.map((handle) => (
-              <PostRunCard key={handle.runId} handle={handle} />
+        {isCarousel
+          ? carouselResults.map((result, i) => (
+              <ReadyCarouselCard key={i} result={result} index={i} total={carouselResults.length} />
             ))
-          : handles.map((handle, i) => (
-              <VideoRunCard
-                key={handle.runId}
-                handle={handle}
-                index={i}
-                total={totalItems}
-                gradient={gradients[i % gradients.length]}
-              />
-            ))}
+          : isText
+            ? textResults.map((result, i) => (
+                <ReadyTextCard key={i} result={result} index={i} total={textResults.length} />
+              ))
+            : isImage
+              ? handles.map((handle) => (
+                  <PostRunCard key={handle.runId} handle={handle} />
+                ))
+              : handles.map((handle, i) => (
+                  <VideoRunCard
+                    key={handle.runId}
+                    handle={handle}
+                    index={i}
+                    total={totalItems}
+                    gradient={gradients[i % gradients.length]}
+                  />
+                ))}
       </div>
 
       {/* Footer Navigation */}

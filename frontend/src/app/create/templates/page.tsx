@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import CarouselTemplatesSection from "./carousel-templates-section";
+import TextTemplatesSection from "./text-templates-section";
 
 const videoTemplates = [
   { name: "Did You Know", icon: "lightbulb", example: '"Octopuses have 3 hearts"' },
@@ -38,6 +40,8 @@ function TemplatesContent() {
   const searchParams = useSearchParams();
   const format = searchParams.get("format") || "video";
   const isImage = format === "image";
+  const isCarousel = format === "carousel";
+  const isText = format === "text";
 
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showIdeas, setShowIdeas] = useState(false);
@@ -206,12 +210,16 @@ function TemplatesContent() {
         </Link>
         <div>
           <h1 className="text-3xl font-extrabold font-headline tracking-tight text-on-surface">
-            {isImage ? "Generate post ideas" : "Pick a style"}
+            {isCarousel ? "Build a carousel" : isText ? "Write a text post" : isImage ? "Generate post ideas" : "Pick a style"}
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            {isImage
-              ? "Enter a topic and we'll create 10 image post ideas"
-              : "Select the visual format for your next viral hit"}
+            {isCarousel
+              ? "Choose a layout, theme, and topic — AI generates the slides"
+              : isText
+                ? "Enter a topic and we'll create 10 ready-to-post text ideas"
+                : isImage
+                  ? "Enter a topic and we'll create 10 image post ideas"
+                  : "Select the visual format for your next viral hit"}
           </p>
         </div>
       </header>
@@ -263,7 +271,7 @@ function TemplatesContent() {
           </div>
         </div>
         {/* Duration — video only */}
-        {!isImage && (
+        {!isImage && !isCarousel && !isText && (
           <div>
             <span className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Duration</span>
             <div className="flex gap-2">
@@ -285,7 +293,17 @@ function TemplatesContent() {
         )}
       </div>
 
-      {isImage ? (
+      {/* ── Carousel format ── */}
+      {isCarousel && (
+        <CarouselTemplatesSection niche={niche} tone={tone} />
+      )}
+
+      {/* ── Text format ── */}
+      {isText && (
+        <TextTemplatesSection niche={niche} tone={tone} />
+      )}
+
+      {!isCarousel && !isText && isImage ? (
         /* ── Image Post: Topic input + Generate button ── */
         <div className="mb-16 max-w-xl">
           <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">
@@ -428,7 +446,8 @@ function TemplatesContent() {
         </>
       )}
 
-      {/* Ideas Section */}
+      {/* Ideas Section — Video and Image only */}
+      {!isCarousel && !isText && (
       <div
         ref={ideasSectionRef}
         style={{
@@ -574,9 +593,10 @@ function TemplatesContent() {
           </section>
         </div>
       </div>
+      )}
 
-      {/* Bottom Action Bar */}
-      {selectedCount > 0 && (
+      {/* Bottom Action Bar — Video and Image only */}
+      {!isCarousel && !isText && selectedCount > 0 && (
         <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
           <div className="max-w-6xl w-full flex justify-end items-center">
             <button

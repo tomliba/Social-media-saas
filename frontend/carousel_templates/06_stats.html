@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+:root {
+  --bg: #0A0A0A;
+  --accent: #00FF88;
+  --accent2: #00CCFF;
+  --text: #FFFFFF;
+  --text-muted: #888888;
+  --text-dim: #555555;
+  --bar-bg: #1a1a1a;
+}
+
+.top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+
+.label {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 6px;
+  margin-bottom: 60px;
+}
+
+.big-number {
+  font-size: 220px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.big-number .unit {
+  color: var(--accent);
+}
+
+.explanation {
+  font-size: 36px;
+  color: var(--text-muted);
+  max-width: 640px;
+  line-height: 1.5;
+  margin-bottom: 60px;
+}
+
+.progress-bar-container {
+  width: 640px;
+  margin-bottom: 16px;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 12px;
+  background: var(--bar-bg);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 6px;
+  width: {{percentage}}%;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 640px;
+  font-size: 20px;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+
+.swipe-hint {
+  position: absolute;
+  bottom: 64px;
+  font-size: 24px;
+  color: var(--text-dim);
+}
+</style>
+</head>
+<body>
+  <div class="top-bar"></div>
+  <div class="label">{{label}}</div>
+  <div class="big-number">{{number}}<span class="unit">{{unit}}</span></div>
+  <div class="explanation">{{explanation}}</div>
+  <div class="progress-bar-container">
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill"></div>
+    </div>
+    <div class="progress-labels">
+      <span>0%</span>
+      <span>{{source}}</span>
+      <span>100%</span>
+    </div>
+  </div>
+  <div class="swipe-hint">swipe for the tools ›</div>
+</body>
+</html>
