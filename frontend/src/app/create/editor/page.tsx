@@ -20,13 +20,13 @@ const characters = [
   { name: "Alien", emoji: "\u{1F47D}", color: "from-lime-400 to-green-300" },
 ];
 
-type SettingKey = "tone" | "presenter" | "voice" | "background" | "duration" | "layout" | "platform";
+type SettingKey = "tone" | "presenter" | "voice" | "background" | "backgroundMode" | "duration" | "layout" | "platform";
 
 interface SettingConfig {
   key: SettingKey;
   label: string;
   emoji: string;
-  options: { label: string; emoji?: string; icon?: string; badge?: string }[];
+  options: { label: string; emoji?: string; icon?: string; badge?: string; desc?: string }[];
 }
 
 const videoSettingsConfig: SettingConfig[] = [
@@ -43,14 +43,15 @@ const videoSettingsConfig: SettingConfig[] = [
     options: voices.map((v) => ({ label: v.name, emoji: v.emoji })),
   },
   {
-    key: "background",
+    key: "backgroundMode",
     label: "Background",
-    emoji: "\u{1F3AC}",
+    emoji: "\u2728",
     options: [
-      { label: "Stock footage", emoji: "\u{1F3AC}" },
-      { label: "AI images", emoji: "\u{1F3A8}" },
-      { label: "Kling video", emoji: "\u{1F3A5}", badge: "Pro" },
-      { label: "Upload own", icon: "cloud_upload" },
+      { label: "Smart Mix", emoji: "\u2728", desc: "AI picks the best visuals for each moment" },
+      { label: "Stock Footage", emoji: "\u{1F4F9}", desc: "Real video clips from Pexels" },
+      { label: "AI Images", emoji: "\u{1F3A8}", desc: "Custom AI-generated images" },
+      { label: "Motion Graphics", emoji: "\u2728", desc: "Animated text and diagrams" },
+      { label: "AI Video", emoji: "\u{1F916}", badge: "Soon", desc: "Coming soon" },
     ],
   },
   {
@@ -178,6 +179,7 @@ function EditorContent() {
     presenter: "Doctor",
     voice: defaultVoice.name,
     background: "Stock footage",
+    backgroundMode: "Smart Mix",
     duration: durationParam,
     layout: "Standard",
     platform: "Instagram",
@@ -1018,16 +1020,21 @@ function EditorContent() {
                             {setting.label}
                           </div>
                           <div className="space-y-2">
-                            {setting.options.map((opt) => (
+                            {setting.options.map((opt) => {
+                              const isDisabled = opt.badge === "Soon";
+                              return (
                               <button
                                 key={opt.label}
                                 onClick={() =>
-                                  selectSetting(setting.key, opt.label)
+                                  !isDisabled && selectSetting(setting.key, opt.label)
                                 }
-                                className={`w-full flex items-center justify-between p-3 rounded-[0.5rem] transition-colors cursor-pointer text-left ${
-                                  currentValue === opt.label
-                                    ? "bg-primary/10 ring-1 ring-primary/30"
-                                    : "bg-surface-container-low hover:bg-surface-container-high"
+                                disabled={isDisabled}
+                                className={`w-full flex items-center justify-between p-3 rounded-[0.5rem] transition-colors text-left ${
+                                  isDisabled
+                                    ? "bg-surface-container-low opacity-40 cursor-not-allowed"
+                                    : currentValue === opt.label
+                                      ? "bg-primary/10 ring-1 ring-primary/30 cursor-pointer"
+                                      : "bg-surface-container-low hover:bg-surface-container-high cursor-pointer"
                                 }`}
                               >
                                 <div className="flex items-center gap-3">
@@ -1039,9 +1046,16 @@ function EditorContent() {
                                       {opt.icon}
                                     </span>
                                   )}
-                                  <span className="text-sm font-semibold">
-                                    {opt.label}
-                                  </span>
+                                  <div>
+                                    <span className="text-sm font-semibold block">
+                                      {opt.label}
+                                    </span>
+                                    {opt.desc && (
+                                      <span className="text-xs text-on-surface-variant/60 block">
+                                        {opt.desc}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {setting.key === "voice" && (
@@ -1067,7 +1081,8 @@ function EditorContent() {
                                   )}
                                 </div>
                               </button>
-                            ))}
+                              );
+                            })}
                           </div>
                         </>
                       )}

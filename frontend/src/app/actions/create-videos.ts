@@ -12,6 +12,7 @@ export interface VideoRenderRequest {
     presenter: string;
     voice: string;
     background: string;
+    backgroundMode?: string;
     duration: string;
     layout: string;
   };

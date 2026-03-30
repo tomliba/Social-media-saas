@@ -28,6 +28,15 @@ interface RunHandle {
   ideaTopics?: string[];
 }
 
+interface VisualSegmentMeta {
+  visual_type: string;
+  startSec: number;
+  endSec: number;
+  speech?: string;
+  asset_url?: string | null;
+  data?: Record<string, any>;
+}
+
 // ══════════════════════════════════════════════════════════════
 //  VIDEO CARDS (existing)
 // ══════════════════════════════════════════════════════════════
@@ -50,6 +59,7 @@ function VideoRunCard({
   const progress = (run?.metadata?.progress as number) ?? 0;
   const stageLabel = (run?.metadata?.stageLabel as string) ?? "Queued...";
   const videoUrl = (run?.metadata?.videoUrl as string) ?? "";
+  const visualSegments = (run?.metadata?.visualSegments as VisualSegmentMeta[] | undefined) ?? undefined;
   const isComplete = run?.status === "COMPLETED";
   const isFailed = run?.status === "FAILED" || run?.status === "CANCELED";
   const output = isComplete ? (run?.output as { title: string; videoUrl: string; previewUrl: string; caption: string } | undefined) : undefined;
@@ -70,6 +80,7 @@ function VideoRunCard({
         gradient={gradient}
         index={index}
         total={total}
+        visualSegments={visualSegments}
       />
     );
   }
@@ -95,6 +106,7 @@ function ReadyVideoCard({
   gradient,
   index,
   total,
+  visualSegments,
 }: {
   title: string;
   caption: string | null;
@@ -102,6 +114,7 @@ function ReadyVideoCard({
   gradient: string;
   index: number;
   total: number;
+  visualSegments?: VisualSegmentMeta[];
 }) {
   const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
   const [showScheduler, setShowScheduler] = useState(false);
@@ -155,6 +168,11 @@ function ReadyVideoCard({
           )}
         </div>
 
+        {/* Segment Timeline */}
+        {visualSegments && visualSegments.length > 0 && (
+          <SegmentTimeline segments={visualSegments} />
+        )}
+
         <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{title}</h2>
         <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
         <CaptionBlock caption={caption} />
@@ -162,6 +180,89 @@ function ReadyVideoCard({
         <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
       </div>
     </section>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SEGMENT TIMELINE
+// ══════════════════════════════════════════════════════════════
+
+const segmentTypeColors: Record<string, string> = {
+  pexels_clip: "#3b82f6",
+  ai_image: "#8b5cf6",
+  animated_list: "#22c55e",
+  stat_counter: "#22c55e",
+  diagram: "#22c55e",
+  comparison: "#22c55e",
+  quote_highlight: "#22c55e",
+  title_card: "#22c55e",
+  icon_grid: "#22c55e",
+};
+
+const segmentTypeLabels: Record<string, string> = {
+  pexels_clip: "Pexels",
+  ai_image: "AI Image",
+  animated_list: "List",
+  stat_counter: "Stat",
+  diagram: "Diagram",
+  comparison: "Compare",
+  quote_highlight: "Quote",
+  title_card: "Title",
+  icon_grid: "Icons",
+};
+
+function SegmentTimeline({ segments }: { segments: VisualSegmentMeta[] }) {
+  const totalDuration = Math.max(...segments.map((s) => s.endSec), 1);
+
+  return (
+    <div className="mb-6 mt-4">
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="material-symbols-outlined text-xs text-on-surface-variant/50">timeline</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50">Visual Segments</span>
+      </div>
+      <div className="flex gap-[2px] rounded-lg overflow-hidden">
+        {segments.map((seg, i) => {
+          const widthPct = ((seg.endSec - seg.startSec) / totalDuration) * 100;
+          const color = segmentTypeColors[seg.visual_type] || "#6b7280";
+          const label = segmentTypeLabels[seg.visual_type] || seg.visual_type;
+
+          return (
+            <div
+              key={i}
+              className="flex flex-col items-center min-w-0"
+              style={{ width: `${widthPct}%` }}
+            >
+              <div
+                className="w-full h-8 flex items-center justify-center rounded-sm"
+                style={{ backgroundColor: color }}
+                title={`${label}: ${seg.startSec.toFixed(1)}s – ${seg.endSec.toFixed(1)}s`}
+              >
+                <span className="text-[10px] font-bold text-white truncate px-1">
+                  {label}
+                </span>
+              </div>
+              <span className="text-[9px] text-on-surface-variant/50 mt-1 truncate w-full text-center">
+                {seg.startSec.toFixed(0)}-{seg.endSec.toFixed(0)}s
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-3 mt-3">
+        <span className="flex items-center gap-1 text-[10px] text-on-surface-variant/60">
+          <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: "#3b82f6" }} />
+          Pexels
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-on-surface-variant/60">
+          <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: "#8b5cf6" }} />
+          AI Image
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-on-surface-variant/60">
+          <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: "#22c55e" }} />
+          Motion Graphics
+        </span>
+      </div>
+    </div>
   );
 }
 

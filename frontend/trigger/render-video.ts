@@ -1,5 +1,6 @@
 import { task, metadata, logger } from "@trigger.dev/sdk";
 import { getVoiceByName, defaultVoice } from "../src/lib/voices";
+import type { VisualSegment } from "../src/lib/video-types";
 
 export interface RenderVideoPayload {
   title: string;
@@ -10,6 +11,7 @@ export interface RenderVideoPayload {
     presenter: string;
     voice: string;
     background: string;
+    backgroundMode?: string;
     duration: string;
     layout: string;
   };
@@ -59,6 +61,14 @@ const bgModeMap: Record<string, string> = {
   "Upload own": "pexels",    // Upload not yet implemented — falls back to Pexels
 };
 
+// Frontend background mode options → Flask background_mode values
+const backgroundModeMap: Record<string, string> = {
+  "Smart Mix": "smart_mix",
+  "Stock Footage": "pexels",
+  "AI Images": "ai_image",
+  "Motion Graphics": "motion_graphics",
+};
+
 // Frontend layout options → Flask layout values (passed through for Remotion)
 const layoutMap: Record<string, string> = {
   Standard: "standard",
@@ -83,7 +93,6 @@ interface FlaskSSEEvent {
 
 // Map Flask pipeline steps to progress percentages and labels
 const stepProgress: Record<string, { active: number; done: number; label: string }> = {
-  parallel: { active: 25, done: 50, label: "Generating audio & fetching backgrounds..." },
   lipsync: { active: 55, done: 65, label: "Creating word-level timestamps..." },
   remotion: { active: 70, done: 95, label: "Rendering video with Remotion..." },
 };
@@ -92,9 +101,9 @@ const stepProgress: Record<string, { active: number; done: number; label: string
 
 const simulationStages = [
   { name: "generating_script", label: "Preparing script...", progress: 10, durationMs: 3000 },
-  { name: "generating_audio", label: "Generating audio synthesis...", progress: 25, durationMs: 5000 },
-  { name: "fetching_backgrounds", label: "Fetching background footage...", progress: 40, durationMs: 4000 },
-  { name: "transcribing", label: "Creating word timestamps...", progress: 55, durationMs: 3000 },
+  { name: "visual_plan", label: "Breaking script into visual segments...", progress: 20, durationMs: 2000 },
+  { name: "generating_audio", label: "Generating audio synthesis...", progress: 30, durationMs: 5000 },
+  { name: "resolving_assets", label: "Fetching Pexels clips per segment...", progress: 45, durationMs: 4000 },
   { name: "rendering_video", label: "Rendering video...", progress: 70, durationMs: 8000 },
   { name: "finalizing", label: "Finalizing export...", progress: 90, durationMs: 2000 },
 ] as const;
@@ -155,9 +164,10 @@ export const renderVideo = task({
     const voice = getVoiceByName(payload.settings.voice ?? defaultVoice.name);
     const voiceId = voice.fishAudioId;
     const bgMode = bgModeMap[payload.settings.background] ?? "pexels";
+    const backgroundMode = backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"] ?? "smart_mix";
     const layout = layoutMap[payload.settings.layout] ?? "standard";
 
-    logger.log("Settings mapped", { tone, duration, character, voiceId, bgMode, layout });
+    logger.log("Settings mapped", { tone, duration, character, voiceId, bgMode, backgroundMode, layout });
 
     const scriptRes = await fetch(`${flaskUrl}/vg/generate_script`, {
       method: "POST",
@@ -168,7 +178,7 @@ export const renderVideo = task({
         language: "English",
         duration,
         character,
-        mode: "script", // We already have a script from Gemini — Flask generates scenes
+        mode: "script",
       }),
     });
 
@@ -189,11 +199,80 @@ export const renderVideo = task({
     logger.log("Script generated", { jobId, sceneCount: scriptData.scenes.length });
 
     metadata.set("stage", "script_ready");
-    metadata.set("stageLabel", "Script ready — starting pipeline...");
+    metadata.set("stageLabel", "Script ready — planning visuals & generating audio...");
     metadata.set("progress", 15);
 
-    // ── Step 2: Start the full video pipeline ──
-    const startRes = await fetch(`${flaskUrl}/vg/start`, {
+    // ── Steps 2 & 3: Visual plan + TTS in parallel ──
+    const [visualPlanRes, ttsRes] = await Promise.all([
+      fetch(`${flaskUrl}/vg/visual-plan`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ vg_job_id: jobId, background_mode: backgroundMode }),
+      }),
+      fetch(`${flaskUrl}/vg/tts`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          vg_job_id: jobId,
+          voice_id: voiceId,
+        }),
+      }),
+    ]);
+
+    if (!visualPlanRes.ok) {
+      const errText = await visualPlanRes.text();
+      throw new Error(`Flask /vg/visual-plan failed (${visualPlanRes.status}): ${errText}`);
+    }
+    if (!ttsRes.ok) {
+      const errText = await ttsRes.text();
+      throw new Error(`Flask /vg/tts failed (${ttsRes.status}): ${errText}`);
+    }
+
+    const visualPlanData = await visualPlanRes.json() as {
+      segments: VisualSegment[];
+    };
+
+    logger.log("Visual plan + TTS complete", {
+      segmentCount: visualPlanData.segments.length,
+    });
+
+    metadata.set("stage", "resolving_assets");
+    metadata.set("stageLabel", "Fetching Pexels clips per segment...");
+    metadata.set("progress", 35);
+
+    // ── Step 4: Resolve assets (fetch Pexels clip per segment) ──
+    const resolveRes = await fetch(`${flaskUrl}/vg/resolve-assets`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        vg_job_id: jobId,
+        segments: visualPlanData.segments,
+      }),
+    });
+
+    if (!resolveRes.ok) {
+      const errText = await resolveRes.text();
+      throw new Error(`Flask /vg/resolve-assets failed (${resolveRes.status}): ${errText}`);
+    }
+
+    const resolvedData = await resolveRes.json() as {
+      segments: VisualSegment[];
+    };
+
+    logger.log("Assets resolved", {
+      segmentCount: resolvedData.segments.length,
+      withUrls: resolvedData.segments.filter((s) => s.asset_url).length,
+    });
+
+    // Store visual segments in metadata for the review page timeline
+    metadata.set("visualSegments", JSON.parse(JSON.stringify(resolvedData.segments)));
+
+    metadata.set("stage", "rendering");
+    metadata.set("stageLabel", "Rendering video with Remotion...");
+    metadata.set("progress", 50);
+
+    // ── Step 5: Render with Remotion (pass visualSegments) ──
+    const renderRes = await fetch(`${flaskUrl}/vg/render`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -201,19 +280,20 @@ export const renderVideo = task({
         voice_id: voiceId,
         bg_mode: bgMode,
         layout,
+        visualSegments: resolvedData.segments,
       }),
     });
 
-    if (!startRes.ok) {
-      const errText = await startRes.text();
-      throw new Error(`Flask /vg/start failed (${startRes.status}): ${errText}`);
+    if (!renderRes.ok) {
+      const errText = await renderRes.text();
+      throw new Error(`Flask /vg/render failed (${renderRes.status}): ${errText}`);
     }
 
     metadata.set("stage", "pipeline_started");
-    metadata.set("stageLabel", "Video pipeline running...");
-    metadata.set("progress", 20);
+    metadata.set("stageLabel", "Video pipeline rendering...");
+    metadata.set("progress", 55);
 
-    // ── Step 3: Stream SSE events from Flask for real-time progress ──
+    // ── Step 6: Stream SSE events from Flask for render progress ──
     const eventsRes = await fetch(`${flaskUrl}/vg/events/${jobId}`, {
       headers: {
         Accept: "text/event-stream",

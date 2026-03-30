@@ -238,7 +238,7 @@ Voices are **NOT** tied to characters. Voice is a separate setting chosen indepe
 - **Usage tracking** — videosUsed/postsUsed counters not incremented
 - **Billing** — Lemon Squeezy not integrated, pricing page not built
 - **Real-time updates** — Trigger.dev realtime hooks wired up, but need real TRIGGER_SECRET_KEY to test end-to-end
-- **Carousel format fully built** — 10 HTML templates (editorial, magazine, split, centered, quote, stats, comparison, checklist, timeline, polaroid) + 4 color themes (dark, light, warm, neon) + 5 slide sizes + Gemini idea/slide gen + node-html-to-image rendering in Next.js API route + review page with slide gallery
+- **Carousel format fully built** — 12 carousel templates + 4 image post templates + 12 color themes (Dark Navy, Clean White, Warm Cream, Neon Dark, Midnight Purple, Ocean, Sunset Coral, Electric Blue, Forest, Blush Pink, Mocha, Monochrome) + 5 slide sizes + Gemini idea/slide gen + node-html-to-image rendering in Next.js API route + review page with slide gallery
 - **Text format fully built** — Topic input → Gemini generates 10 text posts (captions, threads, hooks, stories) → editable text editor → review page with copy button + platform toggles
 - **Other input methods** — "Free type", "Viral link", "Upload content", "Viral right now" show "Coming soon"
 
