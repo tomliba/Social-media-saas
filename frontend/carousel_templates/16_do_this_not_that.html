@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+:root {
+  --bg: #111111;
+  --dont-color: #FF3B30;
+  --dont-bg: #1A0A09;
+  --dont-border: rgba(255,59,48,.15);
+  --do-color: #34C759;
+  --do-bg: #0A1A0D;
+  --do-border: rgba(52,199,89,.15);
+  --text: #FFFFFF;
+  --text-muted: #666666;
+  --divider: #222222;
+}
+
+.header {
+  padding: 56px 64px 40px;
+  text-align: center;
+}
+
+.header-tag {
+  display: inline-block;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  padding: 10px 28px;
+  border-radius: 24px;
+  border: 1.5px solid var(--divider);
+  color: var(--text-muted);
+  margin-bottom: 28px;
+}
+
+.header-title {
+  font-size: 52px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.15;
+}
+
+.sections {
+  flex: 1;
+  padding: 0 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section {
+  border-radius: 24px;
+  padding: 40px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.section.dont {
+  background: var(--dont-bg);
+  border: 1.5px solid var(--dont-border);
+}
+
+.section.do {
+  background: var(--do-bg);
+  border: 1.5px solid var(--do-border);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.section-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.dont .section-icon {
+  background: rgba(255,59,48,.15);
+  color: var(--dont-color);
+}
+
+.do .section-icon {
+  background: rgba(52,199,89,.15);
+  color: var(--do-color);
+}
+
+.section-label {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 3px;
+}
+
+.dont .section-label { color: var(--dont-color); }
+.do .section-label { color: var(--do-color); }
+
+.section-content {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+  padding-left: 68px;
+}
+
+.section-content .strike {
+  text-decoration: line-through;
+  text-decoration-color: var(--dont-color);
+  text-decoration-thickness: 3px;
+  opacity: 0.6;
+}
+
+.section-detail {
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 12px;
+  padding-left: 68px;
+}
+
+.section-badge {
+  display: inline-block;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  margin-left: 68px;
+}
+
+.dont .section-badge {
+  background: rgba(255,59,48,.1);
+  color: var(--dont-color);
+}
+
+.do .section-badge {
+  background: rgba(52,199,89,.1);
+  color: var(--do-color);
+}
+
+.center-vs {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--divider);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-muted);
+  margin: -8px auto;
+  z-index: 5;
+  position: relative;
+}
+
+.footer {
+  padding: 24px 64px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 24px;
+  color: var(--text-muted);
+}
+
+.slide-counter {
+  display: flex;
+  gap: 6px;
+}
+
+.counter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--divider);
+}
+
+.counter-dot.active {
+  background: var(--text);
+  width: 24px;
+  border-radius: 4px;
+}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-tag">{{tag}}</div>
+    <div class="header-title">{{title}}</div>
+  </div>
+  
+  <div class="sections">
+    <div class="section dont">
+      <div class="section-header">
+        <div class="section-icon">✕</div>
+        <div class="section-label">DON'T DO THIS</div>
+      </div>
+      <div class="section-content"><span class="strike">{{dontText}}</span></div>
+      <div class="section-detail">{{dontDetail}}</div>
+      <div class="section-badge">{{dontBadge}}</div>
+    </div>
+    
+    <div class="center-vs">VS</div>
+    
+    <div class="section do">
+      <div class="section-header">
+        <div class="section-icon">✓</div>
+        <div class="section-label">DO THIS INSTEAD</div>
+      </div>
+      <div class="section-content">{{doText}}</div>
+      <div class="section-detail">{{doDetail}}</div>
+      <div class="section-badge">{{doBadge}}</div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <span>{{handle}}</span>
+    <div class="slide-counter">
+      <div class="counter-dot active"></div>
+      <div class="counter-dot"></div>
+      <div class="counter-dot"></div>
+      <div class="counter-dot"></div>
+      <div class="counter-dot"></div>
+    </div>
+    <span>save ⚑</span>
+  </div>
+</body>
+</html>

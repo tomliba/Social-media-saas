@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  position: relative;
+}
+
+:root {
+  --bg: #F2EDE7;
+  --paper: #FFFFFF;
+  --tape: rgba(255,228,160,.65);
+  --accent: #D4603A;
+  --text: #1A1A1A;
+  --text-muted: #777777;
+  --doodle: #C4A882;
+}
+
+.paper-texture {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 28px,
+    rgba(0,0,0,.02) 28px,
+    rgba(0,0,0,.02) 29px
+  );
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  padding: 60px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.torn-card {
+  background: var(--paper);
+  padding: 48px 44px;
+  position: relative;
+  box-shadow: 2px 3px 12px rgba(0,0,0,.08);
+  margin-bottom: 32px;
+}
+
+.torn-card::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: linear-gradient(135deg, var(--bg) 33.33%, transparent 33.33%) 0 0,
+              linear-gradient(225deg, var(--bg) 33.33%, transparent 33.33%) 0 0;
+  background-size: 18px 12px;
+}
+
+.tape {
+  position: absolute;
+  width: 120px;
+  height: 36px;
+  background: var(--tape);
+  z-index: 5;
+}
+
+.tape-top-right {
+  top: -14px;
+  right: 40px;
+  transform: rotate(12deg);
+}
+
+.tape-top-left {
+  top: -10px;
+  left: 30px;
+  transform: rotate(-8deg);
+}
+
+.headline {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 64px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.15;
+  margin-bottom: 16px;
+}
+
+.headline .underline {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 8px;
+  text-decoration-thickness: 4px;
+}
+
+.body-text {
+  font-size: 36px;
+  color: var(--text);
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.body-text .highlight {
+  background: linear-gradient(transparent 60%, rgba(212,96,58,.25) 60%);
+  padding: 0 4px;
+}
+
+.handwritten {
+  font-family: 'Caveat', cursive;
+  font-size: 44px;
+  color: var(--accent);
+  transform: rotate(-2deg);
+  margin-top: 12px;
+}
+
+.doodle-arrow {
+  font-family: 'Caveat', cursive;
+  font-size: 60px;
+  color: var(--doodle);
+  position: absolute;
+  right: 80px;
+  bottom: 220px;
+  transform: rotate(15deg);
+}
+
+.doodle-stars {
+  font-family: 'Caveat', cursive;
+  font-size: 48px;
+  color: var(--doodle);
+  position: absolute;
+  left: 80px;
+  top: 40px;
+}
+
+.photo-strip {
+  background: var(--paper);
+  padding: 16px;
+  box-shadow: 2px 3px 10px rgba(0,0,0,.06);
+  transform: rotate(2deg);
+  margin-top: auto;
+}
+
+.photo-inner {
+  background: linear-gradient(135deg, #E8D5C4, #D4A882);
+  height: 280px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: rgba(0,0,0,.3);
+}
+
+.photo-caption {
+  font-family: 'Caveat', cursive;
+  font-size: 32px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 12px;
+  padding-bottom: 8px;
+}
+
+.footer {
+  position: absolute;
+  bottom: 40px;
+  left: 60px;
+  right: 60px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 24px;
+  color: var(--text-muted);
+  z-index: 3;
+}
+</style>
+</head>
+<body>
+  <div class="paper-texture"></div>
+  <div class="doodle-stars">* * *</div>
+  
+  <div class="content">
+    <div class="torn-card">
+      <div class="tape tape-top-right"></div>
+      <div class="headline">{{headline}} <span class="underline">{{highlightWord}}</span></div>
+      <div class="body-text">{{bodyText}} <span class="highlight">{{highlightPhrase}}</span></div>
+      <div class="handwritten">{{annotation}} →</div>
+    </div>
+    
+    <div class="photo-strip">
+      <div class="tape tape-top-left"></div>
+      <div class="photo-inner">[ {{imageDescription}} ]</div>
+      <div class="photo-caption">{{photoCaption}}</div>
+    </div>
+  </div>
+  
+  <div class="doodle-arrow">↓</div>
+  <div class="footer">
+    <span>{{handle}}</span>
+    <span>swipe →</span>
+  </div>
+</body>
+</html>

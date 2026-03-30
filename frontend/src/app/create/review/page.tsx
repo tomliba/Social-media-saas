@@ -657,6 +657,75 @@ function ReadyTextCard({
 }
 
 // ══════════════════════════════════════════════════════════════
+//  IMAGE POST (template-rendered) CARDS
+// ══════════════════════════════════════════════════════════════
+
+interface ImagePostResult {
+  title: string;
+  image: string;
+  caption: string;
+}
+
+function ReadyImagePostCard({
+  result,
+  index,
+  total,
+}: {
+  result: ImagePostResult;
+  index: number;
+  total: number;
+}) {
+  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
+  const [showScheduler, setShowScheduler] = useState(false);
+
+  const togglePlatform = (key: string) => {
+    setActivePlatforms((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  return (
+    <section className="group animate-in fade-in duration-500">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-tertiary text-on-primary text-xs font-bold">
+          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+        </span>
+        <span className="text-xs font-bold uppercase tracking-widest text-tertiary font-headline">
+          Post {index + 1} of {total} — Ready
+        </span>
+      </div>
+      <div
+        className={`bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)] ${
+          showScheduler ? "border-2 border-primary/20" : ""
+        }`}
+      >
+        {result.image && (
+          <div className="mb-6">
+            <div className="relative aspect-[4/5] rounded-lg overflow-hidden bg-surface-container-low shadow-inner">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={result.image}
+                alt={result.title}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+        )}
+
+        <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{result.title}</h2>
+        <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
+        <CaptionBlock caption={result.caption} />
+        <SchedulerBlock show={showScheduler} />
+        <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
+      </div>
+    </section>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
 //  MAIN REVIEW PAGE
 // ══════════════════════════════════════════════════════════════
 
@@ -665,6 +734,7 @@ export default function ReviewPage() {
   const [format, setFormat] = useState<string>("video");
   const [carouselResults, setCarouselResults] = useState<CarouselResult[]>([]);
   const [textResults, setTextResults] = useState<TextResult[]>([]);
+  const [imagePostResults, setImagePostResults] = useState<ImagePostResult[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -681,6 +751,17 @@ export default function ReviewPage() {
       if (stored) {
         try { setTextResults(JSON.parse(stored)); } catch { /* invalid */ }
       }
+    } else if (storedFormat === "image") {
+      // Check for template-rendered image posts first, then fall back to Trigger.dev renders
+      const imagePostStored = sessionStorage.getItem("pending-image-post-results");
+      if (imagePostStored) {
+        try { setImagePostResults(JSON.parse(imagePostStored)); } catch { /* invalid */ }
+      } else {
+        const stored = sessionStorage.getItem("pending-renders");
+        if (stored) {
+          try { setHandles(JSON.parse(stored)); } catch { /* invalid */ }
+        }
+      }
     } else {
       const stored = sessionStorage.getItem("pending-renders");
       if (stored) {
@@ -693,12 +774,13 @@ export default function ReviewPage() {
   const isImage = format === "image";
   const isCarousel = format === "carousel";
   const isText = format === "text";
-  const hasContent = isCarousel ? carouselResults.length > 0 : isText ? textResults.length > 0 : handles.length > 0;
-  const totalItems = isCarousel ? carouselResults.length : isText ? textResults.length : handles.length;
+  const isTemplateImage = isImage && imagePostResults.length > 0;
+  const hasContent = isCarousel ? carouselResults.length > 0 : isText ? textResults.length > 0 : isTemplateImage ? true : handles.length > 0;
+  const totalItems = isCarousel ? carouselResults.length : isText ? textResults.length : isTemplateImage ? imagePostResults.length : handles.length;
 
   if (loaded && !hasContent) {
     const icon = isCarousel ? "view_carousel" : isText ? "text_fields" : isImage ? "image" : "movie_creation";
-    const label = isCarousel ? "carousels" : isText ? "text posts" : isImage ? "posts" : "videos";
+    const label = isCarousel ? "carousels" : isText ? "text posts" : isImage ? "image posts" : "videos";
     return (
       <main className="pt-32 pb-40 px-6 max-w-3xl mx-auto text-center">
         <div className="mb-8">
@@ -722,17 +804,21 @@ export default function ReviewPage() {
     ? "Your carousels are ready!"
     : isText
       ? "Your text posts are ready!"
-      : isImage
-        ? "Your posts are being created!"
-        : "Your videos are being created!";
+      : isTemplateImage
+        ? "Your image posts are ready!"
+        : isImage
+          ? "Your posts are being created!"
+          : "Your videos are being created!";
 
   const subText = isCarousel
     ? `${totalItems} carousel${totalItems !== 1 ? "s" : ""} rendered successfully`
     : isText
       ? `${totalItems} text post${totalItems !== 1 ? "s" : ""} ready to publish`
-      : isImage
-        ? `${handles[0]?.ideaTopics?.length ?? 0} posts generating \u00B7 You\u2019re free to leave this page`
-        : `${totalItems} video${totalItems !== 1 ? "s" : ""} rendering in parallel \u00B7 You\u2019re free to leave this page`;
+      : isTemplateImage
+        ? `${totalItems} image post${totalItems !== 1 ? "s" : ""} rendered successfully`
+        : isImage
+          ? `${handles[0]?.ideaTopics?.length ?? 0} posts generating \u00B7 You\u2019re free to leave this page`
+          : `${totalItems} video${totalItems !== 1 ? "s" : ""} rendering in parallel \u00B7 You\u2019re free to leave this page`;
 
   return (
     <main className="pt-32 pb-40 px-6 max-w-3xl mx-auto">
@@ -761,19 +847,23 @@ export default function ReviewPage() {
             ? textResults.map((result, i) => (
                 <ReadyTextCard key={i} result={result} index={i} total={textResults.length} />
               ))
-            : isImage
-              ? handles.map((handle) => (
-                  <PostRunCard key={handle.runId} handle={handle} />
+            : isTemplateImage
+              ? imagePostResults.map((result, i) => (
+                  <ReadyImagePostCard key={i} result={result} index={i} total={imagePostResults.length} />
                 ))
-              : handles.map((handle, i) => (
-                  <VideoRunCard
-                    key={handle.runId}
-                    handle={handle}
-                    index={i}
-                    total={totalItems}
-                    gradient={gradients[i % gradients.length]}
-                  />
-                ))}
+              : isImage
+                ? handles.map((handle) => (
+                    <PostRunCard key={handle.runId} handle={handle} />
+                  ))
+                : handles.map((handle, i) => (
+                    <VideoRunCard
+                      key={handle.runId}
+                      handle={handle}
+                      index={i}
+                      total={totalItems}
+                      gradient={gradients[i % gradients.length]}
+                    />
+                  ))}
       </div>
 
       {/* Footer Navigation */}

@@ -11,25 +11,53 @@ interface CarouselIdea {
   tag: string;
 }
 
-// Theme color swatches for mini preview
-function ThemeSwatch({ themeId, selected }: { themeId: string; selected: boolean }) {
+// Theme preview card with real rendered preview of the selected layout
+function ThemePreviewCard({
+  themeId,
+  layoutId,
+  selected,
+}: {
+  themeId: string;
+  layoutId: string;
+  selected: boolean;
+}) {
   const theme = carouselThemes.find((t) => t.id === themeId)!;
+  const previewSrc = `/carousel-previews/${layoutId}-${themeId}.png`;
   return (
     <div
-      className={`flex flex-col items-center gap-2 p-4 rounded-xl cursor-pointer transition-all ${
-        selected ? "ring-2 ring-primary shadow-lg scale-105" : "hover:shadow-md"
+      className={`flex flex-col items-center gap-2 p-3 rounded-xl cursor-pointer transition-all ${
+        selected ? "ring-2 ring-primary shadow-lg scale-105" : "hover:shadow-md hover:scale-[1.02]"
       }`}
       style={{ background: theme.vars["--bg"] }}
     >
-      <div className="w-full h-20 rounded-lg flex flex-col gap-2 p-3" style={{ background: theme.vars["--bg-card"] }}>
-        <div className="h-2 w-3/4 rounded-full" style={{ background: theme.vars["--accent"] }} />
-        <div className="h-2 w-1/2 rounded-full" style={{ background: theme.vars["--text-muted"] }} />
-        <div className="h-2 w-2/3 rounded-full" style={{ background: theme.vars["--text-body"] }} />
+      <div className="w-full aspect-[4/5] rounded-lg overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={previewSrc}
+          alt={`${theme.name} theme preview`}
+          className="w-full h-full object-cover"
+        />
       </div>
       <span className="text-xs font-bold" style={{ color: theme.vars["--text"] }}>{theme.name}</span>
     </div>
   );
 }
+
+// Default showcase theme per template for visual variety in the gallery
+const defaultShowcaseTheme: Record<string, string> = {
+  editorial: "dark",
+  magazine: "dark",
+  split: "light",
+  comparison: "light",
+  checklist: "warm",
+  timeline: "dark",
+  scrapbook: "warm",
+  before_after: "neon",
+  notes_app: "light",
+  bold_text: "dark",
+  numbered_steps: "light",
+  do_this_not_that: "neon",
+};
 
 export default function CarouselTemplatesSection({ niche, tone }: { niche: string; tone: string }) {
   const router = useRouter();
@@ -123,9 +151,11 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
         <h2 className="text-2xl font-bold font-headline mb-2">Choose a layout</h2>
         <p className="text-on-surface-variant text-sm mb-6">Pick the visual style for your carousel slides</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           {carouselTemplates.map((t) => {
             const isSelected = selectedLayout === t.id;
+            const previewTheme = isSelected ? selectedTheme : (defaultShowcaseTheme[t.id] || "dark");
+            const previewSrc = `/carousel-previews/${t.id}-${previewTheme}.png`;
             return (
               <button
                 key={t.id}
@@ -133,28 +163,24 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
                 className={`group relative flex flex-col items-center p-4 rounded-xl transition-all active:scale-[0.97] ${
                   isSelected
                     ? "ring-2 ring-primary shadow-[0px_12px_30px_rgba(111,51,213,0.15)] bg-surface-container-lowest"
-                    : "bg-surface-container-lowest hover:shadow-md"
+                    : "bg-surface-container-lowest hover:shadow-lg"
                 }`}
               >
-                <div
-                  className={`w-full aspect-[4/5] rounded-lg flex items-center justify-center mb-3 transition-colors ${
-                    isSelected
-                      ? "bg-primary/10 text-primary"
-                      : "bg-surface-container-low text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary"
-                  }`}
-                >
-                  <span
-                    className="material-symbols-outlined text-4xl"
-                    style={isSelected ? { fontVariationSettings: "'FILL' 1" } : undefined}
-                  >
-                    {t.icon}
-                  </span>
+                <div className="w-full aspect-[4/5] rounded-lg overflow-hidden mb-3 bg-surface-container-low shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewSrc}
+                    alt={`${t.name} preview`}
+                    className={`w-full h-full object-cover transition-all duration-300 ${
+                      isSelected ? "" : "group-hover:scale-105"
+                    }`}
+                  />
                 </div>
-                <h3 className="font-bold text-sm font-headline">{t.name}</h3>
-                <p className="text-[10px] text-on-surface-variant text-center leading-tight mt-1">{t.description}</p>
+                <h3 className="font-bold text-base font-headline">{t.name}</h3>
+                <p className="text-xs text-on-surface-variant text-center leading-tight mt-1">{t.description}</p>
                 {isSelected && (
-                  <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[14px] text-white font-bold">check</span>
+                  <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md">
+                    <span className="material-symbols-outlined text-[16px] text-white font-bold">check</span>
                   </div>
                 )}
               </button>
@@ -172,7 +198,11 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {carouselThemes.map((theme) => (
               <button key={theme.id} onClick={() => handleThemeSelect(theme.id)}>
-                <ThemeSwatch themeId={theme.id} selected={selectedTheme === theme.id} />
+                <ThemePreviewCard
+                  themeId={theme.id}
+                  layoutId={selectedLayout || "editorial"}
+                  selected={selectedTheme === theme.id}
+                />
               </button>
             ))}
           </div>

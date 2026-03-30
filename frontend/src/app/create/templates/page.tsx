@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import CarouselTemplatesSection from "./carousel-templates-section";
 import TextTemplatesSection from "./text-templates-section";
+import ImageTemplatesSection from "./image-templates-section";
 
 const videoTemplates = [
   { name: "Did You Know", icon: "lightbulb", example: '"Octopuses have 3 hearts"' },
@@ -153,11 +154,7 @@ function TemplatesContent() {
   };
 
   const handleRefresh = () => {
-    if (isImage) {
-      fetchPostIdeas();
-    } else {
-      handleGenerateIdeas();
-    }
+    handleGenerateIdeas();
   };
 
   const toggleIdea = (index: number) => {
@@ -176,26 +173,14 @@ function TemplatesContent() {
     const params = new URLSearchParams();
     params.set("format", format);
     params.set("tone", tone);
-    if (!isImage) params.set("duration", duration);
-
-    if (isImage) {
-      // Pass selected post idea numbers and topics
-      const selected = Array.from(selectedIdeas).map((i) => postIdeas[i]);
-      params.set("ideas", JSON.stringify(selected.map((idea) => ({
-        number: idea.number,
-        topic: idea.topic,
-        hook: idea.hook,
-        headline: idea.headline,
-      }))));
-    } else {
-      const selected = Array.from(selectedIdeas).map((i) => videoIdeas[i].title);
-      params.set("template", selectedTemplate || "Did You Know");
-      params.set("ideas", JSON.stringify(selected));
-    }
+    params.set("duration", duration);
+    const selected = Array.from(selectedIdeas).map((i) => videoIdeas[i].title);
+    params.set("template", selectedTemplate || "Did You Know");
+    params.set("ideas", JSON.stringify(selected));
     router.push(`/create/editor?${params.toString()}`);
   };
 
-  const ideas = isImage ? postIdeas : videoIdeas;
+  const ideas = videoIdeas;
   const selectedCount = selectedIdeas.size;
 
   return (
@@ -210,7 +195,7 @@ function TemplatesContent() {
         </Link>
         <div>
           <h1 className="text-3xl font-extrabold font-headline tracking-tight text-on-surface">
-            {isCarousel ? "Build a carousel" : isText ? "Write a text post" : isImage ? "Generate post ideas" : "Pick a style"}
+            {isCarousel ? "Build a carousel" : isText ? "Write a text post" : isImage ? "Create an image post" : "Pick a style"}
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
             {isCarousel
@@ -218,7 +203,7 @@ function TemplatesContent() {
               : isText
                 ? "Enter a topic and we'll create 10 ready-to-post text ideas"
                 : isImage
-                  ? "Enter a topic and we'll create 10 image post ideas"
+                  ? "Choose a design, theme, and topic — AI generates the content"
                   : "Select the visual format for your next viral hit"}
           </p>
         </div>
@@ -303,39 +288,12 @@ function TemplatesContent() {
         <TextTemplatesSection niche={niche} tone={tone} />
       )}
 
-      {!isCarousel && !isText && isImage ? (
-        /* ── Image Post: Topic input + Generate button ── */
-        <div className="mb-16 max-w-xl">
-          <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">
-            Topic
-          </label>
-          <input
-            type="text"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") fetchPostIdeas(); }}
-            placeholder="e.g., morning coffee rituals, why you should drink more water"
-            className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-4 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface placeholder:text-on-surface-variant/50 transition-all font-body mb-4"
-          />
-          <button
-            onClick={fetchPostIdeas}
-            disabled={!topic.trim() || loading}
-            className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <span className="material-symbols-outlined animate-spin text-sm">refresh</span>
-                Generating ideas...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-                Generate 10 ideas
-              </>
-            )}
-          </button>
-        </div>
-      ) : (
+      {/* ── Image format ── */}
+      {isImage && (
+        <ImageTemplatesSection niche={niche} tone={tone} />
+      )}
+
+      {!isCarousel && !isText && !isImage && (
         /* ── Video: Template Grid ── */
         <>
           <section className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
@@ -446,8 +404,8 @@ function TemplatesContent() {
         </>
       )}
 
-      {/* Ideas Section — Video and Image only */}
-      {!isCarousel && !isText && (
+      {/* Ideas Section — Video only */}
+      {!isCarousel && !isText && !isImage && (
       <div
         ref={ideasSectionRef}
         style={{
@@ -470,11 +428,9 @@ function TemplatesContent() {
                   auto_awesome
                 </span>
                 <h2 className="text-2xl font-bold font-headline text-on-surface">
-                  {isImage
-                    ? "10 image post ideas"
-                    : selectedTemplate
-                      ? `10 "${selectedTemplate}" ideas`
-                      : "10 viral ideas for you"}
+                  {selectedTemplate
+                    ? `10 "${selectedTemplate}" ideas`
+                    : "10 viral ideas for you"}
                 </h2>
               </div>
               <button
@@ -517,13 +473,8 @@ function TemplatesContent() {
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-4 no-scrollbar">
                 {ideas.map((idea, i) => {
                   const isChecked = selectedIdeas.has(i);
-                  const title = isImage
-                    ? (idea as PostIdea).topic
-                    : (idea as VideoIdea).title;
-                  const subtitle = isImage
-                    ? (idea as PostIdea).hook
-                    : null;
-                  const tag = isImage ? "post" : (idea as VideoIdea).tag;
+                  const title = (idea as VideoIdea).title;
+                  const tag = (idea as VideoIdea).tag;
                   return (
                     <div
                       key={i}
@@ -557,11 +508,6 @@ function TemplatesContent() {
                         >
                           {title}
                         </p>
-                        {subtitle && (
-                          <p className="text-xs text-on-surface-variant/70 mt-1 leading-relaxed">
-                            {subtitle}
-                          </p>
-                        )}
                       </div>
                       <span
                         className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase flex-shrink-0 ${
@@ -595,8 +541,8 @@ function TemplatesContent() {
       </div>
       )}
 
-      {/* Bottom Action Bar — Video and Image only */}
-      {!isCarousel && !isText && selectedCount > 0 && (
+      {/* Bottom Action Bar — Video only */}
+      {!isCarousel && !isText && !isImage && selectedCount > 0 && (
         <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
           <div className="max-w-6xl w-full flex justify-end items-center">
             <button

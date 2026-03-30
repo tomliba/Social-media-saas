@@ -22,15 +22,23 @@ export async function POST(req: NextRequest) {
     const templatePath = join(process.cwd(), "carousel_templates", template.filename);
     let html = readFileSync(templatePath, "utf-8");
 
-    // Build CSS variable overrides from theme
-    const cssVars = Object.entries(theme.vars)
-      .map(([key, val]) => `${key}: ${val};`)
-      .join("\n  ");
-
-    // Override :root CSS variables in the template
+    // Merge theme variables into existing :root block (keep template-specific vars)
     html = html.replace(
-      /:root\s*\{[^}]*\}/,
-      `:root {\n  ${cssVars}\n}`
+      /:root\s*\{([^}]*)\}/,
+      (_match: string, existingVars: string) => {
+        const varMap: Record<string, string> = {};
+        existingVars.replace(/(--[\w-]+)\s*:\s*([^;]+);/g, (_: string, key: string, val: string) => {
+          varMap[key] = val.trim();
+          return "";
+        });
+        Object.entries(theme.vars).forEach(([key, val]) => {
+          varMap[key] = val;
+        });
+        const merged = Object.entries(varMap)
+          .map(([k, v]) => `${k}: ${v};`)
+          .join("\n  ");
+        return `:root {\n  ${merged}\n}`;
+      }
     );
 
     // Override body dimensions if custom size

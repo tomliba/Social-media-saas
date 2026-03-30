@@ -18,15 +18,18 @@ body {
 :root {
   --bg: #FFFFFF;
   --accent: #764ba2;
+  --accent2: #667eea;
   --accent-light: #f3e8ff;
   --text: #111111;
   --text-muted: #555555;
   --text-label: #999999;
+  --panel-text: rgba(255,255,255,.6);
+  --panel-divider: rgba(255,255,255,.4);
 }
 
 .left-panel {
   width: 45%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
   position: relative;
   display: flex;
   flex-direction: column;
@@ -36,7 +39,7 @@ body {
 
 .left-label {
   font-size: 22px;
-  color: rgba(255,255,255,.6);
+  color: var(--panel-text);
   letter-spacing: 3px;
   font-weight: 600;
   margin-bottom: 12px;
@@ -45,7 +48,7 @@ body {
 .left-divider {
   width: 50px;
   height: 3px;
-  background: rgba(255,255,255,.4);
+  background: var(--panel-divider);
   border-radius: 2px;
 }
 
@@ -129,13 +132,13 @@ body {
     <div class="left-label">SLIDE {{slideNumber}} OF {{totalSlides}}</div>
     <div class="left-divider"></div>
   </div>
-  
+
   <div class="right-panel">
     <div class="section-label">{{sectionLabel}}</div>
     <div class="headline">Most teams are still doing everything <span class="accent">manually</span></div>
     <div class="divider"></div>
     <div class="body-text">Content creation, reporting, onboarding. Hours wasted on work that AI handles in minutes.</div>
-    
+
     <div class="numbered-list">
       <div class="numbered-item">
         <div class="number-badge">1</div>

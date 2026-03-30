@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+}
+
+:root {
+  --bg: #1A1A1A;
+  --accent: #FFD60A;
+  --text: #FFFFFF;
+  --text-muted: #666666;
+  --stripe: rgba(255,255,255,.02);
+}
+
+.stripe-bg {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 80px,
+    var(--stripe) 80px,
+    var(--stripe) 82px
+  );
+}
+
+.corner-accent {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+}
+
+.corner-tl {
+  top: 0;
+  left: 0;
+  border-top: 8px solid var(--accent);
+  border-left: 8px solid var(--accent);
+}
+
+.corner-br {
+  bottom: 0;
+  right: 0;
+  border-bottom: 8px solid var(--accent);
+  border-right: 8px solid var(--accent);
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  padding: 100px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.slide-number {
+  font-size: 120px;
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 32px;
+  opacity: 0.15;
+}
+
+.main-text {
+  font-size: 84px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.1;
+  max-width: 900px;
+  letter-spacing: -1px;
+}
+
+.main-text .accent {
+  color: var(--accent);
+}
+
+.divider-line {
+  width: 100px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 3px;
+  margin: 40px 0;
+}
+
+.sub-text {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--text-muted);
+  max-width: 740px;
+  line-height: 1.4;
+}
+
+.tag-pill {
+  position: absolute;
+  top: 56px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 10px 28px;
+  border-radius: 24px;
+  letter-spacing: 3px;
+}
+
+.footer {
+  position: absolute;
+  bottom: 48px;
+  left: 80px;
+  right: 80px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-muted);
+  z-index: 3;
+}
+
+.progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: rgba(255,255,255,.05);
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: {{progressPercent}}%;
+}
+</style>
+</head>
+<body>
+  <div class="stripe-bg"></div>
+  <div class="corner-accent corner-tl"></div>
+  <div class="corner-accent corner-br"></div>
+  
+  <div class="tag-pill">{{tag}}</div>
+  
+  <div class="content">
+    <div class="slide-number">{{slideNumber}}</div>
+    <div class="main-text">{{mainText}} <span class="accent">{{accentText}}</span></div>
+    <div class="divider-line"></div>
+    <div class="sub-text">{{subText}}</div>
+  </div>
+  
+  <div class="footer">
+    <span>{{handle}}</span>
+    <span>{{slideNumber}} / {{totalSlides}}</span>
+  </div>
+  
+  <div class="progress-bar">
+    <div class="progress-fill"></div>
+  </div>
+</body>
+</html>

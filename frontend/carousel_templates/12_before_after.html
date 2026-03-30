@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+:root {
+  --bg: #0A0A0A;
+  --before-color: #FF4444;
+  --before-bg: rgba(255,68,68,.08);
+  --after-color: #00DD77;
+  --after-bg: rgba(0,221,119,.08);
+  --text: #FFFFFF;
+  --text-muted: #666666;
+  --divider: #222222;
+}
+
+.header {
+  padding: 56px 64px 0;
+  text-align: center;
+}
+
+.header-tag {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 4px;
+  margin-bottom: 20px;
+}
+
+.header-title {
+  font-size: 56px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.15;
+  margin-bottom: 12px;
+}
+
+.header-title .before-word { color: var(--before-color); }
+.header-title .after-word { color: var(--after-color); }
+
+.header-sub {
+  font-size: 28px;
+  color: var(--text-muted);
+  margin-bottom: 40px;
+}
+
+.split-container {
+  flex: 1;
+  display: flex;
+  padding: 0 48px 48px;
+  gap: 4px;
+}
+
+.split-side {
+  flex: 1;
+  border-radius: 24px;
+  padding: 44px 36px;
+  display: flex;
+  flex-direction: column;
+}
+
+.split-side.before {
+  background: var(--before-bg);
+  border: 1px solid rgba(255,68,68,.12);
+}
+
+.split-side.after {
+  background: var(--after-bg);
+  border: 1px solid rgba(0,221,119,.12);
+}
+
+.split-label {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-align: center;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+}
+
+.before .split-label {
+  color: var(--before-color);
+  border-bottom: 2px solid rgba(255,68,68,.2);
+}
+
+.after .split-label {
+  color: var(--after-color);
+  border-bottom: 2px solid rgba(0,221,119,.2);
+}
+
+.split-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 auto 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+}
+
+.before .split-icon {
+  background: rgba(255,68,68,.12);
+  color: var(--before-color);
+}
+
+.after .split-icon {
+  background: rgba(0,221,119,.12);
+  color: var(--after-color);
+}
+
+.split-items {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.split-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.item-marker {
+  font-size: 24px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.before .item-marker { color: var(--before-color); }
+.after .item-marker { color: var(--after-color); }
+
+.item-text {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.center-divider {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--divider);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  z-index: 5;
+}
+
+.footer {
+  padding: 20px 64px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 24px;
+  color: var(--text-muted);
+}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-tag">{{tag}}</div>
+    <div class="header-title"><span class="before-word">{{beforeWord}}</span> vs <span class="after-word">{{afterWord}}</span></div>
+    <div class="header-sub">{{subtitle}}</div>
+  </div>
+  
+  <div style="position:relative;flex:1;display:flex;flex-direction:column">
+    <div class="split-container">
+      <div class="split-side before">
+        <div class="split-label">BEFORE</div>
+        <div class="split-icon">✕</div>
+        <div class="split-items">
+          <div class="split-item">
+            <div class="item-marker">—</div>
+            <div class="item-text">{{beforeItem1}}</div>
+          </div>
+          <div class="split-item">
+            <div class="item-marker">—</div>
+            <div class="item-text">{{beforeItem2}}</div>
+          </div>
+          <div class="split-item">
+            <div class="item-marker">—</div>
+            <div class="item-text">{{beforeItem3}}</div>
+          </div>
+          <div class="split-item">
+            <div class="item-marker">—</div>
+            <div class="item-text">{{beforeItem4}}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="split-side after">
+        <div class="split-label">AFTER</div>
+        <div class="split-icon">✓</div>
+        <div class="split-items">
+          <div class="split-item">
+            <div class="item-marker">+</div>
+            <div class="item-text">{{afterItem1}}</div>
+          </div>
+          <div class="split-item">
+            <div class="item-marker">+</div>
+            <div class="item-text">{{afterItem2}}</div>
+          </div>
+          <div class="split-item">
+            <div class="item-marker">+</div>
+            <div class="item-text">{{afterItem3}}</div>
+          </div>
+          <div class="split-item">
+            <div class="item-marker">+</div>
+            <div class="item-text">{{afterItem4}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="center-divider">VS</div>
+  </div>
+  
+  <div class="footer">
+    <span>{{handle}}</span>
+    <span>swipe ›</span>
+  </div>
+</body>
+</html>

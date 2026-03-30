@@ -6,7 +6,7 @@ import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
 import { triggerPostRenders } from "@/app/actions/create-posts";
 import { voices, defaultVoice, getVoiceByName } from "@/lib/voices";
-import { slideSizes, getTemplateById } from "@/lib/carousel-templates";
+import { slideSizes, getTemplateById, getImagePostTemplateById } from "@/lib/carousel-templates";
 
 const characters = [
   { name: "Doctor", emoji: "\u{1F9D1}\u200D\u2695\uFE0F", color: "from-blue-400 to-cyan-300" },
@@ -99,6 +99,12 @@ interface CarouselIdea {
   tag: string;
 }
 
+interface ImagePostIdea {
+  title: string;
+  hook: string;
+  tag: string;
+}
+
 interface TextIdea {
   title: string;
   text: string;
@@ -126,14 +132,18 @@ function EditorContent() {
   const customPrompt = searchParams.get("customPrompt") || "";
   const pastedScript = searchParams.get("pastedScript") || "";
 
-  // Carousel-specific params
-  const carouselTemplateId = searchParams.get("templateId") || "editorial";
-  const carouselThemeId = searchParams.get("themeId") || "dark";
+  // Template-specific params (carousel and image post templates)
+  const templateId = searchParams.get("templateId") || "editorial";
+  const themeId = searchParams.get("themeId") || "dark";
   const nicheParam = searchParams.get("niche") || "";
+
+  // Image posts with templateId use HTML template rendering, not Flask
+  const isTemplateImage = isImage && !!searchParams.get("templateId");
 
   // Parse ideas based on format
   const videoIdeaTitles: string[] = !isImage && !isCarousel && !isText && ideasParam ? JSON.parse(ideasParam) : [];
-  const postIdeas: PostIdea[] = isImage && ideasParam ? JSON.parse(ideasParam) : [];
+  const postIdeas: PostIdea[] = isImage && !isTemplateImage && ideasParam ? JSON.parse(ideasParam) : [];
+  const imagePostIdeas: ImagePostIdea[] = isTemplateImage && ideasParam ? JSON.parse(ideasParam) : [];
   const carouselIdeas: CarouselIdea[] = isCarousel && ideasParam ? JSON.parse(ideasParam) : [];
   const textIdeas: TextIdea[] = isText && ideasParam ? JSON.parse(ideasParam) : [];
 
@@ -144,10 +154,14 @@ function EditorContent() {
   const [loading, setLoading] = useState(!isImage && !isCarousel && !isText && !pastedScript);
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
 
-  // ── Image state — editable hooks ──
+  // ── Image state (legacy Flask flow) — editable hooks ──
   const [editableHooks, setEditableHooks] = useState<string[]>(
     postIdeas.map((idea) => idea.hook)
   );
+
+  // ── Image post template state (HTML template flow) ──
+  const [imagePostSlides, setImagePostSlides] = useState<CarouselSlideData[]>([]);
+  const [imagePostLoading, setImagePostLoading] = useState(isTemplateImage);
 
   // ── Carousel state ──
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlideData[]>([]);
@@ -225,7 +239,7 @@ function EditorContent() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            templateId: carouselTemplateId,
+            templateId: templateId,
             title: idea.title,
             hook: idea.hook,
             slideCount: idea.slideCount,
@@ -240,6 +254,37 @@ function EditorContent() {
       .then((results) => setCarouselSlides(results))
       .catch((err) => console.error("Failed to generate carousel slides:", err))
       .finally(() => setCarouselLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Image post template: fetch single-slide content from Gemini ──
+  useEffect(() => {
+    if (!isTemplateImage || imagePostIdeas.length === 0) {
+      if (isTemplateImage) setImagePostLoading(false);
+      return;
+    }
+    setImagePostLoading(true);
+    Promise.all(
+      imagePostIdeas.map(async (idea) => {
+        const res = await fetch("/api/generate-carousel-slides", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templateId,
+            title: idea.title,
+            hook: idea.hook,
+            slideCount: 1,
+            tone: toneParam,
+            niche: nicheParam,
+          }),
+        });
+        const data = await res.json();
+        return { slides: data.slides || [], caption: data.caption || "" };
+      })
+    )
+      .then((results) => setImagePostSlides(results))
+      .catch((err) => console.error("Failed to generate image post content:", err))
+      .finally(() => setImagePostLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -379,6 +424,40 @@ function EditorContent() {
     }
   };
 
+  // ── Image post template: render single slides ──
+  const handleCreateImagePosts = async () => {
+    if (imagePostSlides.length === 0) return;
+    setCreating(true);
+    try {
+      const results = [];
+      for (let i = 0; i < imagePostSlides.length; i++) {
+        const res = await fetch("/api/render-carousel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templateId,
+            themeId,
+            slides: imagePostSlides[i].slides,
+            width: 1080,
+            height: 1350,
+          }),
+        });
+        const data = await res.json();
+        results.push({
+          title: imagePostIdeas[i]?.title || `Post ${i + 1}`,
+          image: data.images?.[0] || "",
+          caption: imagePostSlides[i].caption,
+        });
+      }
+      sessionStorage.setItem("pending-image-post-results", JSON.stringify(results));
+      sessionStorage.setItem("pending-format", "image");
+      router.push("/create/review");
+    } catch (err) {
+      console.error("Failed to render image posts:", err);
+      setCreating(false);
+    }
+  };
+
   // ── Carousel: render slides ──
   const handleCreateCarousels = async () => {
     if (carouselSlides.length === 0) return;
@@ -391,8 +470,8 @@ function EditorContent() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            templateId: carouselTemplateId,
-            themeId: carouselThemeId,
+            templateId: templateId,
+            themeId: themeId,
             slides: carouselSlides[i].slides,
             width: size.width,
             height: size.height,
@@ -430,17 +509,21 @@ function EditorContent() {
     ? carouselIdeas.length
     : isText
       ? textIdeas.length
-      : isImage
-        ? postIdeas.length
-        : (scripts.length || videoIdeaTitles.length);
-  const itemLabel = isCarousel ? "carousel" : isText ? "text post" : isImage ? "post" : "video";
+      : isTemplateImage
+        ? imagePostIdeas.length
+        : isImage
+          ? postIdeas.length
+          : (scripts.length || videoIdeaTitles.length);
+  const itemLabel = isCarousel ? "carousel" : isText ? "text post" : isImage ? "image post" : "video";
   const hasContent = isCarousel
     ? carouselSlides.length > 0
     : isText
       ? textIdeas.length > 0
-      : isImage
-        ? postIdeas.length > 0
-        : scripts.length > 0;
+      : isTemplateImage
+        ? imagePostSlides.length > 0
+        : isImage
+          ? postIdeas.length > 0
+          : scripts.length > 0;
 
   return (
     <main className="pt-24 pb-72 px-6 max-w-4xl mx-auto">
@@ -684,8 +767,90 @@ function EditorContent() {
           </div>
         ))}
 
-        {/* ── Image: Post idea cards ── */}
-        {isImage && postIdeas.map((idea, i) => (
+        {/* ── Image post template: Single-slide content cards ── */}
+        {isTemplateImage && imagePostLoading && (
+          Array.from({ length: imagePostIdeas.length || 2 }).map((_, i) => (
+            <div key={i} className="bg-surface-container-lowest rounded-[1rem] p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10">
+              <div className="space-y-3">
+                <div className="h-6 w-48 shimmer rounded-full" />
+                <div className="h-4 w-full shimmer rounded-full" />
+                <div className="h-4 w-3/4 shimmer rounded-full" />
+              </div>
+            </div>
+          ))
+        )}
+
+        {isTemplateImage && !imagePostLoading && imagePostSlides.map((slideData, ci) => (
+          <div
+            key={ci}
+            className="bg-surface-container-lowest rounded-[1rem] p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10 relative overflow-hidden"
+          >
+            <div className="flex justify-between items-start mb-6">
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">
+                  Post {ci + 1} of {imagePostIdeas.length}
+                </span>
+                <h3 className="text-xl font-bold font-headline text-on-surface">
+                  {imagePostIdeas[ci]?.title}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-container/20 rounded-full">
+                <span className="material-symbols-outlined text-primary text-sm">image</span>
+                <span className="text-xs font-bold text-primary">Image Post</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {slideData.slides.map((slide, si) => (
+                <div key={si} className="bg-surface rounded-lg p-4 border border-outline-variant/10">
+                  {Object.entries(slide)
+                    .filter(([key]) => !["slideNumber", "totalSlides", "handle"].includes(key))
+                    .map(([key, value]) => (
+                      <div key={key} className="mb-2">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/50 block mb-1">
+                          {key.replace(/([A-Z])/g, " $1").trim()}
+                        </label>
+                        <input
+                          type="text"
+                          value={value}
+                          onChange={(e) => {
+                            setImagePostSlides((prev) => {
+                              const next = [...prev];
+                              const newSlides = [...next[ci].slides];
+                              newSlides[si] = { ...newSlides[si], [key]: e.target.value };
+                              next[ci] = { ...next[ci], slides: newSlides };
+                              return next;
+                            });
+                          }}
+                          className="w-full bg-surface-container-low text-on-surface font-body text-sm p-2 rounded border-none focus:ring-2 focus:ring-primary/40"
+                        />
+                      </div>
+                    ))}
+                </div>
+              ))}
+            </div>
+
+            {slideData.caption && (
+              <div className="mt-4 p-4 bg-surface-container-low rounded-lg">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/50 block mb-1">Caption</label>
+                <textarea
+                  value={slideData.caption}
+                  onChange={(e) => {
+                    setImagePostSlides((prev) => {
+                      const next = [...prev];
+                      next[ci] = { ...next[ci], caption: e.target.value };
+                      return next;
+                    });
+                  }}
+                  className="w-full min-h-[80px] bg-surface text-on-surface-variant font-body text-sm p-2 rounded border-none focus:ring-2 focus:ring-primary/40 resize-none"
+                />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* ── Image (legacy Flask): Post idea cards ── */}
+        {isImage && !isTemplateImage && postIdeas.map((idea, i) => (
           <div
             key={i}
             className="bg-surface-container-lowest rounded-[1rem] p-8 shadow-[0px_20px_40px_rgba(111,51,213,0.06)] border border-outline-variant/10 relative overflow-hidden"
@@ -724,8 +889,8 @@ function EditorContent() {
         ))}
       </section>
 
-      {/* Settings Section — Video/Image only */}
-      {!loading && hasContent && !isCarousel && !isText && (
+      {/* Settings Section — Video/Legacy Image only */}
+      {!loading && hasContent && !isCarousel && !isText && !isTemplateImage && (
         <section className="mt-16 relative">
           <h2 className="text-3xl font-bold font-headline tracking-tight text-on-surface mb-8">
             Creative Settings
@@ -946,27 +1111,27 @@ function EditorContent() {
       {/* Sticky Bottom Bar */}
       <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center">
         <button
-          onClick={isCarousel ? handleCreateCarousels : isText ? handleCreateTexts : isImage ? handleCreatePosts : handleCreateVideos}
-          disabled={(loading || carouselLoading) || creating || !hasContent}
+          onClick={isCarousel ? handleCreateCarousels : isText ? handleCreateTexts : isTemplateImage ? handleCreateImagePosts : isImage ? handleCreatePosts : handleCreateVideos}
+          disabled={(loading || carouselLoading || imagePostLoading) || creating || !hasContent}
           className={`w-full max-w-xl py-5 rounded-full text-xl font-bold font-headline flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95 ${
             creating
               ? "bg-primary/80 text-on-primary shadow-primary/20 cursor-wait"
               : "primary-gradient text-on-primary shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
           }`}
         >
-          {(loading || carouselLoading) ? (
+          {(loading || carouselLoading || imagePostLoading) ? (
             <>
               <span className="material-symbols-outlined animate-spin">
                 progress_activity
               </span>
-              {isCarousel ? "Generating slide content..." : "Generating scripts..."}
+              {isCarousel || isTemplateImage ? "Generating content..." : "Generating scripts..."}
             </>
           ) : creating ? (
             <>
               <span className="material-symbols-outlined animate-spin">
                 progress_activity
               </span>
-              {isCarousel ? "Rendering slides..." : isText ? "Preparing posts..." : isImage ? "Launching post generation..." : "Launching render jobs..."}
+              {isCarousel ? "Rendering slides..." : isTemplateImage ? "Rendering image posts..." : isText ? "Preparing posts..." : isImage ? "Launching post generation..." : "Launching render jobs..."}
             </>
           ) : (
             <>
@@ -984,11 +1149,13 @@ function EditorContent() {
           <span className="w-1.5 h-1.5 bg-tertiary rounded-full" />
           {isCarousel
             ? "Slides render in seconds \u00B7 No background processing needed"
-            : isText
-              ? "Ready instantly \u00B7 No rendering needed"
-              : isImage
-                ? "Posts generate in the background \u00B7 ~2 min estimated"
-                : "Videos render in the background \u00B7 We\u2019ll notify you when ready \u00B7 ~7 min estimated"}
+            : isTemplateImage
+              ? "Images render in seconds \u00B7 No background processing needed"
+              : isText
+                ? "Ready instantly \u00B7 No rendering needed"
+                : isImage
+                  ? "Posts generate in the background \u00B7 ~2 min estimated"
+                  : "Videos render in the background \u00B7 We\u2019ll notify you when ready \u00B7 ~7 min estimated"}
         </p>
       </footer>
     </main>
