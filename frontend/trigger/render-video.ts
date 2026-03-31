@@ -87,14 +87,18 @@ interface FlaskSSEEvent {
     video_filename?: string;
     output_dir?: string;
     vg_job_id?: string;
+    video_url?: string;
+    thumbnail_url?: string;
     fatal?: boolean;
   };
 }
 
 // Map Flask pipeline steps to progress percentages and labels
 const stepProgress: Record<string, { active: number; done: number; label: string }> = {
+  parallel: { active: 40, done: 55, label: "Generating voice + fetching backgrounds..." },
   lipsync: { active: 55, done: 65, label: "Creating word-level timestamps..." },
-  remotion: { active: 70, done: 95, label: "Rendering video with Remotion..." },
+  remotion: { active: 70, done: 90, label: "Rendering video with Remotion..." },
+  upload: { active: 90, done: 95, label: "Uploading to cloud storage..." },
 };
 
 // ── Simulation stages (used when FLASK_API_URL is not set) ──
@@ -183,11 +187,7 @@ export const renderVideo = task({
       headers["X-API-Key"] = apiKey;
     }
 
-    // ── Step 1: Generate script breakdown via Flask ──
-    metadata.set("stage", "generating_script");
-    metadata.set("stageLabel", "Generating script breakdown...");
-    metadata.set("progress", 5);
-
+    // Resolve settings once
     const tone = toneMap[payload.settings.tone] ?? "funny_clean";
     const duration = durationMap[payload.settings.duration] ?? 60;
     const character = characterMap[payload.settings.presenter] ?? "doctor";
@@ -197,27 +197,19 @@ export const renderVideo = task({
     const backgroundMode = backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"] ?? "smart_mix";
     const layout = layoutMap[payload.settings.layout] ?? "standard";
 
-    logger.log("Settings mapped", { tone, duration, character, voiceId, bgMode, backgroundMode, layout });
-
-    const scriptRes = await fetch(`${flaskUrl}/vg/generate_script`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        topic: payload.script,
-        tone,
-        language: "English",
-        duration,
-        character,
-        mode: "script",
-      }),
-    });
-
-    if (!scriptRes.ok) {
-      const errText = await scriptRes.text();
-      throw new Error(`Flask /vg/generate_script failed (${scriptRes.status}): ${errText}`);
+    // Helper to record failure in metadata before re-throwing
+    function failAtStage(stage: string, err: unknown): never {
+      const message = err instanceof Error ? err.message : String(err);
+      metadata.set("stage", "failed");
+      metadata.set("stageLabel", "Failed");
+      metadata.set("errorStage", stage);
+      metadata.set("errorMessage", message);
+      logger.error(`Failed at stage: ${stage}`, { message });
+      throw err;
     }
 
-    const scriptData = await scriptRes.json() as {
+    let jobId = "";
+    let scriptData: {
       vg_job_id: string;
       script: string;
       hook: string;
@@ -225,179 +217,235 @@ export const renderVideo = task({
       scenes: { text: string; image_prompt: string }[];
     };
 
-    const jobId = scriptData.vg_job_id;
-    logger.log("Script generated", { jobId, sceneCount: scriptData.scenes.length });
+    // ── Step 1: Generate script breakdown via Flask ──
+    try {
+      console.log(`[render-video] ▶ STAGE: script_generation | title="${payload.title}"`);
+      metadata.set("stage", "generating_script");
+      metadata.set("stageLabel", "Generating script breakdown...");
+      metadata.set("progress", 5);
 
-    metadata.set("stage", "script_ready");
-    metadata.set("stageLabel", "Script ready — planning visuals & generating audio...");
-    metadata.set("progress", 15);
+      logger.log("Settings mapped", { tone, duration, character, voiceId, bgMode, backgroundMode, layout });
 
-    // ── Steps 2 & 3: Visual plan + TTS in parallel ──
-    const [visualPlanRes, ttsRes] = await Promise.all([
-      fetch(`${flaskUrl}/vg/visual-plan`, {
+      const scriptRes = await fetch(`${flaskUrl}/vg/generate_script`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ vg_job_id: jobId, background_mode: backgroundMode }),
-      }),
-      fetch(`${flaskUrl}/vg/tts`, {
+        body: JSON.stringify({
+          topic: payload.script,
+          tone,
+          language: "English",
+          duration,
+          character,
+          mode: "script",
+        }),
+      });
+
+      if (!scriptRes.ok) {
+        const errText = await scriptRes.text();
+        throw new Error(`Flask /vg/generate_script failed (${scriptRes.status}): ${errText}`);
+      }
+
+      scriptData = await scriptRes.json() as typeof scriptData;
+
+      jobId = scriptData.vg_job_id;
+      logger.log("Script generated", { jobId, sceneCount: scriptData.scenes.length });
+    } catch (err) {
+      failAtStage("script_generation", err);
+    }
+
+    metadata.set("stage", "script_ready");
+    metadata.set("stageLabel", "Script ready — planning visuals...");
+    metadata.set("progress", 15);
+
+    // ── Step 2: Visual plan ──
+    let visualPlanData: { segments: VisualSegment[] };
+
+    try {
+      console.log(`[render-video] ▶ STAGE: visual_plan | jobId="${jobId}"`);
+      metadata.set("stage", "visual_plan");
+      metadata.set("stageLabel", "Breaking script into visual segments...");
+      metadata.set("progress", 18);
+
+      const visualPlanRes = await fetch(`${flaskUrl}/vg/visual-plan`, {
         method: "POST",
         headers,
         body: JSON.stringify({
           vg_job_id: jobId,
-          voice_id: voiceId,
+          background_mode: backgroundMode,
+          script: scriptData.script,
         }),
-      }),
-    ]);
+      });
 
-    if (!visualPlanRes.ok) {
-      const errText = await visualPlanRes.text();
-      throw new Error(`Flask /vg/visual-plan failed (${visualPlanRes.status}): ${errText}`);
+      if (!visualPlanRes.ok) {
+        const errText = await visualPlanRes.text();
+        throw new Error(`Flask /vg/visual-plan failed (${visualPlanRes.status}): ${errText}`);
+      }
+
+      visualPlanData = await visualPlanRes.json() as { segments: VisualSegment[] };
+      logger.log("Visual plan complete", { segmentCount: visualPlanData.segments.length });
+    } catch (err) {
+      failAtStage("visual_plan", err);
     }
-    if (!ttsRes.ok) {
-      const errText = await ttsRes.text();
-      throw new Error(`Flask /vg/tts failed (${ttsRes.status}): ${errText}`);
-    }
-
-    const visualPlanData = await visualPlanRes.json() as {
-      segments: VisualSegment[];
-    };
-
-    logger.log("Visual plan + TTS complete", {
-      segmentCount: visualPlanData.segments.length,
-    });
 
     metadata.set("stage", "resolving_assets");
-    metadata.set("stageLabel", "Fetching Pexels clips per segment...");
-    metadata.set("progress", 35);
+    metadata.set("stageLabel", "Fetching clips per segment...");
+    metadata.set("progress", 25);
 
-    // ── Step 4: Resolve assets (fetch Pexels clip per segment) ──
-    const resolveRes = await fetch(`${flaskUrl}/vg/resolve-assets`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        vg_job_id: jobId,
-        segments: visualPlanData.segments,
-      }),
-    });
+    // ── Step 3: Resolve assets (fetch Pexels clip per segment) ──
+    let resolvedData: { segments: VisualSegment[] };
 
-    if (!resolveRes.ok) {
-      const errText = await resolveRes.text();
-      throw new Error(`Flask /vg/resolve-assets failed (${resolveRes.status}): ${errText}`);
+    try {
+      console.log(`[render-video] ▶ STAGE: resolve_assets | jobId="${jobId}" segments=${visualPlanData.segments.length}`);
+
+      const resolveRes = await fetch(`${flaskUrl}/vg/resolve-assets`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          vg_job_id: jobId,
+          segments: visualPlanData.segments,
+        }),
+      });
+
+      if (!resolveRes.ok) {
+        const errText = await resolveRes.text();
+        throw new Error(`Flask /vg/resolve-assets failed (${resolveRes.status}): ${errText}`);
+      }
+
+      resolvedData = await resolveRes.json() as { segments: VisualSegment[] };
+
+      logger.log("Assets resolved", {
+        segmentCount: resolvedData.segments.length,
+        withUrls: resolvedData.segments.filter((s) => s.asset_url).length,
+      });
+    } catch (err) {
+      failAtStage("resolve_assets", err);
     }
-
-    const resolvedData = await resolveRes.json() as {
-      segments: VisualSegment[];
-    };
-
-    logger.log("Assets resolved", {
-      segmentCount: resolvedData.segments.length,
-      withUrls: resolvedData.segments.filter((s) => s.asset_url).length,
-    });
 
     // Store visual segments in metadata for the review page timeline
     metadata.set("visualSegments", JSON.parse(JSON.stringify(resolvedData.segments)));
 
-    metadata.set("stage", "rendering");
-    metadata.set("stageLabel", "Rendering video with Remotion...");
-    metadata.set("progress", 50);
+    metadata.set("stage", "pipeline_starting");
+    metadata.set("stageLabel", "Starting video pipeline (TTS + render)...");
+    metadata.set("progress", 35);
 
-    // ── Step 5: Render with Remotion (pass visualSegments) ──
-    const renderRes = await fetch(`${flaskUrl}/vg/render`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        vg_job_id: jobId,
-        voice_id: voiceId,
-        bg_mode: bgMode,
-        layout,
-        visualSegments: resolvedData.segments,
-      }),
-    });
+    // ── Step 4: Start full pipeline via /vg/start (TTS + lipsync + Remotion render) ──
+    try {
+      console.log(`[render-video] ▶ STAGE: vg_start | jobId="${jobId}"`);
 
-    if (!renderRes.ok) {
-      const errText = await renderRes.text();
-      throw new Error(`Flask /vg/render failed (${renderRes.status}): ${errText}`);
+      const startRes = await fetch(`${flaskUrl}/vg/start`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          vg_job_id: jobId,
+          script: scriptData.script,
+          voice_id: voiceId,
+          bg_mode: bgMode,
+          layout,
+          visual_segments: resolvedData.segments,
+        }),
+      });
+
+      if (!startRes.ok) {
+        const errText = await startRes.text();
+        throw new Error(`Flask /vg/start failed (${startRes.status}): ${errText}`);
+      }
+    } catch (err) {
+      failAtStage("pipeline_start", err);
     }
 
-    metadata.set("stage", "pipeline_started");
-    metadata.set("stageLabel", "Video pipeline rendering...");
-    metadata.set("progress", 55);
+    metadata.set("stage", "pipeline_running");
+    metadata.set("stageLabel", "Video pipeline running...");
+    metadata.set("progress", 40);
 
-    // ── Step 6: Stream SSE events from Flask for render progress ──
-    const eventsRes = await fetch(`${flaskUrl}/vg/events/${jobId}`, {
-      headers: {
-        Accept: "text/event-stream",
-        ...(apiKey ? { "X-API-Key": apiKey } : {}),
-      },
-    });
-
-    if (!eventsRes.ok || !eventsRes.body) {
-      throw new Error(`Flask /vg/events/${jobId} failed (${eventsRes.status})`);
-    }
-
-    const reader = eventsRes.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
+    // ── Step 5: Stream SSE events from Flask for pipeline progress ──
     let videoFilename = "";
     let outputDir = "";
+    let r2VideoUrl = "";
 
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      console.log(`[render-video] ▶ STAGE: sse_streaming | jobId="${jobId}"`);
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+      const eventsRes = await fetch(`${flaskUrl}/vg/events/${jobId}`, {
+        headers: {
+          Accept: "text/event-stream",
+          ...(apiKey ? { "X-API-Key": apiKey } : {}),
+        },
+      });
 
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-
-          const evt = parseSSELine(trimmed);
-          if (!evt) continue;
-
-          if (evt.event === "step" && evt.data.step) {
-            const stepInfo = stepProgress[evt.data.step];
-            if (stepInfo) {
-              const isActive = evt.data.status === "active";
-              const progress = isActive ? stepInfo.active : stepInfo.done;
-              const label = isActive
-                ? (evt.data.message ?? stepInfo.label)
-                : `${evt.data.step} complete`;
-
-              metadata.set("stage", `${evt.data.step}_${evt.data.status}`);
-              metadata.set("stageLabel", label);
-              metadata.set("progress", progress);
-              logger.log(`Pipeline step: ${evt.data.step} → ${evt.data.status}`, { progress });
-            }
-          } else if (evt.event === "complete") {
-            videoFilename = evt.data.video_filename || "final_video.mp4";
-            outputDir = evt.data.output_dir || "";
-            logger.log("Pipeline complete", { videoFilename, outputDir });
-            break;
-          } else if (evt.event === "error") {
-            const msg = evt.data.message || "Unknown pipeline error";
-            logger.error("Pipeline error", { message: msg, fatal: evt.data.fatal });
-            throw new Error(`Flask render error: ${msg}`);
-          }
-          // Ignore ping events
-        }
-
-        // If we got the complete event, stop reading
-        if (videoFilename) break;
+      if (!eventsRes.ok || !eventsRes.body) {
+        throw new Error(`Flask /vg/events/${jobId} failed (${eventsRes.status})`);
       }
-    } finally {
-      reader.cancel();
+
+      const reader = eventsRes.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+
+            const evt = parseSSELine(trimmed);
+            if (!evt) continue;
+
+            if (evt.event === "step" && evt.data.step) {
+              const stepInfo = stepProgress[evt.data.step];
+              if (stepInfo) {
+                const isActive = evt.data.status === "active";
+                const progress = isActive ? stepInfo.active : stepInfo.done;
+                const label = isActive
+                  ? (evt.data.message ?? stepInfo.label)
+                  : `${evt.data.step} complete`;
+
+                metadata.set("stage", `${evt.data.step}_${evt.data.status}`);
+                metadata.set("stageLabel", label);
+                metadata.set("progress", progress);
+                logger.log(`Pipeline step: ${evt.data.step} → ${evt.data.status}`, { progress });
+              }
+            } else if (evt.event === "complete") {
+              videoFilename = evt.data.video_filename || "final_video.mp4";
+              outputDir = evt.data.output_dir || "";
+              r2VideoUrl = evt.data.video_url || "";
+              logger.log("Pipeline complete", { videoFilename, outputDir, r2VideoUrl });
+              break;
+            } else if (evt.event === "error") {
+              const msg = evt.data.message || "Unknown pipeline error";
+              logger.error("Pipeline error", { message: msg, fatal: evt.data.fatal });
+              throw new Error(`Flask render error: ${msg}`);
+            }
+            // Ignore ping events
+          }
+
+          // If we got the complete event, stop reading
+          if (videoFilename) break;
+        }
+      } finally {
+        reader.cancel();
+      }
+
+      if (!videoFilename || !outputDir) {
+        throw new Error("SSE stream ended without a complete event");
+      }
+    } catch (err) {
+      failAtStage("pipeline_render", err);
     }
 
-    if (!videoFilename || !outputDir) {
-      throw new Error("SSE stream ended without a complete event");
+    // ── Build video URL ──
+    // Prefer R2 URL (direct CDN) when available; fall back to Flask proxy for local files
+    let videoUrl: string;
+    if (r2VideoUrl) {
+      videoUrl = r2VideoUrl;
+    } else {
+      const flaskPath = `/vg/preview/${outputDir}/${videoFilename}`;
+      videoUrl = `/api/video-proxy?path=${encodeURIComponent(flaskPath)}`;
     }
-
-    // ── Build video URLs (proxied through Next.js to bypass Flask auth) ──
-    const flaskPath = `/vg/preview/${outputDir}/${videoFilename}`;
-    const videoUrl = `/api/video-proxy?path=${encodeURIComponent(flaskPath)}`;
     const previewUrl = videoUrl;
 
     metadata.set("stage", "complete");
@@ -405,6 +453,7 @@ export const renderVideo = task({
     metadata.set("progress", 100);
     metadata.set("videoUrl", videoUrl);
 
+    console.log(`[render-video] ✓ COMPLETE | title="${payload.title}" videoUrl="${videoUrl}"`);
     logger.log("Render complete", { title: payload.title, videoUrl });
 
     // Update library item status to ready
@@ -434,6 +483,7 @@ export const renderVideo = task({
 
 async function runSimulation(payload: RenderVideoPayload): Promise<RenderVideoOutput> {
   for (const stage of simulationStages) {
+    console.log(`[render-video] ▶ STAGE (sim): ${stage.name} | title="${payload.title}"`);
     metadata.set("stage", stage.name);
     metadata.set("stageLabel", stage.label);
     metadata.set("progress", stage.progress);

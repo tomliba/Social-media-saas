@@ -86,7 +86,15 @@ function VideoRunCard({
   }
 
   if (isFailed) {
-    return <ErrorCard title={handle.title ?? "Video"} message="Render failed — try again" />;
+    const errorStage = (run?.metadata?.errorStage as string) ?? undefined;
+    const errorMessage = (run?.metadata?.errorMessage as string) ?? undefined;
+    return (
+      <ErrorCard
+        title={handle.title ?? "Video"}
+        message={errorMessage ?? "Render failed — try again"}
+        stage={errorStage}
+      />
+    );
   }
 
   return (
@@ -548,14 +556,27 @@ function RenderingCard({
   );
 }
 
-function ErrorCard({ title, message }: { title: string; message: string }) {
+const stageLabels: Record<string, string> = {
+  script_generation: "Script Generation",
+  visual_plan_and_tts: "Visual Plan & TTS",
+  resolve_assets: "Pexels Asset Fetch",
+  remotion_render: "Remotion Render",
+};
+
+function ErrorCard({ title, message, stage }: { title: string; message: string; stage?: string }) {
   return (
     <section>
       <div className="bg-error-container/20 rounded-xl p-6 border-2 border-error/20">
         <h2 className="text-xl font-headline font-bold text-on-surface mb-2">{title}</h2>
-        <div className="flex items-center gap-2 text-error text-sm">
-          <span className="material-symbols-outlined text-sm">error</span>
-          <span>{message}</span>
+        {stage && (
+          <div className="flex items-center gap-2 text-error/70 text-xs mb-1">
+            <span className="material-symbols-outlined text-xs">label</span>
+            <span>Failed at: {stageLabels[stage] ?? stage}</span>
+          </div>
+        )}
+        <div className="flex items-start gap-2 text-error text-sm">
+          <span className="material-symbols-outlined text-sm mt-0.5">error</span>
+          <span className="break-words">{message}</span>
         </div>
       </div>
     </section>
