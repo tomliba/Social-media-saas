@@ -105,8 +105,8 @@ const stepProgress: Record<string, { active: number; done: number; label: string
 
 const simulationStages = [
   { name: "generating_script", label: "Preparing script...", progress: 10, durationMs: 3000 },
-  { name: "visual_plan", label: "Breaking script into visual segments...", progress: 20, durationMs: 2000 },
-  { name: "generating_audio", label: "Generating audio synthesis...", progress: 30, durationMs: 5000 },
+  { name: "tts", label: "Generating speech audio...", progress: 20, durationMs: 4000 },
+  { name: "visual_plan", label: "Breaking script into visual segments...", progress: 30, durationMs: 2000 },
   { name: "resolving_assets", label: "Fetching Pexels clips per segment...", progress: 45, durationMs: 4000 },
   { name: "rendering_video", label: "Rendering video...", progress: 70, durationMs: 8000 },
   { name: "finalizing", label: "Finalizing export...", progress: 90, durationMs: 2000 },
@@ -253,17 +253,50 @@ export const renderVideo = task({
     }
 
     metadata.set("stage", "script_ready");
-    metadata.set("stageLabel", "Script ready — planning visuals...");
+    metadata.set("stageLabel", "Script ready — generating speech...");
     metadata.set("progress", 15);
 
-    // ── Step 2: Visual plan ──
+    // ── Step 2: TTS (before visual plan so segments align to real speech timing) ──
+    let ttsData: { audio_duration_ms: number; word_timestamps: unknown[] };
+
+    try {
+      console.log(`[render-video] ▶ STAGE: tts | jobId="${jobId}"`);
+      metadata.set("stage", "tts");
+      metadata.set("stageLabel", "Generating speech audio...");
+      metadata.set("progress", 18);
+
+      const ttsRes = await fetch(`${flaskUrl}/vg/tts`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          vg_job_id: jobId,
+          voice_id: voiceId,
+        }),
+      });
+
+      if (!ttsRes.ok) {
+        const errText = await ttsRes.text();
+        throw new Error(`Flask /vg/tts failed (${ttsRes.status}): ${errText}`);
+      }
+
+      ttsData = await ttsRes.json() as typeof ttsData;
+      logger.log("TTS complete", { audio_duration_ms: ttsData.audio_duration_ms });
+    } catch (err) {
+      failAtStage("tts", err);
+    }
+
+    metadata.set("stage", "tts_ready");
+    metadata.set("stageLabel", "Speech ready — planning visuals...");
+    metadata.set("progress", 22);
+
+    // ── Step 3: Visual plan (uses real speech timing for segment alignment) ──
     let visualPlanData: { segments: VisualSegment[] };
 
     try {
       console.log(`[render-video] ▶ STAGE: visual_plan | jobId="${jobId}"`);
       metadata.set("stage", "visual_plan");
       metadata.set("stageLabel", "Breaking script into visual segments...");
-      metadata.set("progress", 18);
+      metadata.set("progress", 25);
 
       const visualPlanRes = await fetch(`${flaskUrl}/vg/visual-plan`, {
         method: "POST",
@@ -272,6 +305,8 @@ export const renderVideo = task({
           vg_job_id: jobId,
           background_mode: backgroundMode,
           script: scriptData.script,
+          audio_duration_ms: ttsData.audio_duration_ms,
+          word_timestamps: ttsData.word_timestamps,
         }),
       });
 
@@ -288,9 +323,9 @@ export const renderVideo = task({
 
     metadata.set("stage", "resolving_assets");
     metadata.set("stageLabel", "Fetching clips per segment...");
-    metadata.set("progress", 25);
+    metadata.set("progress", 30);
 
-    // ── Step 3: Resolve assets (fetch Pexels clip per segment) ──
+    // ── Step 4: Resolve assets (fetch Pexels clip per segment) ──
     let resolvedData: { segments: VisualSegment[] };
 
     try {
@@ -324,10 +359,10 @@ export const renderVideo = task({
     metadata.set("visualSegments", JSON.parse(JSON.stringify(resolvedData.segments)));
 
     metadata.set("stage", "pipeline_starting");
-    metadata.set("stageLabel", "Starting video pipeline (TTS + render)...");
-    metadata.set("progress", 35);
+    metadata.set("stageLabel", "Starting video pipeline (render)...");
+    metadata.set("progress", 40);
 
-    // ── Step 4: Start full pipeline via /vg/start (TTS + lipsync + Remotion render) ──
+    // ── Step 5: Start pipeline via /vg/start (lipsync + Remotion render — TTS already done) ──
     try {
       console.log(`[render-video] ▶ STAGE: vg_start | jobId="${jobId}"`);
 
@@ -339,6 +374,7 @@ export const renderVideo = task({
           script: scriptData.script,
           voice_id: voiceId,
           bg_mode: bgMode,
+          background_mode: backgroundMode,
           layout,
           visual_segments: resolvedData.segments,
         }),
@@ -356,7 +392,7 @@ export const renderVideo = task({
     metadata.set("stageLabel", "Video pipeline running...");
     metadata.set("progress", 40);
 
-    // ── Step 5: Stream SSE events from Flask for pipeline progress ──
+    // ── Step 6: Stream SSE events from Flask for pipeline progress ──
     let videoFilename = "";
     let outputDir = "";
     let r2VideoUrl = "";
