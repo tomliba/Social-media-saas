@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const FLASK_URL = process.env.FLASK_URL || "http://localhost:5000";
-const API_KEY = process.env.FLASK_API_KEY || "test-key-123";
+const API_KEY = process.env.FLASK_API_KEY || "";
 
 export async function POST(req: NextRequest) {
   try {

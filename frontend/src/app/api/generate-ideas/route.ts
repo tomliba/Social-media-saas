@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { geminiFlash } from "@/lib/gemini";
+import { auth } from "@/lib/auth";
 
 const templateStructures: Record<string, string> = {
   "Did You Know": "surprising facts that make people say 'wait, really?!'",
@@ -17,6 +18,11 @@ const templateStructures: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { template, niche } = await req.json();
 

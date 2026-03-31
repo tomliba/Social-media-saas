@@ -4,3 +4,7 @@ node_modules
 
 /src/generated/prisma
 .trigger/
+
+# Database files
+dev.db
+*.db

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { geminiFlash } from "@/lib/gemini";
+import { auth } from "@/lib/auth";
 
 const templatePrompts: Record<string, string> = {
   "Did You Know":
@@ -29,6 +30,11 @@ const templatePrompts: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { template, ideas, tone, duration, customPrompt } = await req.json();
 

@@ -47,7 +47,7 @@ const bgModeMap: Record<string, string> = {
 const backgroundModeMap: Record<string, string> = {
   "Smart Mix": "smart_mix",
   "Stock Footage": "pexels",
-  "AI Images": "ai_image",
+  "AI Images": "ai_images",
   "Motion Graphics": "motion_graphics",
 };
 

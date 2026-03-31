@@ -9,6 +9,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "path is required" }, { status: 400 });
   }
 
+  if (!path.startsWith("/vg/preview/")) {
+    return NextResponse.json({ error: "Forbidden path" }, { status: 403 });
+  }
+
   try {
     const res = await fetch(`${FLASK_URL}${path}`, {
       headers: API_KEY ? { "X-API-Key": API_KEY } : {},
