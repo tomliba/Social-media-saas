@@ -234,6 +234,109 @@ const templates = [
       handle: "@thefluidcurator",
     },
   },
+  // ── New image post templates ──
+  {
+    id: "tweet",
+    filename: "tweet.html",
+    sample: {
+      displayName: "Doctor Curses",
+      handle: "@doctor_curses",
+      tweetText: "The best marketing strategy is a product that people actually want to tell their friends about.",
+    },
+  },
+  {
+    id: "hot_take",
+    filename: "hot_take.html",
+    sample: {
+      label: "HOT TAKE",
+      opinion: "Most productivity advice is just procrastination with extra steps.",
+      authorName: "Doctor Curses",
+    },
+  },
+  {
+    id: "definition",
+    filename: "definition.html",
+    sample: {
+      word: "Burnout",
+      pronunciation: "/bɜːrn·aʊt/",
+      partOfSpeech: "noun",
+      definitionText: "What happens when you say yes to everything except yourself.",
+    },
+  },
+  {
+    id: "whatsapp",
+    filename: "whatsapp.html",
+    sample: {
+      contactName: "Boss",
+      message1: "Can you work this weekend?",
+      message2: "Sorry, I have plans",
+      message3: "What plans?",
+      message4: "I planned not to work this weekend",
+    },
+  },
+  {
+    id: "listicle",
+    filename: "listicle.html",
+    sample: {
+      title: "5 Books That Changed My Life",
+      item1: "Atomic Habits",
+      item2: "Deep Work",
+      item3: "The Almanack of Naval",
+      item4: "Thinking, Fast and Slow",
+      item5: "The Psychology of Money",
+    },
+  },
+  {
+    id: "checklist",
+    filename: "checklist.html",
+    sample: {
+      title: "Morning Routine Checklist",
+      item1: "Wake up before 6 AM",
+      item2: "No phone for first 30 min",
+      item3: "10 min meditation",
+      item4: "Cold shower",
+      item5: "Journal 3 gratitudes",
+    },
+  },
+  {
+    id: "tip_of_day",
+    filename: "tip_of_day.html",
+    sample: {
+      tipNumber: "TIP #47",
+      tipTitle: "The 2-Minute Rule",
+      tipBody: "If it takes less than 2 minutes, do it now. Small wins compound into massive productivity gains.",
+    },
+  },
+  {
+    id: "this_vs_that",
+    filename: "this_vs_that.html",
+    sample: {
+      title: "Hustle Culture vs Smart Work",
+      leftLabel: "HUSTLE",
+      leftItems: "Work 80 hours\nNo sleep\nAlways grinding",
+      rightLabel: "SMART",
+      rightItems: "40 focused hours\n8 hours sleep\nStrategic rest",
+    },
+  },
+  {
+    id: "myth_vs_fact",
+    filename: "myth_vs_fact.html",
+    sample: {
+      mythLabel: "MYTH",
+      mythText: "You need 8 glasses of water a day",
+      factLabel: "FACT",
+      factText: "Your water needs depend on body weight, activity level, and climate.",
+    },
+  },
+  {
+    id: "did_you_know",
+    filename: "did_you_know.html",
+    sample: {
+      hook: "DID YOU KNOW?",
+      factTitle: "Your brain uses 20% of your total energy",
+      factBody: "Despite being only 2% of your body weight, your brain consumes more energy than any other organ.",
+    },
+  },
 ];
 
 async function main() {
@@ -251,8 +354,10 @@ async function main() {
     console.log("sharp not found — will save full-size PNGs (install sharp for thumbnails)");
   }
 
+  const onlyMissing = process.argv.includes("--only-missing");
   const themeIds = Object.keys(themes);
   let count = 0;
+  let skipped = 0;
   const total = templates.length * themeIds.length;
 
   for (const template of templates) {
@@ -262,6 +367,11 @@ async function main() {
     for (const themeId of themeIds) {
       const theme = themes[themeId];
       const outputFile = path.join(OUTPUT_DIR, `${template.id}-${themeId}.png`);
+
+      if (onlyMissing && fs.existsSync(outputFile)) {
+        skipped++;
+        continue;
+      }
 
       // Merge theme variables into existing :root block (keep template-specific vars)
       let themedHtml = html.replace(
@@ -321,6 +431,7 @@ async function main() {
     }
   }
 
+  if (skipped) console.log(`Skipped ${skipped} existing previews`);
   console.log(`\nGenerated ${count} preview images in ${OUTPUT_DIR}`);
 }
 

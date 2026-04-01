@@ -416,7 +416,7 @@ export default function AIScenePage() {
               <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4">
                 {cat}
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
                 {sceneTemplates
                   .filter((s) => s.category === cat)
                   .map((s) => (
@@ -426,19 +426,37 @@ export default function AIScenePage() {
                         setSelectedScene(s.id);
                         setStep("content");
                       }}
-                      className={`group p-5 rounded-xl text-left transition-all border-2 ${
+                      className={`group relative rounded-xl text-left transition-all overflow-hidden active:scale-[0.97] ${
                         selectedScene === s.id
-                          ? "border-primary bg-primary-container/10 shadow-lg shadow-primary/10"
-                          : "border-outline-variant/20 bg-surface-container-lowest hover:border-primary/30 hover:shadow-md"
+                          ? "ring-2 ring-primary shadow-lg shadow-primary/10"
+                          : "bg-surface-container-lowest hover:shadow-lg"
                       }`}
                     >
-                      <div className="text-3xl mb-3">{s.icon}</div>
-                      <h4 className="font-headline font-bold text-on-surface mb-1">
-                        {s.name}
-                      </h4>
-                      <p className="text-xs text-on-surface-variant leading-relaxed">
-                        {s.description}
-                      </p>
+                      <div className="w-full aspect-square overflow-hidden bg-surface-container-low">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/previews/scenes/${s.id}.png`}
+                          alt={s.name}
+                          className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                            (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-4xl">${s.icon}</div>`;
+                          }}
+                        />
+                      </div>
+                      <div className="px-3 py-2.5">
+                        <h4 className="font-headline font-bold text-on-surface text-sm mb-0.5">
+                          {s.icon} {s.name}
+                        </h4>
+                        <p className="text-[11px] text-on-surface-variant leading-snug">
+                          {s.description}
+                        </p>
+                      </div>
+                      {selectedScene === s.id && (
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md">
+                          <span className="material-symbols-outlined text-[16px] text-white font-bold">check</span>
+                        </div>
+                      )}
                     </button>
                   ))}
               </div>

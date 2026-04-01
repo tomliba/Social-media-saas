@@ -288,43 +288,46 @@ function AICarouselContent() {
               <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">
                 Drawing style
               </label>
-              <div className="flex gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setDrawStyle("handdrawn_color")}
-                  className={`flex-1 p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`group relative rounded-xl text-left transition-all overflow-hidden active:scale-[0.97] ${
                     drawStyle === "handdrawn_color"
-                      ? "border-primary bg-primary-container/10 shadow-lg shadow-primary/10"
-                      : "border-outline-variant/20 hover:border-primary/30"
+                      ? "ring-2 ring-primary shadow-lg shadow-primary/10"
+                      : "hover:shadow-lg"
                   }`}
                 >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex gap-1">
-                      <div className="w-4 h-4 rounded-full" style={{ background: "#EF6351" }} />
-                      <div className="w-4 h-4 rounded-full" style={{ background: "#4BA3D4" }} />
-                      <div className="w-4 h-4 rounded-full" style={{ background: "#6BBF6A" }} />
-                      <div className="w-4 h-4 rounded-full" style={{ background: "#F4C542" }} />
-                    </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/previews/ai/handdrawn-color.png" alt="Color style" className="w-full aspect-square object-cover transition-all duration-300 group-hover:scale-105" />
+                  <div className="px-3 py-2.5">
+                    <h4 className="font-headline font-bold text-sm">Color</h4>
+                    <p className="text-xs text-on-surface-variant">Warm, playful, colored accents</p>
                   </div>
-                  <h4 className="font-headline font-bold text-sm">Color</h4>
-                  <p className="text-xs text-on-surface-variant">Warm, playful, colored accents</p>
+                  {drawStyle === "handdrawn_color" && (
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md">
+                      <span className="material-symbols-outlined text-[16px] text-white font-bold">check</span>
+                    </div>
+                  )}
                 </button>
                 <button
                   onClick={() => setDrawStyle("handdrawn_mono")}
-                  className={`flex-1 p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`group relative rounded-xl text-left transition-all overflow-hidden active:scale-[0.97] ${
                     drawStyle === "handdrawn_mono"
-                      ? "border-primary bg-primary-container/10 shadow-lg shadow-primary/10"
-                      : "border-outline-variant/20 hover:border-primary/30"
+                      ? "ring-2 ring-primary shadow-lg shadow-primary/10"
+                      : "hover:shadow-lg"
                   }`}
                 >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex gap-1">
-                      <div className="w-4 h-4 rounded-full bg-black" />
-                      <div className="w-4 h-4 rounded-full bg-neutral-400" />
-                      <div className="w-4 h-4 rounded-full bg-neutral-200" />
-                    </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/previews/ai/handdrawn-mono.png" alt="Mono style" className="w-full aspect-square object-cover transition-all duration-300 group-hover:scale-105" />
+                  <div className="px-3 py-2.5">
+                    <h4 className="font-headline font-bold text-sm">Mono</h4>
+                    <p className="text-xs text-on-surface-variant">Black ink, clean, minimal</p>
                   </div>
-                  <h4 className="font-headline font-bold text-sm">Mono</h4>
-                  <p className="text-xs text-on-surface-variant">Black ink, clean, minimal</p>
+                  {drawStyle === "handdrawn_mono" && (
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md">
+                      <span className="material-symbols-outlined text-[16px] text-white font-bold">check</span>
+                    </div>
+                  )}
                 </button>
               </div>
             </div>

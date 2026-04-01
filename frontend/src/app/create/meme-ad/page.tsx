@@ -413,38 +413,39 @@ export default function MemeAdPage() {
             Choose the meme style for your &ldquo;{productName}&rdquo; ad
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3 mb-8">
             {memeTemplates.map((tmpl) => {
               const isSelected = selectedTemplate === tmpl.id;
               return (
                 <button
                   key={tmpl.id}
                   onClick={() => setSelectedTemplate(tmpl.id)}
-                  className={`group relative flex flex-col p-4 rounded-xl text-left transition-all active:scale-[0.97] ${
+                  className={`group relative flex flex-col rounded-xl text-left transition-all overflow-hidden active:scale-[0.97] ${
                     isSelected
-                      ? "ring-2 ring-primary shadow-[0px_12px_30px_rgba(111,51,213,0.15)] bg-surface-container-lowest"
+                      ? "ring-2 ring-primary shadow-lg shadow-primary/10"
                       : "bg-surface-container-lowest hover:shadow-lg"
                   }`}
                 >
-                  <div
-                    className={`w-10 h-10 mb-2 rounded-lg flex items-center justify-center ${
-                      isSelected
-                        ? "bg-primary-container/20 text-primary"
-                        : "bg-surface-container-low text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors"
-                    }`}
-                  >
-                    <span
-                      className="material-symbols-outlined text-xl"
-                      style={isSelected ? { fontVariationSettings: "'FILL' 1" } : undefined}
-                    >
-                      {tmpl.icon}
-                    </span>
+                  <div className="w-full aspect-square overflow-hidden bg-surface-container-low">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/previews/ads/meme-${tmpl.id}.png`}
+                      alt={tmpl.name}
+                      className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        const el = e.target as HTMLImageElement;
+                        el.style.display = "none";
+                        el.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-surface-container-low"><span class="material-symbols-outlined text-3xl text-on-surface-variant">${tmpl.icon}</span></div>`;
+                      }}
+                    />
                   </div>
-                  <h3 className="font-bold text-sm font-headline mb-0.5">{tmpl.name}</h3>
-                  <p className="text-[11px] text-on-surface-variant leading-tight">{tmpl.description}</p>
+                  <div className="px-3 py-2.5">
+                    <h3 className="font-bold text-sm font-headline mb-0.5">{tmpl.name}</h3>
+                    <p className="text-[11px] text-on-surface-variant leading-snug">{tmpl.description}</p>
+                  </div>
                   {isSelected && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-md">
-                      <span className="material-symbols-outlined text-[14px] text-white font-bold">check</span>
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md">
+                      <span className="material-symbols-outlined text-[16px] text-white font-bold">check</span>
                     </div>
                   )}
                 </button>

@@ -22,10 +22,20 @@ const textSourceOptions: { id: TextSource; icon: string; label: string; desc: st
 ];
 
 const defaultShowcaseTheme: Record<string, string> = {
-  centered: "light",
-  quote: "dark",
+  centered: "dark",
+  quote: "midnight_purple",
   stats: "neon",
   polaroid: "warm",
+  tweet: "light",
+  hot_take: "ocean",
+  definition: "mocha",
+  whatsapp: "forest",
+  listicle: "sunset_coral",
+  checklist: "electric_blue",
+  tip_of_day: "blush_pink",
+  this_vs_that: "monochrome",
+  myth_vs_fact: "neon",
+  did_you_know: "warm",
 };
 
 function ThemePreviewCard({

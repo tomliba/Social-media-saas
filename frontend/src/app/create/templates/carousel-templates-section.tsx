@@ -57,6 +57,7 @@ const defaultShowcaseTheme: Record<string, string> = {
   bold_text: "mocha",
   numbered_steps: "electric_blue",
   do_this_not_that: "forest",
+  tweet_thread: "midnight_purple",
 };
 
 export default function CarouselTemplatesSection({ niche, tone }: { niche: string; tone: string }) {

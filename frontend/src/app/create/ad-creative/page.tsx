@@ -284,37 +284,38 @@ export default function AdCreativePage() {
             Choose the scene style for your &ldquo;{product}&rdquo; ad
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3 mb-8">
             {concepts.map((concept) => {
               const isSelected = selectedConcept === concept.id;
               return (
                 <button
                   key={concept.id}
                   onClick={() => setSelectedConcept(concept.id)}
-                  className={`group relative flex flex-col p-5 rounded-xl text-left transition-all active:scale-[0.97] ${
+                  className={`group relative flex flex-col rounded-xl text-left transition-all overflow-hidden active:scale-[0.97] ${
                     isSelected
-                      ? "ring-2 ring-primary shadow-[0px_12px_30px_rgba(111,51,213,0.15)] bg-surface-container-lowest"
+                      ? "ring-2 ring-primary shadow-lg shadow-primary/10"
                       : "bg-surface-container-lowest hover:shadow-lg"
                   }`}
                 >
-                  <div
-                    className={`w-12 h-12 mb-3 rounded-xl flex items-center justify-center ${
-                      isSelected
-                        ? "bg-primary-container/20 text-primary"
-                        : "bg-surface-container-low text-on-surface-variant group-hover:bg-primary-container/10 group-hover:text-primary transition-colors"
-                    }`}
-                  >
-                    <span
-                      className="material-symbols-outlined text-2xl"
-                      style={isSelected ? { fontVariationSettings: "'FILL' 1" } : undefined}
-                    >
-                      {concept.icon}
-                    </span>
+                  <div className="w-full aspect-square overflow-hidden bg-surface-container-low">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/previews/ads/cartoon-${concept.id}.png`}
+                      alt={concept.name}
+                      className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        const el = e.target as HTMLImageElement;
+                        el.style.display = "none";
+                        el.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-surface-container-low"><span class="material-symbols-outlined text-4xl text-on-surface-variant">${concept.icon}</span></div>`;
+                      }}
+                    />
                   </div>
-                  <h3 className="font-bold text-base font-headline mb-1">{concept.name}</h3>
-                  <p className="text-xs text-on-surface-variant leading-tight">{concept.description}</p>
+                  <div className="px-3 py-2.5">
+                    <h3 className="font-bold text-sm font-headline mb-0.5">{concept.name}</h3>
+                    <p className="text-xs text-on-surface-variant leading-snug">{concept.description}</p>
+                  </div>
                   {isSelected && (
-                    <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md">
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md">
                       <span className="material-symbols-outlined text-[16px] text-white font-bold">check</span>
                     </div>
                   )}

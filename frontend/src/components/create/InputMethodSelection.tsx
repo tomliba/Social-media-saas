@@ -75,7 +75,7 @@ const inputMethods = [
     title: "Generate Ad Creatives",
     description: "Describe your product — AI creates illustrated ad scenes",
     highlighted: true,
-    formats: ["Ad Creative"],
+    formats: ["Image Post"],
   },
   {
     id: "meme-ad",
@@ -84,7 +84,7 @@ const inputMethods = [
     title: "Meme Ad",
     description: "AI-generated meme ads — Drake, Expanding Brain, UNO Draw 25, and more",
     highlighted: true,
-    formats: ["Ad Creative"],
+    formats: ["Image Post"],
   },
   {
     id: "ecommerce-ad",
@@ -93,7 +93,7 @@ const inputMethods = [
     title: "Generate E-Commerce Ads",
     description: "Research-backed product ads — 4 unique creatives with strategy",
     highlighted: true,
-    formats: ["E-Commerce Ad"],
+    formats: ["Image Post"],
   },
   {
     id: "paste-script",
@@ -151,21 +151,16 @@ export default function InputMethodSelection({
       </h2>
 
       <div className="flex flex-col gap-4">
-        {inputMethods.map((method) => {
+        {inputMethods
+          .filter((method) => method.formats?.includes(selectedFormat ?? ""))
+          .map((method) => {
           const isHighlighted = method.highlighted;
           const isTrending = method.trending;
-          const isEnabled =
-            method.formats
-              ? method.formats.includes(selectedFormat ?? "")
-              : false;
-          const isDisabled = !isEnabled;
 
           return (
             <button
               key={method.id}
-              disabled={isDisabled}
               onClick={() => {
-                if (isEnabled) {
                   const formatMap: Record<string, string> = {
                     "Video": "video",
                     "Image Post": "image",
@@ -196,17 +191,14 @@ export default function InputMethodSelection({
                   } else {
                     router.push(`/create/templates?format=${format}`);
                   }
-                }
               }}
               className={`group flex items-center gap-6 p-6 bg-surface-container-lowest rounded-xl transition-all text-left relative overflow-hidden ${
-                isHighlighted && !isDisabled
+                isHighlighted
                   ? "border-2 border-primary/20 shadow-[0px_4px_20px_rgba(111,51,213,0.08)] hover:border-primary/40 cursor-pointer"
-                  : isHighlighted && isDisabled
-                    ? "border-2 border-primary/10 shadow-sm"
-                    : isTrending
+                  : isTrending
                       ? "shadow-sm border border-tertiary-container/30"
                       : "shadow-sm"
-              } ${isDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+              }`}
             >
               {/* Decorative blob for highlighted */}
               {isHighlighted && (
@@ -250,11 +242,6 @@ export default function InputMethodSelection({
                       New
                     </span>
                   )}
-                  {isDisabled && (
-                    <span className="text-[10px] bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                      Coming soon
-                    </span>
-                  )}
                 </div>
                 <p className="text-on-surface-variant mb-3">
                   {method.description}
@@ -264,9 +251,7 @@ export default function InputMethodSelection({
 
               {/* Arrow */}
               <span
-                className={`material-symbols-outlined text-outline-variant transition-transform ${
-                  !isDisabled ? "group-hover:translate-x-1" : ""
-                }`}
+                className="material-symbols-outlined text-outline-variant transition-transform group-hover:translate-x-1"
               >
                 chevron_right
               </span>

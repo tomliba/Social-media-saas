@@ -72,40 +72,6 @@ const formats = [
       </div>
     ),
   },
-  {
-    name: "Ad Creative",
-    description: "AI-generated illustrated ads — cartoon scenes, visual metaphors",
-    visual: (
-      <div className="relative w-full h-64 overflow-hidden bg-gradient-to-br from-amber-900 via-stone-900 to-neutral-900 flex items-center justify-center">
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-xl">
-          <span
-            className="material-symbols-outlined text-white text-5xl"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            brush
-          </span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    name: "E-Commerce Ad",
-    description: "Research-backed product ads — 4 unique creatives with strategy",
-    visual: (
-      <div className="relative w-full h-64 overflow-hidden bg-gradient-to-br from-emerald-900 via-teal-900 to-cyan-900 flex items-center justify-center">
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-xl">
-          <span
-            className="material-symbols-outlined text-white text-5xl"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            storefront
-          </span>
-        </div>
-      </div>
-    ),
-  },
 ];
 
 export default function FormatPicker({
