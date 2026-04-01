@@ -3,10 +3,16 @@ import nodeHtmlToImage from "node-html-to-image";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { getTemplateById, getThemeById } from "@/lib/carousel-templates";
+import { auth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const { templateId, themeId, slides, width, height } = await req.json();
+    const { templateId, themeId, slides, width, height, photoUrl, authorName } = await req.json();
 
     if (!templateId || !themeId || !slides || !Array.isArray(slides)) {
       return NextResponse.json({ error: "templateId, themeId, and slides are required" }, { status: 400 });
@@ -47,6 +53,27 @@ export async function POST(req: NextRequest) {
     html = html.replace(/width:\s*1080px/, `width: ${w}px`);
     html = html.replace(/height:\s*1350px/, `height: ${h}px`);
 
+    // Inject photo into templates that support it
+    if (photoUrl) {
+      // Replace the {{photoUrl}} placeholder with the actual photo element
+      html = html.replace(
+        /\{\{photoUrl\}\}/g,
+        photoUrl
+      );
+      // Show the photo container
+      html = html.replace(
+        /display:\s*var\(--photo-display\)/g,
+        "display: flex"
+      );
+    } else {
+      // Hide the photo container when no photo
+      html = html.replace(
+        /display:\s*var\(--photo-display\)/g,
+        "display: none"
+      );
+      html = html.replace(/\{\{photoUrl\}\}/g, "");
+    }
+
     // Render each slide to PNG
     const images: string[] = [];
 
@@ -57,6 +84,13 @@ export async function POST(req: NextRequest) {
         totalSlides: String(slides.length).padStart(2, "0"),
         handle: slides[i].handle || "@thefluidcurator",
       };
+
+      // Override author/handle/displayName with user-provided name
+      if (authorName) {
+        slideData.author = authorName;
+        slideData.handle = authorName;
+        slideData.displayName = authorName;
+      }
 
       const imageBuffer = await nodeHtmlToImage({
         html,

@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
       .filter((p) => p !== "slideNumber" && p !== "totalSlides" && p !== "handle")
       .join(", ");
 
+    const isTweetThread = template.id === "tweet_thread";
+    const threadInstruction = isTweetThread
+      ? `\n\nIMPORTANT: This is a tweet thread. Generate a thread of ${numSlides} tweets. Each tweet should build on the previous one, telling a story or making a progressive argument. Keep "displayName" and "handle" identical across ALL slides — only "tweetText" should change per slide.`
+      : "";
+
     const prompt = `You are a viral carousel content writer. Generate slide content for a ${numSlides}-slide carousel.
 
 Topic: "${title}"
@@ -45,13 +50,21 @@ Return ONLY a JSON object with:
 
 Example for one slide: { ${template.placeholders.filter((p) => !["slideNumber", "totalSlides", "handle"].includes(p)).map((p) => `"${p}": "..."`).join(", ")} }
 
-No markdown, no code fences. Return raw JSON only.`;
+No markdown, no code fences. Return raw JSON only.${threadInstruction}`;
 
     const result = await geminiFlash.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: "application/json" },
     });
-    const data = JSON.parse(result.response.text().trim());
+    let data;
+    try {
+      data = JSON.parse(result.response.text().trim());
+    } catch {
+      return NextResponse.json(
+        { error: "AI returned invalid JSON — please retry" },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(data);
   } catch (error) {
     console.error("generate-carousel-slides error:", error);

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 80px;
+}
+
+:root {
+  --bg: #1a1a1a;
+  --accent: #4ECB71;
+  --text: #FFFFFF;
+  --text-muted: #888888;
+}
+
+.card {
+  width: 100%;
+  border-radius: 24px;
+  padding: 56px 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card.myth {
+  background: rgba(255,255,255,.04);
+  border: 2px solid #FF4B4B;
+}
+
+.card.fact {
+  background: rgba(255,255,255,.04);
+  border: 2px solid var(--accent);
+}
+
+.pill {
+  display: inline-block;
+  padding: 8px 28px;
+  border-radius: 20px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+
+.pill.myth-pill {
+  background: #FF4B4B;
+  color: #FFFFFF;
+}
+
+.pill.fact-pill {
+  background: var(--accent);
+  color: #111;
+}
+
+.watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  font-size: 120px;
+  font-weight: 800;
+  color: #FF4B4B;
+  opacity: 0.08;
+  letter-spacing: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.card-text {
+  font-size: 44px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+  position: relative;
+  z-index: 1;
+}
+
+.card.myth .card-text {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.card.fact .card-text {
+  font-weight: 600;
+}
+
+.check-icon {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 36px;
+  color: var(--accent);
+  vertical-align: middle;
+}
+
+.arrow-down {
+  font-size: 48px;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+</style>
+</head>
+<body>
+  <div class="card myth">
+    <div class="watermark">BUSTED</div>
+    <div class="pill myth-pill">{{mythLabel}}</div>
+    <div class="card-text">{{mythText}}</div>
+  </div>
+
+  <div class="arrow-down">&#8595;</div>
+
+  <div class="card fact">
+    <div class="pill fact-pill">{{factLabel}} <span class="check-icon">&#10003;</span></div>
+    <div class="card-text">{{factText}}</div>
+  </div>
+</body>
+</html>

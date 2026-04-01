@@ -99,19 +99,28 @@ function VideoPreviewModal({
           </button>
         </div>
 
-        {/* Video */}
-        <div className="bg-black aspect-video">
+        {/* Preview */}
+        <div className={`bg-black ${item.format === "image" || item.format === "carousel" ? "aspect-[4/5] max-h-[70vh]" : "aspect-video"}`}>
           {item.videoUrl ? (
-            <video
-              src={item.videoUrl}
-              controls
-              autoPlay
-              className="w-full h-full object-contain"
-            />
+            item.format === "image" || item.format === "carousel" ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={item.videoUrl}
+                alt={item.title}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <video
+                src={item.videoUrl}
+                controls
+                autoPlay
+                className="w-full h-full object-contain"
+              />
+            )
           ) : (
             <div className="w-full h-full flex items-center justify-center text-zinc-400">
               <span className="material-symbols-outlined text-5xl">
-                videocam_off
+                {item.format === "video" ? "videocam_off" : "image_not_supported"}
               </span>
             </div>
           )}
@@ -232,14 +241,14 @@ function ContentCard({
                 </span>
               </div>
             )}
-            {/* Play overlay */}
+            {/* Hover overlay */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
               <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
                 <span
-                  className="material-symbols-outlined text-3xl text-primary ml-1"
+                  className={`material-symbols-outlined text-3xl text-primary ${item.format === "video" ? "ml-1" : ""}`}
                   style={{ fontVariationSettings: "'FILL' 1" }}
                 >
-                  play_arrow
+                  {item.format === "video" ? "play_arrow" : "visibility"}
                 </span>
               </div>
             </div>

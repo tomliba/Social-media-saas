@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+:root {
+  --bg: #0B141A;
+  --accent: #005C4B;
+  --text: #E9EDEF;
+  --text-muted: #8696A0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 32px;
+  background: #1F2C34;
+}
+
+.back-arrow {
+  font-size: 36px;
+  color: var(--text-muted);
+}
+
+.contact-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-name {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.online-status {
+  font-size: 24px;
+  color: var(--text-muted);
+}
+
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  padding: 48px 32px;
+  background-image: radial-gradient(circle, rgba(255,255,255,.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.bubble {
+  max-width: 720px;
+  padding: 24px 28px 12px 28px;
+  font-size: 36px;
+  color: var(--text);
+  line-height: 1.4;
+  position: relative;
+}
+
+.bubble .time {
+  font-size: 24px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 8px;
+}
+
+.bubble.incoming {
+  align-self: flex-start;
+  background: #1F2C34;
+  border-radius: 0 18px 18px 18px;
+}
+
+.bubble.outgoing {
+  align-self: flex-end;
+  background: var(--accent);
+  border-radius: 18px 0 18px 18px;
+}
+
+.bubble.outgoing .time {
+  color: rgba(255,255,255,.5);
+}
+
+.checks {
+  display: inline-block;
+  color: #53BDEB;
+  font-size: 22px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.bubble.empty { display: none; }
+
+.input-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 32px;
+  background: #1F2C34;
+}
+
+.smiley {
+  font-size: 40px;
+  color: var(--text-muted);
+}
+
+.text-field {
+  flex: 1;
+  height: 64px;
+  border-radius: 32px;
+  background: #2A3942;
+  border: none;
+  padding: 0 28px;
+  font-size: 28px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.mic {
+  font-size: 40px;
+  color: var(--text-muted);
+}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="back-arrow">&#8592;</div>
+    <div class="contact-avatar"></div>
+    <div class="contact-info">
+      <div class="contact-name">{{contactName}}</div>
+      <div class="online-status">online</div>
+    </div>
+  </div>
+
+  <div class="chat-area">
+    <div class="bubble incoming">
+      {{message1}}
+      <div class="time">10:42 AM</div>
+    </div>
+    <div class="bubble outgoing">
+      {{message2}}
+      <div class="time">10:43 AM <span class="checks">&#10003;&#10003;</span></div>
+    </div>
+    <div class="bubble incoming {{message3}}empty">
+      {{message3}}
+      <div class="time">10:44 AM</div>
+    </div>
+    <div class="bubble outgoing {{message4}}empty">
+      {{message4}}
+      <div class="time">10:45 AM <span class="checks">&#10003;&#10003;</span></div>
+    </div>
+  </div>
+
+  <div class="input-bar">
+    <div class="smiley">&#9786;</div>
+    <div class="text-field">Type a message</div>
+    <div class="mic">&#127908;</div>
+  </div>
+</body>
+</html>

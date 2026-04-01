@@ -11,6 +11,8 @@ export interface CarouselTemplate {
   placeholders: string[];
   /** How Gemini should structure content for this template */
   contentPrompt: string;
+  /** Whether the template supports a user photo (e.g. next to author name) */
+  supportsPhoto?: boolean;
 }
 
 export const carouselTemplates: CarouselTemplate[] = [
@@ -122,6 +124,16 @@ export const carouselTemplates: CarouselTemplate[] = [
     placeholders: ["tag", "title", "dontText", "dontDetail", "dontBadge", "doText", "doDetail", "doBadge", "handle"],
     contentPrompt: "a category tag, a title, a don't-do-this text with detail and badge, and a do-this-instead text with detail and badge",
   },
+  {
+    id: "tweet_thread",
+    name: "Tweet Thread",
+    filename: "tweet.html",
+    icon: "chat_bubble_outline",
+    description: "Each slide is a tweet-style post — great for threads",
+    placeholders: ["displayName", "handle", "tweetText"],
+    contentPrompt: "a tweet-style post with a strong opinion, insight, or story beat. Each slide should feel like a standalone tweet but connect to form a thread narrative",
+    supportsPhoto: true,
+  },
 ];
 
 // ── Image post templates (single-slide designs) ──
@@ -144,6 +156,7 @@ export const imagePostTemplates: CarouselTemplate[] = [
     description: "Large quote with attribution",
     placeholders: ["quoteText", "author"],
     contentPrompt: "a powerful quote and its author attribution",
+    supportsPhoto: true,
   },
   {
     id: "stats",
@@ -162,6 +175,98 @@ export const imagePostTemplates: CarouselTemplate[] = [
     description: "Polaroid-style with caption and annotation",
     placeholders: ["imageTag", "captionText", "annotation", "handle"],
     contentPrompt: "an image category tag, a caption text, and a handwritten annotation",
+  },
+  {
+    id: "tweet",
+    name: "Tweet",
+    filename: "tweet.html",
+    icon: "chat_bubble_outline",
+    description: "Tweet/X post screenshot style",
+    placeholders: ["displayName", "handle", "tweetText"],
+    contentPrompt: "a viral tweet with a strong opinion or insight",
+    supportsPhoto: true,
+  },
+  {
+    id: "hot_take",
+    name: "Hot Take",
+    filename: "hot_take.html",
+    icon: "local_fire_department",
+    description: "Bold opinion with accent strip and attribution",
+    placeholders: ["label", "opinion", "authorName"],
+    contentPrompt: "a provocative hot take label, a bold opinion statement, and an author name",
+    supportsPhoto: true,
+  },
+  {
+    id: "definition",
+    name: "Definition",
+    filename: "definition.html",
+    icon: "menu_book",
+    description: "Dictionary-style word definition",
+    placeholders: ["word", "pronunciation", "partOfSpeech", "definitionText"],
+    contentPrompt: "a word, its pronunciation, part of speech, and a creative or niche definition",
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp Chat",
+    filename: "whatsapp.html",
+    icon: "chat",
+    description: "WhatsApp dark mode chat conversation",
+    placeholders: ["contactName", "message1", "message2", "message3", "message4"],
+    contentPrompt: "a contact name and a 2-4 message WhatsApp conversation that tells a story or makes a point",
+  },
+  {
+    id: "listicle",
+    name: "Listicle",
+    filename: "listicle.html",
+    icon: "format_list_numbered",
+    description: "Top 5 numbered list with rainbow accent",
+    placeholders: ["title", "item1", "item2", "item3", "item4", "item5"],
+    contentPrompt: "a list title and 3-5 numbered items for a top-5 style listicle",
+  },
+  {
+    id: "checklist",
+    name: "Checklist",
+    filename: "checklist.html",
+    icon: "checklist",
+    description: "Neon glow daily habits checklist",
+    placeholders: ["title", "item1", "item2", "item3", "item4", "item5"],
+    contentPrompt: "a checklist title and 4-5 actionable habit or task items",
+  },
+  {
+    id: "tip_of_day",
+    name: "Tip of the Day",
+    filename: "tip_of_day.html",
+    icon: "lightbulb",
+    description: "Centered spotlight tip with icon",
+    placeholders: ["tipNumber", "tipTitle", "tipBody"],
+    contentPrompt: "a tip number label (e.g. 'TIP #12'), a concise tip title, and an explanatory body",
+  },
+  {
+    id: "this_vs_that",
+    name: "This vs That",
+    filename: "this_vs_that.html",
+    icon: "compare_arrows",
+    description: "Split-screen comparison with VS badge",
+    placeholders: ["title", "leftLabel", "leftItems", "rightLabel", "rightItems"],
+    contentPrompt: "a comparison title, left label (bad approach) with 3-4 newline-separated items, and right label (good approach) with 3-4 newline-separated items",
+  },
+  {
+    id: "myth_vs_fact",
+    name: "Myth vs Fact",
+    filename: "myth_vs_fact.html",
+    icon: "psychology_alt",
+    description: "Myth busted card with fact card below",
+    placeholders: ["mythLabel", "mythText", "factLabel", "factText"],
+    contentPrompt: "a myth label (e.g. 'MYTH'), a common misconception, a fact label (e.g. 'FACT'), and the corrected truth",
+  },
+  {
+    id: "did_you_know",
+    name: "Did You Know?",
+    filename: "did_you_know.html",
+    icon: "emoji_objects",
+    description: "Golden glow spotlight fact card",
+    placeholders: ["hook", "factTitle", "factBody"],
+    contentPrompt: "a hook label (e.g. 'DID YOU KNOW?'), a surprising fact title, and an explanatory body",
   },
 ];
 

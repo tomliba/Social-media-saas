@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex;
+  flex-direction: row;
+  position: relative;
+}
+
+:root {
+  --bg: #1a1a1a;
+  --accent: #4ECB71;
+  --text: #FFFFFF;
+  --text-muted: #888888;
+}
+
+.title {
+  position: absolute;
+  top: 72px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--text);
+  z-index: 10;
+  padding: 0 60px;
+}
+
+.vs-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 3px solid var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  z-index: 10;
+}
+
+.half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 160px 48px 80px 48px;
+  gap: 20px;
+}
+
+.half.left {
+  background: rgba(255,75,75,.08);
+}
+
+.half.right {
+  background: rgba(78,203,113,.08);
+}
+
+.half-label {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+
+.half.left .half-label { color: #FF4B4B; }
+.half.right .half-label { color: var(--accent); }
+
+.half-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+  font-size: 32px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.half.left .half-item {
+  border-left: 3px solid #FF4B4B;
+}
+
+.half.right .half-item {
+  border-left: 3px solid var(--accent);
+}
+
+.marker {
+  font-size: 28px;
+  font-weight: 800;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.half.left .marker { color: #FF4B4B; }
+.half.right .marker { color: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="title">{{title}}</div>
+  <div class="vs-badge">VS</div>
+
+  <div class="half left">
+    <div class="half-label">{{leftLabel}}</div>
+    <div class="left-items" data-items="{{leftItems}}"></div>
+  </div>
+
+  <div class="half right">
+    <div class="half-label">{{rightLabel}}</div>
+    <div class="right-items" data-items="{{rightItems}}"></div>
+  </div>
+
+  <script>
+    function renderItems(container, marker) {
+      var raw = container.getAttribute('data-items') || '';
+      var items = raw.split('\n').filter(function(s) { return s.trim(); });
+      items.forEach(function(text) {
+        var div = document.createElement('div');
+        div.className = 'half-item';
+        div.innerHTML = '<span class="marker">' + marker + '</span> ' + text.trim();
+        container.parentNode.appendChild(div);
+      });
+      container.remove();
+    }
+    renderItems(document.querySelector('.left-items'), '✕');
+    renderItems(document.querySelector('.right-items'), '✓');
+  </script>
+</body>
+</html>

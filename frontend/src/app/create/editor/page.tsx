@@ -137,16 +137,34 @@ function EditorContent() {
   const templateId = searchParams.get("templateId") || "editorial";
   const themeId = searchParams.get("themeId") || "dark";
   const nicheParam = searchParams.get("niche") || "";
+  const photoUrlParam = searchParams.get("photoUrl") || "";
+  const authorNameParam = searchParams.get("authorName") || "";
 
   // Image posts with templateId use HTML template rendering, not Flask
   const isTemplateImage = isImage && !!searchParams.get("templateId");
+  const textSourceParam = searchParams.get("textSource") || "";
+  const isCustomText = isTemplateImage && textSourceParam === "custom_text";
 
   // Parse ideas based on format
   const videoIdeaTitles: string[] = !isImage && !isCarousel && !isText && ideasParam ? JSON.parse(ideasParam) : [];
   const postIdeas: PostIdea[] = isImage && !isTemplateImage && ideasParam ? JSON.parse(ideasParam) : [];
-  const imagePostIdeas: ImagePostIdea[] = isTemplateImage && ideasParam ? JSON.parse(ideasParam) : [];
   const carouselIdeas: CarouselIdea[] = isCarousel && ideasParam ? JSON.parse(ideasParam) : [];
   const textIdeas: TextIdea[] = isText && ideasParam ? JSON.parse(ideasParam) : [];
+
+  // For custom_text: build a synthetic idea from sessionStorage text
+  // For normal flow: parse ideas from URL param
+  const imagePostIdeas: ImagePostIdea[] = (() => {
+    if (isCustomText) {
+      const customText = typeof window !== "undefined"
+        ? sessionStorage.getItem("custom_text_input") || ""
+        : "";
+      if (customText) {
+        return [{ title: "Custom Post", hook: customText, tag: "Custom" }];
+      }
+      return [];
+    }
+    return isTemplateImage && ideasParam ? JSON.parse(ideasParam) : [];
+  })();
 
   // ── Video state ──
   const [scripts, setScripts] = useState<Script[]>(
@@ -487,6 +505,8 @@ function EditorContent() {
             slides: imagePostSlides[i].slides,
             width: 1080,
             height: 1350,
+            ...(photoUrlParam && { photoUrl: photoUrlParam }),
+            ...(authorNameParam && { authorName: authorNameParam }),
           }),
         });
         const data = await res.json();

@@ -5,6 +5,9 @@ node_modules
 /src/generated/prisma
 .trigger/
 
+# Local photo uploads (dev fallback when R2 is not configured)
+/public/uploads/
+
 # Database files
 dev.db
 *.db

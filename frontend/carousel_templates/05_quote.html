@@ -65,6 +65,23 @@ body {
   margin-bottom: 32px;
 }
 
+.quote-attribution {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.quote-photo {
+  display: var(--photo-display);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 3px solid var(--accent);
+}
+
 .quote-author {
   font-size: 32px;
   font-weight: 500;
@@ -84,7 +101,10 @@ body {
   <div class="quote-text">{{quoteText}}</div>
   <div class="quote-close">"</div>
   <div class="quote-divider"></div>
-  <div class="quote-author">— {{author}}</div>
+  <div class="quote-attribution">
+    <img class="quote-photo" src="{{photoUrl}}" alt="" />
+    <div class="quote-author">— {{author}}</div>
+  </div>
   <div class="swipe-hint">swipe for the framework ›</div>
 </body>
 </html>
