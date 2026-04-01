@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 // ── Ad styles ──
@@ -117,8 +117,10 @@ const VISUAL_STYLE =
 const LAYOUT =
   "Layout: Top 30% = headline on dark gradient, white bold ALL CAPS text. Middle 40% = main visual with product prominent. Bottom 30% = supporting text.";
 
-export default function EcommerceAdPage() {
+function EcommerceAdContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedStyle = searchParams.get("style");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Product input
@@ -138,7 +140,9 @@ export default function EcommerceAdPage() {
   const [brief, setBrief] = useState<ResearchBrief | null>(null);
 
   // Styles
-  const [selectedStyles, setSelectedStyles] = useState<Set<string>>(new Set());
+  const [selectedStyles, setSelectedStyles] = useState<Set<string>>(
+    preselectedStyle ? new Set([preselectedStyle]) : new Set()
+  );
 
   // Flow
   const [phase, setPhase] = useState<Phase>("input");
@@ -735,4 +739,8 @@ ${VISUAL_STYLE}${photoBase64 ? "\n\nThe product looks like the attached referenc
       )}
     </main>
   );
+}
+
+export default function EcommerceAdPage() {
+  return <Suspense><EcommerceAdContent /></Suspense>;
 }

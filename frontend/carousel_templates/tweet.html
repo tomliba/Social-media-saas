@@ -39,14 +39,15 @@ body {
   margin-bottom: 32px;
 }
 
-.tweet-photo {
-  display: var(--photo-display);
+.tweet-avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  object-fit: cover;
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
 }
+
 
 .tweet-author {
   display: flex;
@@ -121,7 +122,10 @@ body {
 <body>
   <div class="tweet-card">
     <div class="tweet-header">
-      <img class="tweet-photo" src="{{photoUrl}}" alt="" />
+      <div class="tweet-avatar">
+        <img id="avatar-fallback" src="/previews/default-avatar.png" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+        <img src="{{photoUrl}}" alt="" onload="this.style.display='block';document.getElementById('avatar-fallback').style.display='none'" onerror="this.style.display='none'" style="display:none" />
+      </div>
       <div class="tweet-author">
         <div class="tweet-name-row">
           <span class="tweet-display-name">{{displayName}}</span>
@@ -134,7 +138,7 @@ body {
     </div>
     <div class="tweet-text">{{tweetText}}</div>
     <div class="tweet-meta">12:34 PM · Apr 1, 2026</div>
-    <div class="tweet-engagement"><strong>2.4K</strong> Likes · <strong>847</strong> Retweets</div>
+    <div class="tweet-engagement"><strong>{{likes}}</strong> Likes · <strong>{{retweets}}</strong> Retweets</div>
   </div>
 </body>
 </html>

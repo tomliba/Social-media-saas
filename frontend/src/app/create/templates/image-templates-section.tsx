@@ -344,7 +344,160 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
         <h2 className="text-2xl font-bold font-headline mb-2">Choose a design</h2>
         <p className="text-on-surface-variant text-sm mb-6">Pick the visual style for your image post</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {/* ── AI SCENES ── */}
+        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/50 mb-3">AI Scenes</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
+          {[
+            { id: "video-wall", name: "Video Wall", description: "Content on a massive TV screen in a shop" },
+            { id: "breaking-news", name: "Breaking News", description: "News anchor with your content on the studio screen" },
+            { id: "cyberpunk-flyer", name: "Cyberpunk Flyer", description: "Holographic flyer in a neon-drenched city" },
+            { id: "movie-theater", name: "Movie Theater", description: "Your content on the big screen, audience silhouettes" },
+            { id: "graffiti-mural", name: "Graffiti Mural", description: "Street art on a building wall" },
+            { id: "highway-billboard", name: "Highway Billboard", description: "Giant billboard under construction" },
+            { id: "bus-wrap", name: "Bus Wrap", description: "Full wrap ad on a double-decker bus" },
+            { id: "classic-newspaper", name: "Classic Newspaper", description: "Vintage broadsheet with your content" },
+            { id: "manga-panel", name: "Manga Panel", description: "Black and white manga page with characters" },
+            { id: "steampunk", name: "Steampunk", description: "Victorian-era infographic on parchment and brass" },
+            { id: "cave-painting", name: "Cave Painting", description: "Ancient art on a cavern wall" },
+            { id: "egyptian-hieroglyphs", name: "Egyptian Hieroglyphs", description: "Carved into a temple wall" },
+            { id: "vintage-encyclopedia", name: "Vintage Encyclopedia", description: "Beautiful typeset book page" },
+            { id: "nature-trail-sign", name: "Nature Trail Sign", description: "Laser-engraved wooden trail marker" },
+            { id: "whiteboard", name: "Whiteboard", description: "Clean whiteboard with colored markers" },
+            { id: "classroom-chalkboard", name: "Classroom Chalkboard", description: "Professor at a chalkboard" },
+            { id: "top-secret-briefing", name: "Top Secret Briefing", description: "Classified government file" },
+            { id: "tshirt-mockup", name: "T-Shirt Mockup", description: "Person wearing a shirt with your content" },
+          ].map((scene) => (
+            <button
+              key={scene.id}
+              onClick={() => router.push(`/create/ai-scene?scene=${scene.id}`)}
+              className="group flex flex-col rounded-xl bg-surface-container-lowest hover:shadow-lg transition-all active:scale-[0.97] overflow-hidden"
+            >
+              <div className="w-full aspect-square overflow-hidden bg-surface-container-low">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/previews/scenes/${scene.id}.png`}
+                  alt={scene.name}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              </div>
+              <div className="px-3 py-2.5">
+                <h3 className="font-bold text-sm font-headline">{scene.name}</h3>
+                <p className="text-xs text-on-surface-variant leading-snug">{scene.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* ── AD CREATIVES ── */}
+        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/50 mb-3">Ad Creatives</p>
+
+        {/* Cartoon Ads */}
+        <p className="text-sm font-semibold text-on-surface-variant mb-2 mt-1">Cartoon Ads</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+          {[
+            { id: "two_doors", name: "Two Doors", description: "Person choosing between old way and your product" },
+            { id: "solo_vs_army", name: "Solo vs Army", description: "One person alone vs commanding an army of helpers" },
+            { id: "race_track", name: "Race Track", description: "Falling behind while others speed ahead" },
+            { id: "before_after_split", name: "Before / After Split", description: "Diagonal split: gray and stressed vs colorful and winning" },
+            { id: "comic_panels", name: "Comic Panels", description: "3-panel comic strip: struggle, discovery, transformation" },
+            { id: "control_room", name: "Control Room", description: "Person confidently monitoring automated dashboards" },
+          ].map((ad) => (
+            <button
+              key={ad.id}
+              onClick={() => router.push(`/create/ad-creative?concept=${ad.id}`)}
+              className="group flex flex-col rounded-xl bg-surface-container-lowest hover:shadow-lg transition-all active:scale-[0.97] overflow-hidden"
+            >
+              <div className="w-full aspect-square overflow-hidden bg-surface-container-low">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/previews/ads/cartoon-${ad.id}.png`}
+                  alt={ad.name}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              </div>
+              <div className="px-3 py-2.5">
+                <h3 className="font-bold text-sm font-headline">{ad.name}</h3>
+                <p className="text-xs text-on-surface-variant leading-snug">{ad.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Meme Ads */}
+        <p className="text-sm font-semibold text-on-surface-variant mb-2">Meme Ads</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+          {[
+            { id: "drake", name: "Drake", description: "Reject old way, approve your product" },
+            { id: "expanding_brain", name: "Expanding Brain", description: "Escalating levels, your product = evolved choice" },
+            { id: "uno_draw_25", name: "UNO Draw 25", description: "Rather suffer than try the obvious solution" },
+            { id: "distracted_boyfriend", name: "Distracted Boyfriend", description: "Attention pulled from status quo to your product" },
+            { id: "this_is_fine", name: "This Is Fine", description: "Sitting in chaos pretending everything's okay" },
+            { id: "grus_plan", name: "Gru's Plan", description: "4 panels: plan, plan, realize the flaw, same flaw" },
+            { id: "tuxedo_pooh", name: "Tuxedo Pooh", description: "Fancy vs simple framing of the same thing" },
+            { id: "running_away_balloon", name: "Running Away Balloon", description: "Letting go of the old thing, chasing the new" },
+            { id: "virgin_vs_chad", name: "Virgin vs Chad", description: "Weak old approach vs strong new approach" },
+            { id: "wojak", name: "Wojak", description: "Relatable 'me thinking about [problem]' format" },
+          ].map((meme) => (
+            <button
+              key={meme.id}
+              onClick={() => router.push(`/create/meme-ad?template=${meme.id}`)}
+              className="group flex flex-col rounded-xl bg-surface-container-lowest hover:shadow-lg transition-all active:scale-[0.97] overflow-hidden"
+            >
+              <div className="w-full aspect-square overflow-hidden bg-surface-container-low">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/previews/ads/meme-${meme.id}.png`}
+                  alt={meme.name}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              </div>
+              <div className="px-3 py-2.5">
+                <h3 className="font-bold text-sm font-headline">{meme.name}</h3>
+                <p className="text-xs text-on-surface-variant leading-snug">{meme.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* E-Commerce Ads */}
+        <p className="text-sm font-semibold text-on-surface-variant mb-2">E-Commerce Ads</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
+          {[
+            { id: "product_world", name: "Product World", description: "Product in bold monochromatic color environment" },
+            { id: "visual_metaphor", name: "Visual Metaphor", description: "Product reimagined as something unexpected" },
+            { id: "before_after", name: "Before / After Split", description: "Dramatic transformation diagonal split" },
+            { id: "lifestyle", name: "Lifestyle Scene", description: "Product in aspirational real-world context" },
+            { id: "social_proof", name: "Social Proof", description: "Big number or testimonial visual" },
+            { id: "curiosity_hook", name: "Curiosity Hook", description: "Intriguing image that demands a click" },
+          ].map((style) => (
+            <button
+              key={style.id}
+              onClick={() => router.push(`/create/ecommerce-ad?style=${style.id}`)}
+              className="group flex flex-col rounded-xl bg-surface-container-lowest hover:shadow-lg transition-all active:scale-[0.97] overflow-hidden"
+            >
+              <div className="w-full aspect-square overflow-hidden bg-surface-container-low">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/previews/ads/ecom-${style.id}.png`}
+                  alt={style.name}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              </div>
+              <div className="px-3 py-2.5">
+                <h3 className="font-bold text-sm font-headline">{style.name}</h3>
+                <p className="text-xs text-on-surface-variant leading-snug">{style.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* ── TEMPLATES ── */}
+        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/50 mb-3">Templates</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {imagePostTemplates.map((t) => {
             const isSelected = selectedLayout === t.id;
             const previewTheme = isSelected ? selectedTheme : (defaultShowcaseTheme[t.id] || "dark");
@@ -353,13 +506,13 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
               <button
                 key={t.id}
                 onClick={() => handleLayoutSelect(t.id)}
-                className={`group relative flex flex-col items-center p-4 rounded-xl transition-all active:scale-[0.97] ${
+                className={`group relative flex flex-col rounded-xl transition-all active:scale-[0.97] overflow-hidden ${
                   isSelected
                     ? "ring-2 ring-primary shadow-[0px_12px_30px_rgba(111,51,213,0.15)] bg-surface-container-lowest"
                     : "bg-surface-container-lowest hover:shadow-lg"
                 }`}
               >
-                <div className="w-full aspect-[4/5] rounded-lg overflow-hidden mb-3 bg-surface-container-low shadow-sm">
+                <div className="w-full aspect-[4/5] overflow-hidden bg-surface-container-low">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={previewSrc}
@@ -369,8 +522,10 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
                     }`}
                   />
                 </div>
-                <h3 className="font-bold text-base font-headline">{t.name}</h3>
-                <p className="text-xs text-on-surface-variant text-center leading-tight mt-1">{t.description}</p>
+                <div className="px-3 py-2.5">
+                  <h3 className="font-bold text-sm font-headline">{t.name}</h3>
+                  <p className="text-xs text-on-surface-variant leading-snug">{t.description}</p>
+                </div>
                 {isSelected && (
                   <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md">
                     <span className="material-symbols-outlined text-[16px] text-white font-bold">check</span>

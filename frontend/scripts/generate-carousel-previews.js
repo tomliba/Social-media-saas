@@ -234,6 +234,17 @@ const templates = [
       handle: "@thefluidcurator",
     },
   },
+  {
+    id: "tweet_thread",
+    filename: "tweet.html",
+    sample: {
+      displayName: "Doctor Curses",
+      handle: "@doctor_curses",
+      tweetText: "Here's what nobody tells you about building an audience from zero...",
+      likes: "2.4K",
+      retweets: "847",
+    },
+  },
   // ── New image post templates ──
   {
     id: "tweet",
@@ -242,6 +253,8 @@ const templates = [
       displayName: "Doctor Curses",
       handle: "@doctor_curses",
       tweetText: "The best marketing strategy is a product that people actually want to tell their friends about.",
+      likes: "2.4K",
+      retweets: "847",
     },
   },
   {
@@ -360,9 +373,21 @@ async function main() {
   let skipped = 0;
   const total = templates.length * themeIds.length;
 
+  // Pre-load default avatar as data URL for templates that reference it
+  const avatarPath = path.join(__dirname, "..", "public", "previews", "default-avatar.png");
+  let avatarDataUrl = "";
+  if (fs.existsSync(avatarPath)) {
+    const avatarBase64 = fs.readFileSync(avatarPath).toString("base64");
+    avatarDataUrl = `data:image/png;base64,${avatarBase64}`;
+  }
+
   for (const template of templates) {
     const templatePath = path.join(TEMPLATES_DIR, template.filename);
     let html = fs.readFileSync(templatePath, "utf-8");
+    // Replace default avatar path with inline data URL so Puppeteer can render it
+    if (avatarDataUrl) {
+      html = html.replace(/\/previews\/default-avatar\.png/g, avatarDataUrl);
+    }
 
     for (const themeId of themeIds) {
       const theme = themes[themeId];

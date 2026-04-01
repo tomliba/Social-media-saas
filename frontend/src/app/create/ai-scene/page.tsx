@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 // ── Scene templates ──
@@ -211,15 +211,17 @@ interface GeneratedImage {
 
 type Step = "pick-scene" | "content" | "generating" | "review" | "saving";
 
-export default function AIScenePage() {
+function AISceneContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedScene = searchParams.get("scene");
 
   // Step state
-  const [step, setStep] = useState<Step>("pick-scene");
+  const [step, setStep] = useState<Step>(preselectedScene ? "content" : "pick-scene");
   const [error, setError] = useState<string | null>(null);
 
   // Scene selection
-  const [selectedScene, setSelectedScene] = useState<string | null>(null);
+  const [selectedScene, setSelectedScene] = useState<string | null>(preselectedScene);
 
   // Content input
   const [contentText, setContentText] = useState("");
@@ -261,51 +263,62 @@ export default function AIScenePage() {
     }
   }, [aiTopic, tone]);
 
-  // ── Generate 3 variations ──
+  // ── Generate 1 variation ──
+  const generateOne = useCallback(async (existingResults: GeneratedImage[] = []) => {
+    if (!scene || !contentText.trim()) return existingResults;
+    const prompt = scene.promptTemplate.replace("{content}", contentText.trim());
+    const i = existingResults.length;
+
+    try {
+      const res = await fetch("/api/ai-carousel/generate-slide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: i === 0 ? prompt : prompt + ` Variation ${i + 1} — vary composition, angle, or color palette slightly.`,
+          slide_number: i + 1,
+          slide_type: "ai_scene",
+          title: scene.name,
+          topic: contentText.trim().slice(0, 120),
+          tone,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Generation failed");
+      }
+      const data = await res.json();
+      const image = data.image?.startsWith("data:")
+        ? data.image
+        : `data:image/png;base64,${data.image}`;
+      const updated = [...existingResults, { image }];
+      setGeneratedImages(updated);
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generation failed");
+      const updated = [...existingResults, { image: "" }];
+      setGeneratedImages(updated);
+      return updated;
+    }
+  }, [scene, contentText, tone]);
+
   const handleGenerate = useCallback(async () => {
     if (!scene || !contentText.trim()) return;
     setStep("generating");
     setError(null);
     setGeneratedImages([]);
     setGeneratingIndex(0);
-
-    const prompt = scene.promptTemplate.replace("{content}", contentText.trim());
-    const results: GeneratedImage[] = [];
-
-    for (let i = 0; i < 3; i++) {
-      setGeneratingIndex(i);
-      try {
-        const res = await fetch("/api/ai-carousel/generate-slide", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: prompt + ` Variation ${i + 1} of 3 — vary composition, angle, or color palette slightly.`,
-            slide_number: i + 1,
-            slide_type: "ai_scene",
-            title: scene.name,
-            topic: contentText.trim().slice(0, 120),
-            tone,
-          }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Variation ${i + 1} failed`);
-        }
-        const data = await res.json();
-        const image = data.image?.startsWith("data:")
-          ? data.image
-          : `data:image/png;base64,${data.image}`;
-        results.push({ image });
-        setGeneratedImages([...results]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : `Variation ${i + 1} failed`);
-        results.push({ image: "" });
-        setGeneratedImages([...results]);
-      }
-    }
-
+    await generateOne([]);
     setStep("review");
-  }, [scene, contentText, tone]);
+  }, [scene, contentText, generateOne]);
+
+  const [generatingMore, setGeneratingMore] = useState(false);
+  const handleGenerateMore = useCallback(async () => {
+    if (generatedImages.length >= 3) return;
+    setGeneratingMore(true);
+    setError(null);
+    await generateOne(generatedImages);
+    setGeneratingMore(false);
+  }, [generatedImages, generateOne]);
 
   // ── Regenerate single ──
   const handleRegenerate = useCallback(async (index: number) => {
@@ -579,7 +592,7 @@ export default function AIScenePage() {
               className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-              Generate 3 variations
+              Generate
             </button>
             <button
               onClick={() => setStep("pick-scene")}
@@ -594,47 +607,26 @@ export default function AIScenePage() {
       {/* ── Step 3: Generating ── */}
       {step === "generating" && (
         <section className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h2 className="text-2xl font-bold font-headline mb-2">Generating your scenes</h2>
+          <h2 className="text-2xl font-bold font-headline mb-2">Generating your scene</h2>
           <p className="text-on-surface-variant text-sm mb-6">
-            Creating variation {generatingIndex + 1} of 3...
+            Rendering your AI scene...
           </p>
 
           {/* Progress bar */}
           <div className="w-full h-2 bg-surface-container-high rounded-full mb-8 overflow-hidden">
             <div
-              className="h-full bg-primary rounded-full transition-all duration-500"
-              style={{ width: `${((generatingIndex + 1) / 3) * 100}%` }}
+              className="h-full bg-primary rounded-full transition-all duration-500 animate-pulse"
+              style={{ width: "80%" }}
             />
           </div>
 
-          {/* Growing gallery */}
-          <div className="grid grid-cols-3 gap-4">
-            {generatedImages.map((img, i) => (
-              <div key={i} className="rounded-xl overflow-hidden bg-surface-container-low">
-                {img.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={img.image} alt={`Variation ${i + 1}`} className="w-full aspect-square object-cover" />
-                ) : (
-                  <div className="w-full aspect-square flex items-center justify-center text-on-surface-variant text-sm">
-                    Failed
-                  </div>
-                )}
-                <div className="p-3">
-                  <p className="text-xs font-bold text-on-surface">Variation {i + 1}</p>
-                </div>
+          <div className="max-w-sm mx-auto">
+            <div className="rounded-xl overflow-hidden bg-surface-container-low">
+              <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
+                <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
+                <span className="text-xs text-on-surface-variant font-medium">Generating...</span>
               </div>
-            ))}
-            {generatedImages.length < 3 && (
-              <div className="rounded-xl overflow-hidden bg-surface-container-low">
-                <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
-                  <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
-                  <span className="text-xs text-on-surface-variant font-medium">Generating...</span>
-                </div>
-                <div className="p-3">
-                  <p className="text-xs font-bold text-on-surface">Variation {generatedImages.length + 1}</p>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </section>
       )}
@@ -649,16 +641,32 @@ export default function AIScenePage() {
                 {validCount} variation{validCount !== 1 ? "s" : ""} generated. Click any to regenerate.
               </p>
             </div>
-            <button
-              onClick={handleGenerate}
-              className="flex items-center gap-1.5 text-primary text-sm font-semibold hover:opacity-80 transition-opacity"
-            >
-              <span className="material-symbols-outlined text-sm">refresh</span>
-              Regenerate All
-            </button>
+            <div className="flex items-center gap-3">
+              {generatedImages.length < 3 && (
+                <button
+                  onClick={handleGenerateMore}
+                  disabled={generatingMore}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-all disabled:opacity-50"
+                >
+                  {generatingMore ? (
+                    <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">add</span>
+                  )}
+                  Generate another variation
+                </button>
+              )}
+              <button
+                onClick={handleGenerate}
+                className="flex items-center gap-1.5 text-primary text-sm font-semibold hover:opacity-80 transition-opacity"
+              >
+                <span className="material-symbols-outlined text-sm">refresh</span>
+                Regenerate All
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-5 mb-8">
+          <div className={`grid gap-5 mb-8 ${generatedImages.length === 1 ? "grid-cols-1 max-w-sm" : generatedImages.length === 2 ? "grid-cols-2 max-w-2xl" : "grid-cols-3"}`}>
             {generatedImages.map((img, i) => {
               const isRegen = regeneratingIndex === i;
               return (
@@ -729,4 +737,8 @@ export default function AIScenePage() {
       )}
     </main>
   );
+}
+
+export default function AIScenePage() {
+  return <Suspense><AISceneContent /></Suspense>;
 }

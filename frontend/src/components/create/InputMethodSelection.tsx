@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const templatePills = ["Did You Know", "Myth Buster", "X vs Y", "Top 5"];
@@ -60,42 +61,6 @@ const inputMethods = [
     formats: ["Carousel"],
   },
   {
-    id: "ai-scene",
-    icon: "photo_camera",
-    iconFill: true,
-    title: "AI Scene",
-    description: "Your content placed into stunning visual scenes — billboards, newspapers, graffiti walls, and more",
-    highlighted: true,
-    formats: ["Image Post"],
-  },
-  {
-    id: "ad-creative",
-    icon: "brush",
-    iconFill: true,
-    title: "Generate Ad Creatives",
-    description: "Describe your product — AI creates illustrated ad scenes",
-    highlighted: true,
-    formats: ["Image Post"],
-  },
-  {
-    id: "meme-ad",
-    icon: "mood",
-    iconFill: true,
-    title: "Meme Ad",
-    description: "AI-generated meme ads — Drake, Expanding Brain, UNO Draw 25, and more",
-    highlighted: true,
-    formats: ["Image Post"],
-  },
-  {
-    id: "ecommerce-ad",
-    icon: "storefront",
-    iconFill: true,
-    title: "Generate E-Commerce Ads",
-    description: "Research-backed product ads — 4 unique creatives with strategy",
-    highlighted: true,
-    formats: ["Image Post"],
-  },
-  {
     id: "paste-script",
     icon: "edit_note",
     title: "Paste your own script",
@@ -143,6 +108,18 @@ export default function InputMethodSelection({
 }) {
   const router = useRouter();
 
+  useEffect(() => {
+    if (selectedFormat === "Carousel") {
+      router.push("/create/templates?format=carousel");
+    } else if (selectedFormat === "Image Post") {
+      router.push("/create/templates?format=image");
+    }
+  }, [selectedFormat, router]);
+
+  if (selectedFormat === "Carousel" || selectedFormat === "Image Post") {
+    return null;
+  }
+
   return (
     <section className="max-w-3xl mx-auto">
       <h2 className="font-headline text-2xl font-bold mb-8 flex items-center gap-3">
@@ -168,21 +145,7 @@ export default function InputMethodSelection({
                     "Text": "text",
                   };
                   const format = formatMap[selectedFormat ?? ""] || "video";
-                  if (method.id === "ai-scene") {
-                    router.push("/create/ai-scene");
-                  } else if (method.id === "ai-infographic") {
-                    router.push("/create/ai-carousel");
-                  } else if (method.id === "handdrawn") {
-                    router.push("/create/ai-carousel?style=handdrawn");
-                  } else if (method.id === "notebook") {
-                    router.push("/create/ai-carousel?style=notebook");
-                  } else if (method.id === "ad-creative") {
-                    router.push("/create/ad-creative");
-                  } else if (method.id === "meme-ad") {
-                    router.push("/create/meme-ad");
-                  } else if (method.id === "ecommerce-ad") {
-                    router.push("/create/ecommerce-ad");
-                  } else if (method.id === "paste-script") {
+                  if (method.id === "paste-script") {
                     router.push("/create/paste-script");
                   } else if (method.id === "remix") {
                     router.push("/create/remix");

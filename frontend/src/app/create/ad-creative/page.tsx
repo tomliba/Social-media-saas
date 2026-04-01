@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 // ── Visual concepts ──
@@ -61,15 +61,17 @@ interface GeneratedAd {
 
 type Step = "input" | "concept" | "generating" | "review" | "saving";
 
-export default function AdCreativePage() {
+function AdCreativeContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedConcept = searchParams.get("concept");
 
   // Input state
   const [product, setProduct] = useState("");
   const [description, setDescription] = useState("");
 
   // Concept state
-  const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
+  const [selectedConcept, setSelectedConcept] = useState<string | null>(preselectedConcept);
 
   // Flow state
   const [step, setStep] = useState<Step>("input");
@@ -83,51 +85,66 @@ export default function AdCreativePage() {
   // ── Step 1 → 2 ──
   const handleContinueToConcept = () => {
     if (!product.trim()) return;
-    setStep("concept");
+    if (selectedConcept) {
+      handleGenerate();
+    } else {
+      setStep("concept");
+    }
   };
 
-  // ── Step 3: Generate 3 variations ──
+  // ── Generate 1 variation ──
+  const generateOneAd = useCallback(async (existingResults: GeneratedAd[] = []) => {
+    if (!selectedConcept) return existingResults;
+    const i = existingResults.length;
+
+    try {
+      const res = await fetch("/api/ad-creative/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product,
+          description,
+          conceptId: selectedConcept,
+          variationIndex: i,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Generation failed");
+      }
+      const data = await res.json();
+      const image = data.image?.startsWith("data:")
+        ? data.image
+        : `data:image/png;base64,${data.image}`;
+      const updated = [...existingResults, { variationIndex: i, image }];
+      setGeneratedAds(updated);
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generation failed");
+      const updated = [...existingResults, { variationIndex: i, image: "" }];
+      setGeneratedAds(updated);
+      return updated;
+    }
+  }, [product, description, selectedConcept]);
+
   const handleGenerate = useCallback(async () => {
     if (!selectedConcept) return;
     setStep("generating");
     setError(null);
     setGeneratedAds([]);
     setGeneratingIndex(0);
-
-    const results: GeneratedAd[] = [];
-
-    for (let i = 0; i < 3; i++) {
-      setGeneratingIndex(i);
-      try {
-        const res = await fetch("/api/ad-creative/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            product,
-            description,
-            conceptId: selectedConcept,
-            variationIndex: i,
-          }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Variation ${i + 1} failed`);
-        }
-        const data = await res.json();
-        const image = data.image?.startsWith("data:")
-          ? data.image
-          : `data:image/png;base64,${data.image}`;
-        results.push({ variationIndex: i, image });
-        setGeneratedAds([...results]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : `Variation ${i + 1} failed`);
-        results.push({ variationIndex: i, image: "" });
-        setGeneratedAds([...results]);
-      }
-    }
-
+    await generateOneAd([]);
     setStep("review");
-  }, [product, description, selectedConcept]);
+  }, [selectedConcept, generateOneAd]);
+
+  const [generatingMore, setGeneratingMore] = useState(false);
+  const handleGenerateMore = useCallback(async () => {
+    if (generatedAds.length >= 3) return;
+    setGeneratingMore(true);
+    setError(null);
+    await generateOneAd(generatedAds);
+    setGeneratingMore(false);
+  }, [generatedAds, generateOneAd]);
 
   // ── Regenerate one ad ──
   const handleRegenerateAd = useCallback(async (index: number) => {
@@ -270,7 +287,7 @@ export default function AdCreativePage() {
             disabled={!product.trim()}
             className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Pick a visual concept
+            {selectedConcept ? "Generate" : "Pick a visual concept"}
             <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </button>
         </section>
@@ -331,7 +348,7 @@ export default function AdCreativePage() {
               className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-              Generate 3 ad variations
+              Generate
             </button>
             <button
               onClick={() => setStep("input")}
@@ -346,47 +363,26 @@ export default function AdCreativePage() {
       {/* ── Step 3: Generating ── */}
       {step === "generating" && (
         <section className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h2 className="text-2xl font-bold font-headline mb-2">Creating your ads</h2>
+          <h2 className="text-2xl font-bold font-headline mb-2">Creating your ad</h2>
           <p className="text-on-surface-variant text-sm mb-6">
-            Generating variation {generatingIndex + 1} of 3...
+            Rendering your ad creative...
           </p>
 
           {/* Progress bar */}
           <div className="w-full h-2 bg-surface-container-high rounded-full mb-8 overflow-hidden">
             <div
-              className="h-full bg-primary rounded-full transition-all duration-500"
-              style={{ width: `${((generatingIndex + 1) / 3) * 100}%` }}
+              className="h-full bg-primary rounded-full transition-all duration-500 animate-pulse"
+              style={{ width: "80%" }}
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            {generatedAds.map((ad, i) => (
-              <div key={i} className="rounded-xl overflow-hidden bg-surface-container-low">
-                {ad.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={ad.image} alt={`Variation ${i + 1}`} className="w-full aspect-square object-cover" />
-                ) : (
-                  <div className="w-full aspect-square flex items-center justify-center text-on-surface-variant text-sm">
-                    Failed
-                  </div>
-                )}
-                <div className="p-3">
-                  <p className="text-xs font-bold text-on-surface">{variationLabels[i]}</p>
-                </div>
+          <div className="max-w-sm mx-auto">
+            <div className="rounded-xl overflow-hidden bg-surface-container-low">
+              <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
+                <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
+                <span className="text-xs text-on-surface-variant font-medium">Generating...</span>
               </div>
-            ))}
-            {/* Placeholder for current generation */}
-            {generatedAds.length < 3 && (
-              <div className="rounded-xl overflow-hidden bg-surface-container-low">
-                <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
-                  <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
-                  <span className="text-xs text-on-surface-variant font-medium">Generating...</span>
-                </div>
-                <div className="p-3">
-                  <p className="text-xs font-bold text-on-surface">{variationLabels[generatedAds.length]}</p>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </section>
       )}
@@ -401,16 +397,32 @@ export default function AdCreativePage() {
                 {validAdCount} variation{validAdCount !== 1 ? "s" : ""} generated. Click any ad to regenerate it.
               </p>
             </div>
-            <button
-              onClick={handleGenerate}
-              className="flex items-center gap-1.5 text-primary text-sm font-semibold hover:opacity-80 transition-opacity"
-            >
-              <span className="material-symbols-outlined text-sm">refresh</span>
-              Regenerate All
-            </button>
+            <div className="flex items-center gap-3">
+              {generatedAds.length < 3 && (
+                <button
+                  onClick={handleGenerateMore}
+                  disabled={generatingMore}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-all disabled:opacity-50"
+                >
+                  {generatingMore ? (
+                    <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">add</span>
+                  )}
+                  Generate another variation
+                </button>
+              )}
+              <button
+                onClick={handleGenerate}
+                className="flex items-center gap-1.5 text-primary text-sm font-semibold hover:opacity-80 transition-opacity"
+              >
+                <span className="material-symbols-outlined text-sm">refresh</span>
+                Regenerate All
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-6 mb-8">
+          <div className={`grid gap-6 mb-8 ${generatedAds.length === 1 ? "grid-cols-1 max-w-sm" : generatedAds.length === 2 ? "grid-cols-2 max-w-2xl" : "grid-cols-3"}`}>
             {generatedAds.map((ad, i) => {
               const isRegenerating = regeneratingIndex === i;
               return (
@@ -484,4 +496,8 @@ export default function AdCreativePage() {
       )}
     </main>
   );
+}
+
+export default function AdCreativePage() {
+  return <Suspense><AdCreativeContent /></Suspense>;
 }

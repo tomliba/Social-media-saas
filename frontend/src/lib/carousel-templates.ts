@@ -130,8 +130,8 @@ export const carouselTemplates: CarouselTemplate[] = [
     filename: "tweet.html",
     icon: "chat_bubble_outline",
     description: "Each slide is a tweet-style post — great for threads",
-    placeholders: ["displayName", "handle", "tweetText"],
-    contentPrompt: "a tweet-style post with a strong opinion, insight, or story beat. Each slide should feel like a standalone tweet but connect to form a thread narrative",
+    placeholders: ["displayName", "handle", "tweetText", "likes", "retweets"],
+    contentPrompt: "a tweet-style post with a strong opinion, insight, or story beat. Each slide should feel like a standalone tweet but connect to form a thread narrative. Also suggest realistic engagement numbers (likes and retweets)",
     supportsPhoto: true,
   },
 ];
@@ -139,6 +139,16 @@ export const carouselTemplates: CarouselTemplate[] = [
 // ── Image post templates (single-slide designs) ──
 
 export const imagePostTemplates: CarouselTemplate[] = [
+  {
+    id: "tweet",
+    name: "Tweet",
+    filename: "tweet.html",
+    icon: "chat_bubble_outline",
+    description: "Tweet/X post screenshot style",
+    placeholders: ["displayName", "handle", "tweetText", "likes", "retweets"],
+    contentPrompt: "a viral tweet with a strong opinion or insight. Also suggest realistic engagement numbers (likes and retweets)",
+    supportsPhoto: true,
+  },
   {
     id: "centered",
     name: "Centered",
@@ -175,16 +185,6 @@ export const imagePostTemplates: CarouselTemplate[] = [
     description: "Polaroid-style with caption and annotation",
     placeholders: ["imageTag", "captionText", "annotation", "handle"],
     contentPrompt: "an image category tag, a caption text, and a handwritten annotation",
-  },
-  {
-    id: "tweet",
-    name: "Tweet",
-    filename: "tweet.html",
-    icon: "chat_bubble_outline",
-    description: "Tweet/X post screenshot style",
-    placeholders: ["displayName", "handle", "tweetText"],
-    contentPrompt: "a viral tweet with a strong opinion or insight",
-    supportsPhoto: true,
   },
   {
     id: "hot_take",

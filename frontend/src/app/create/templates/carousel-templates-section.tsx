@@ -145,6 +145,13 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
     router.push(`/create/editor?${params.toString()}`);
   };
 
+  const aiCarouselOptions = [
+    { id: "infographic", name: "AI Infographic", description: "AI designs each slide as a unique infographic", icon: "auto_awesome", preview: "/previews/ai/infographic.png", href: "/create/ai-carousel" },
+    { id: "handdrawn-color", name: "Hand-Drawn (Color)", description: "Sketchy whiteboard style — warm, approachable", icon: "draw", preview: "/previews/ai/handdrawn-color.png", href: "/create/ai-carousel?style=handdrawn" },
+    { id: "handdrawn-mono", name: "Hand-Drawn (Mono)", description: "Monochrome sketch style — clean, minimal", icon: "draw", preview: "/previews/ai/handdrawn-mono.png", href: "/create/ai-carousel?style=handdrawn" },
+    { id: "notebook", name: "Notebook", description: "Spiral-bound pages with doodles and highlighters", icon: "menu_book", preview: "/previews/ai/notebook.png", href: "/create/ai-carousel?style=notebook" },
+  ];
+
   return (
     <>
       {/* Step 1: Layout Gallery */}
@@ -152,6 +159,36 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
         <h2 className="text-2xl font-bold font-headline mb-2">Choose a layout</h2>
         <p className="text-on-surface-variant text-sm mb-6">Pick the visual style for your carousel slides</p>
 
+        {/* AI-Generated section */}
+        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/50 mb-3">AI-Generated</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+          {aiCarouselOptions.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => router.push(opt.href)}
+              className="group relative flex flex-col items-center p-4 rounded-xl bg-surface-container-lowest hover:shadow-lg transition-all active:scale-[0.97]"
+            >
+              <div className="w-full aspect-[4/5] rounded-lg overflow-hidden mb-3 bg-surface-container-low shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={opt.preview}
+                  alt={opt.name}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    const el = e.target as HTMLImageElement;
+                    el.style.display = "none";
+                    el.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface-variant" style="font-variation-settings: 'FILL' 1">${opt.icon}</span></div>`;
+                  }}
+                />
+              </div>
+              <h3 className="font-bold text-base font-headline">{opt.name}</h3>
+              <p className="text-xs text-on-surface-variant text-center leading-tight mt-1">{opt.description}</p>
+            </button>
+          ))}
+        </div>
+
+        {/* Templates section */}
+        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/50 mb-3">Templates</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           {carouselTemplates.map((t) => {
             const isSelected = selectedLayout === t.id;

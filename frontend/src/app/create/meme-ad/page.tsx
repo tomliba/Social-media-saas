@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 // ── Meme templates ──
@@ -120,8 +120,10 @@ interface GeneratedMeme {
 
 type Step = "input" | "template" | "generating" | "review" | "saving";
 
-export default function MemeAdPage() {
+function MemeAdContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedTemplate = searchParams.get("template");
 
   // Input state
   const [productName, setProductName] = useState("");
@@ -130,7 +132,7 @@ export default function MemeAdPage() {
   const [audience, setAudience] = useState("");
 
   // Template state
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(preselectedTemplate);
 
   // Flow state
   const [step, setStep] = useState<Step>("input");
@@ -159,20 +161,15 @@ export default function MemeAdPage() {
   // ── Step 1 → 2 ──
   const handleContinueToTemplate = () => {
     if (!productName.trim()) return;
-    setStep("template");
+    if (selectedTemplate) {
+      handleGenerate();
+    } else {
+      setStep("template");
+    }
   };
 
-  // ── Step 3: Generate labels then images ──
-  const handleGenerate = useCallback(async () => {
-    if (!selectedTemplate) return;
-    setStep("generating");
-    setError(null);
-    setGeneratedMemes([]);
-    setGeneratingIndex(0);
-    setLabelVariations([]);
-
-    // First: get 3 label variations from Gemini
-    let variations: LabelVariation[];
+  // ── Fetch label variations from Gemini ──
+  const fetchLabels = useCallback(async (): Promise<LabelVariation[] | null> => {
     try {
       const labelsRes = await fetch("/api/meme-ad/generate-labels", {
         method: "POST",
@@ -190,48 +187,71 @@ export default function MemeAdPage() {
         throw new Error(data.error || "Failed to generate labels");
       }
       const labelsData = await labelsRes.json();
-      variations = labelsData.variations;
-      if (!variations || variations.length === 0) {
+      if (!labelsData.variations || labelsData.variations.length === 0) {
         throw new Error("No label variations returned");
       }
-      setLabelVariations(variations);
+      setLabelVariations(labelsData.variations);
+      return labelsData.variations;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate labels");
-      setStep("template");
-      return;
+      return null;
     }
+  }, [productName, description, painPoint, audience, selectedTemplate]);
 
-    // Then: generate images for each variation
-    const results: GeneratedMeme[] = [];
-
-    for (let i = 0; i < Math.min(variations.length, 3); i++) {
-      setGeneratingIndex(i);
-      const prompt = buildImagePrompt(selectedTemplate, variations[i]);
-      try {
-        const res = await fetch("/api/ai-carousel/generate-slide", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Meme ${i + 1} failed`);
-        }
-        const data = await res.json();
-        const image = data.image?.startsWith("data:")
-          ? data.image
-          : `data:image/png;base64,${data.image}`;
-        results.push({ variationIndex: i, labels: variations[i], image });
-        setGeneratedMemes([...results]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : `Meme ${i + 1} failed`);
-        results.push({ variationIndex: i, labels: variations[i], image: "" });
-        setGeneratedMemes([...results]);
+  // ── Generate 1 meme image from a label variation ──
+  const generateOneMeme = useCallback(async (variation: LabelVariation, index: number, existingResults: GeneratedMeme[] = []) => {
+    const prompt = buildImagePrompt(selectedTemplate!, variation);
+    try {
+      const res = await fetch("/api/ai-carousel/generate-slide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Generation failed");
       }
+      const data = await res.json();
+      const image = data.image?.startsWith("data:")
+        ? data.image
+        : `data:image/png;base64,${data.image}`;
+      const updated = [...existingResults, { variationIndex: index, labels: variation, image }];
+      setGeneratedMemes(updated);
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generation failed");
+      const updated = [...existingResults, { variationIndex: index, labels: variation, image: "" }];
+      setGeneratedMemes(updated);
+      return updated;
     }
+  }, [selectedTemplate, buildImagePrompt]);
 
+  // ── Step 3: Generate labels then 1 image ──
+  const handleGenerate = useCallback(async () => {
+    if (!selectedTemplate) return;
+    setStep("generating");
+    setError(null);
+    setGeneratedMemes([]);
+    setGeneratingIndex(0);
+    setLabelVariations([]);
+
+    const variations = await fetchLabels();
+    if (!variations) { setStep("template"); return; }
+
+    await generateOneMeme(variations[0], 0, []);
     setStep("review");
   }, [selectedTemplate, productName, description, painPoint, audience, buildImagePrompt]);
+
+  const [generatingMore, setGeneratingMore] = useState(false);
+  const handleGenerateMore = useCallback(async () => {
+    if (generatedMemes.length >= 3 || labelVariations.length === 0) return;
+    setGeneratingMore(true);
+    setError(null);
+    const nextIndex = generatedMemes.length;
+    const variation = labelVariations[nextIndex] || labelVariations[0];
+    await generateOneMeme(variation, nextIndex, generatedMemes);
+    setGeneratingMore(false);
+  }, [generatedMemes, labelVariations, generateOneMeme]);
 
   // ── Regenerate one meme ──
   const handleRegenerateMeme = useCallback(async (index: number) => {
@@ -399,7 +419,7 @@ export default function MemeAdPage() {
             disabled={!productName.trim()}
             className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Pick a meme template
+            {selectedTemplate ? "Generate" : "Pick a meme template"}
             <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </button>
         </section>
@@ -460,7 +480,7 @@ export default function MemeAdPage() {
               className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-              Generate 3 meme ads
+              Generate
             </button>
             <button
               onClick={() => setStep("input")}
@@ -479,47 +499,26 @@ export default function MemeAdPage() {
           <p className="text-on-surface-variant text-sm mb-6">
             {labelVariations.length === 0
               ? "Generating meme labels..."
-              : `Rendering meme ${generatingIndex + 1} of 3...`}
+              : "Rendering your meme ad..."}
           </p>
 
           {/* Progress bar */}
           <div className="w-full h-2 bg-surface-container-high rounded-full mb-8 overflow-hidden">
             <div
-              className="h-full bg-primary rounded-full transition-all duration-500"
-              style={{ width: labelVariations.length === 0 ? "10%" : `${((generatingIndex + 1) / 3) * 100}%` }}
+              className="h-full bg-primary rounded-full transition-all duration-500 animate-pulse"
+              style={{ width: labelVariations.length === 0 ? "30%" : "80%" }}
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            {generatedMemes.map((meme, i) => (
-              <div key={i} className="rounded-xl overflow-hidden bg-surface-container-low">
-                {meme.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={meme.image} alt={`Meme ${i + 1}`} className="w-full aspect-square object-cover" />
-                ) : (
-                  <div className="w-full aspect-square flex items-center justify-center text-on-surface-variant text-sm">
-                    Failed
-                  </div>
-                )}
-                <div className="p-3">
-                  <p className="text-xs font-bold text-on-surface">Variation {i + 1}</p>
-                </div>
+          <div className="max-w-sm mx-auto">
+            <div className="rounded-xl overflow-hidden bg-surface-container-low">
+              <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
+                <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
+                <span className="text-xs text-on-surface-variant font-medium">
+                  {labelVariations.length === 0 ? "Writing labels..." : "Generating..."}
+                </span>
               </div>
-            ))}
-            {/* Placeholder */}
-            {generatedMemes.length < 3 && (
-              <div className="rounded-xl overflow-hidden bg-surface-container-low">
-                <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
-                  <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
-                  <span className="text-xs text-on-surface-variant font-medium">
-                    {labelVariations.length === 0 ? "Writing labels..." : "Generating..."}
-                  </span>
-                </div>
-                <div className="p-3">
-                  <p className="text-xs font-bold text-on-surface">Variation {generatedMemes.length + 1}</p>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </section>
       )}
@@ -534,16 +533,32 @@ export default function MemeAdPage() {
                 {validMemeCount} meme{validMemeCount !== 1 ? "s" : ""} generated. Click any to regenerate.
               </p>
             </div>
-            <button
-              onClick={handleGenerate}
-              className="flex items-center gap-1.5 text-primary text-sm font-semibold hover:opacity-80 transition-opacity"
-            >
-              <span className="material-symbols-outlined text-sm">refresh</span>
-              Regenerate All
-            </button>
+            <div className="flex items-center gap-3">
+              {generatedMemes.length < 3 && (
+                <button
+                  onClick={handleGenerateMore}
+                  disabled={generatingMore}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-all disabled:opacity-50"
+                >
+                  {generatingMore ? (
+                    <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">add</span>
+                  )}
+                  Generate another variation
+                </button>
+              )}
+              <button
+                onClick={handleGenerate}
+                className="flex items-center gap-1.5 text-primary text-sm font-semibold hover:opacity-80 transition-opacity"
+              >
+                <span className="material-symbols-outlined text-sm">refresh</span>
+                Regenerate All
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-6 mb-8">
+          <div className={`grid gap-6 mb-8 ${generatedMemes.length === 1 ? "grid-cols-1 max-w-sm" : generatedMemes.length === 2 ? "grid-cols-2 max-w-2xl" : "grid-cols-3"}`}>
             {generatedMemes.map((meme, i) => {
               const isRegenerating = regeneratingIndex === i;
               return (
@@ -619,4 +634,8 @@ export default function MemeAdPage() {
       )}
     </main>
   );
+}
+
+export default function MemeAdPage() {
+  return <Suspense><MemeAdContent /></Suspense>;
 }

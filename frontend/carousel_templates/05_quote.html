@@ -72,15 +72,16 @@ body {
   gap: 16px;
 }
 
-.quote-photo {
-  display: var(--photo-display);
+.quote-avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  object-fit: cover;
   flex-shrink: 0;
   border: 3px solid var(--accent);
+  overflow: hidden;
+  position: relative;
 }
+
 
 .quote-author {
   font-size: 32px;
@@ -102,7 +103,10 @@ body {
   <div class="quote-close">"</div>
   <div class="quote-divider"></div>
   <div class="quote-attribution">
-    <img class="quote-photo" src="{{photoUrl}}" alt="" />
+    <div class="quote-avatar">
+      <img id="avatar-fallback" src="/previews/default-avatar.png" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+      <img src="{{photoUrl}}" alt="" onload="this.style.display='block';document.getElementById('avatar-fallback').style.display='none'" onerror="this.style.display='none'" style="display:none" />
+    </div>
     <div class="quote-author">— {{author}}</div>
   </div>
   <div class="swipe-hint">swipe for the framework ›</div>
