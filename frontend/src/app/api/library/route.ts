@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { jobId, title, format, templateId, backgroundMode, script, durationSec, status: itemStatus, videoUrl } = body;
+  const { jobId, title, format, templateId, backgroundMode, script, durationSec, status: itemStatus, videoUrl, thumbnailUrl } = body;
 
   if (!jobId || !title || !format) {
     return NextResponse.json(
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       script: script ?? null,
       durationSec: durationSec ?? null,
       videoUrl: videoUrl ?? null,
+      thumbnailUrl: thumbnailUrl ?? null,
       status: itemStatus ?? "rendering",
     },
   });

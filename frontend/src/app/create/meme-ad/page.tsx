@@ -105,20 +105,7 @@ const MEME_STYLE =
 
 // ── Types ──
 
-interface LabelVariation {
-  panel1: string;
-  panel2: string;
-  panel3?: string;
-  panel4?: string;
-}
-
-interface GeneratedMeme {
-  variationIndex: number;
-  labels: LabelVariation;
-  image: string; // base64 data URL
-}
-
-type Step = "input" | "template" | "generating" | "review" | "saving";
+type Step = "input" | "template";
 
 function MemeAdContent() {
   const router = useRouter();
@@ -137,26 +124,7 @@ function MemeAdContent() {
   // Flow state
   const [step, setStep] = useState<Step>("input");
   const [error, setError] = useState<string | null>(null);
-
-  // Generation state
-  const [generatedMemes, setGeneratedMemes] = useState<GeneratedMeme[]>([]);
-  const [generatingIndex, setGeneratingIndex] = useState(0);
-  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
-  const [labelVariations, setLabelVariations] = useState<LabelVariation[]>([]);
-
-  // ── Build image prompt from template + labels ──
-  const buildImagePrompt = useCallback((templateId: string, labels: LabelVariation) => {
-    const tmpl = memeTemplates.find((t) => t.id === templateId);
-    if (!tmpl) return "";
-
-    const panelLines: string[] = [];
-    if (labels.panel1) panelLines.push(`Panel 1: Text: '${labels.panel1}'`);
-    if (labels.panel2) panelLines.push(`Panel 2: Text: '${labels.panel2}'`);
-    if (labels.panel3) panelLines.push(`Panel 3: Text: '${labels.panel3}'`);
-    if (labels.panel4) panelLines.push(`Panel 4: Text: '${labels.panel4}'`);
-
-    return `Illustrated cartoon meme in the "${tmpl.name}" format. ${tmpl.panelLayout}\n\n${panelLines.join("\n")}\n\nThe meme is an ad for "${productName}" — ${description || productName}.\nPain point: ${painPoint || "general frustration"}. Target: ${audience || "general"}.\n\n${MEME_STYLE}`;
-  }, [productName, description, painPoint, audience]);
+  const [submitting, setSubmitting] = useState(false);
 
   // ── Step 1 → 2 ──
   const handleContinueToTemplate = () => {
@@ -168,162 +136,106 @@ function MemeAdContent() {
     }
   };
 
-  // ── Fetch label variations from Gemini ──
-  const fetchLabels = useCallback(async (): Promise<LabelVariation[] | null> => {
+  // ── Background generation: generate image, upload to R2, update library entry ──
+  const generateInBackground = useCallback(async (libraryItemId: string, templateId: string, pName: string, desc: string, pain: string, aud: string) => {
     try {
+      // 1. Fetch labels from Gemini
       const labelsRes = await fetch("/api/meme-ad/generate-labels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productName,
-          description,
-          painPoint,
-          audience,
-          memeTemplate: selectedTemplate,
+          productName: pName,
+          description: desc,
+          painPoint: pain,
+          audience: aud,
+          memeTemplate: templateId,
         }),
       });
-      if (!labelsRes.ok) {
-        const data = await labelsRes.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to generate labels");
-      }
+      if (!labelsRes.ok) throw new Error("Failed to generate labels");
       const labelsData = await labelsRes.json();
-      if (!labelsData.variations || labelsData.variations.length === 0) {
-        throw new Error("No label variations returned");
-      }
-      setLabelVariations(labelsData.variations);
-      return labelsData.variations;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate labels");
-      return null;
-    }
-  }, [productName, description, painPoint, audience, selectedTemplate]);
+      const variation = labelsData.variations?.[0];
+      if (!variation) throw new Error("No label variations returned");
 
-  // ── Generate 1 meme image from a label variation ──
-  const generateOneMeme = useCallback(async (variation: LabelVariation, index: number, existingResults: GeneratedMeme[] = []) => {
-    const prompt = buildImagePrompt(selectedTemplate!, variation);
-    try {
-      const res = await fetch("/api/ai-carousel/generate-slide", {
+      // 2. Build prompt and generate image via Flask
+      const tmpl = memeTemplates.find((t) => t.id === templateId);
+      if (!tmpl) throw new Error("Unknown template");
+      const panelLines: string[] = [];
+      if (variation.panel1) panelLines.push(`Panel 1: Text: '${variation.panel1}'`);
+      if (variation.panel2) panelLines.push(`Panel 2: Text: '${variation.panel2}'`);
+      if (variation.panel3) panelLines.push(`Panel 3: Text: '${variation.panel3}'`);
+      if (variation.panel4) panelLines.push(`Panel 4: Text: '${variation.panel4}'`);
+      const prompt = `Illustrated cartoon meme in the "${tmpl.name}" format. ${tmpl.panelLayout}\n\n${panelLines.join("\n")}\n\nThe meme is an ad for "${pName}" — ${desc || pName}.\nPain point: ${pain || "general frustration"}. Target: ${aud || "general"}.\n\n${MEME_STYLE}`;
+
+      const genRes = await fetch("/api/ai-carousel/generate-slide", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Generation failed");
-      }
-      const data = await res.json();
-      const image = data.image?.startsWith("data:")
-        ? data.image
-        : `data:image/png;base64,${data.image}`;
-      const updated = [...existingResults, { variationIndex: index, labels: variation, image }];
-      setGeneratedMemes(updated);
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Generation failed");
-      const updated = [...existingResults, { variationIndex: index, labels: variation, image: "" }];
-      setGeneratedMemes(updated);
-      return updated;
-    }
-  }, [selectedTemplate, buildImagePrompt]);
+      if (!genRes.ok) throw new Error("Generation failed");
+      const genData = await genRes.json();
+      const image = genData.image?.startsWith("data:")
+        ? genData.image
+        : `data:image/png;base64,${genData.image}`;
 
-  // ── Step 3: Generate labels then 1 image ──
+      // 3. Upload to R2
+      const uploadRes = await fetch("/api/upload-generated", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image, filename: `meme-${templateId}-${Date.now()}` }),
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const { url } = await uploadRes.json();
+
+      // 4. Update library entry with final URL
+      await fetch(`/api/library/${libraryItemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ready", videoUrl: url, thumbnailUrl: url }),
+      });
+    } catch (err) {
+      // Mark as failed
+      await fetch(`/api/library/${libraryItemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "failed", error: err instanceof Error ? err.message : "Generation failed" }),
+      }).catch(() => {});
+    }
+  }, []);
+
+  // ── Generate: create library entry, redirect, fire background work ──
   const handleGenerate = useCallback(async () => {
-    if (!selectedTemplate) return;
-    setStep("generating");
-    setError(null);
-    setGeneratedMemes([]);
-    setGeneratingIndex(0);
-    setLabelVariations([]);
-
-    const variations = await fetchLabels();
-    if (!variations) { setStep("template"); return; }
-
-    await generateOneMeme(variations[0], 0, []);
-    setStep("review");
-  }, [selectedTemplate, productName, description, painPoint, audience, buildImagePrompt]);
-
-  const [generatingMore, setGeneratingMore] = useState(false);
-  const handleGenerateMore = useCallback(async () => {
-    if (generatedMemes.length >= 3 || labelVariations.length === 0) return;
-    setGeneratingMore(true);
-    setError(null);
-    const nextIndex = generatedMemes.length;
-    const variation = labelVariations[nextIndex] || labelVariations[0];
-    await generateOneMeme(variation, nextIndex, generatedMemes);
-    setGeneratingMore(false);
-  }, [generatedMemes, labelVariations, generateOneMeme]);
-
-  // ── Regenerate one meme ──
-  const handleRegenerateMeme = useCallback(async (index: number) => {
-    setRegeneratingIndex(index);
+    if (!selectedTemplate || submitting) return;
+    setSubmitting(true);
     setError(null);
 
-    const labels = labelVariations[index];
-    if (!labels || !selectedTemplate) {
-      setRegeneratingIndex(null);
-      return;
-    }
-
-    const prompt = buildImagePrompt(selectedTemplate, labels);
-    try {
-      const res = await fetch("/api/ai-carousel/generate-slide", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Regeneration failed");
-      }
-      const data = await res.json();
-      const image = data.image?.startsWith("data:")
-        ? data.image
-        : `data:image/png;base64,${data.image}`;
-      setGeneratedMemes((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], image };
-        return next;
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Regeneration failed");
-    } finally {
-      setRegeneratingIndex(null);
-    }
-  }, [labelVariations, selectedTemplate, buildImagePrompt]);
-
-  // ── Step 5: Save ──
-  const handleSave = useCallback(async () => {
-    setStep("saving");
     try {
       const tmpl = memeTemplates.find((t) => t.id === selectedTemplate);
-      const images = generatedMemes.filter((m) => m.image).map((m) => m.image);
-      const title = `${productName} — ${tmpl?.name || "Meme"} Ad`;
-      const results = [{ title, images, caption: "" }];
+      const title = `${productName}: ${tmpl?.name || "Meme"} Ad`;
 
+      // Create library entry with "rendering" status
       const res = await fetch("/api/library", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobId: `meme-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           title,
-          format: "carousel",
-          status: "ready",
+          format: "image",
+          status: "rendering",
         }),
       });
+      if (!res.ok) throw new Error("Failed to create library entry");
+      const { item } = await res.json();
 
-      if (!res.ok) throw new Error("Save failed");
+      // Fire background generation (don't await)
+      generateInBackground(item.id, selectedTemplate, productName, description, painPoint, audience);
 
-      sessionStorage.setItem("pending-carousel-results", JSON.stringify(results));
-      sessionStorage.setItem("pending-format", "carousel");
+      // Redirect immediately
       router.push("/library");
     } catch (err) {
-      console.error("Failed to save memes:", err);
-      setError("Failed to save — please try again");
-      setStep("review");
+      setError(err instanceof Error ? err.message : "Failed to start generation");
+      setSubmitting(false);
     }
-  }, [productName, selectedTemplate, generatedMemes, router]);
-
-  const validMemeCount = generatedMemes.filter((m) => m.image).length;
+  }, [selectedTemplate, submitting, productName, description, painPoint, audience, generateInBackground, router]);
 
   return (
     <main className="pt-24 pb-32 px-6 md:px-12 lg:px-16 max-w-screen-xl mx-auto">
@@ -340,7 +252,7 @@ function MemeAdContent() {
             Meme Ad
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            AI-generated meme ads — Drake, Expanding Brain, UNO Draw 25, and more
+            AI-generated meme ads: Drake, Expanding Brain, UNO Draw 25, and more
           </p>
         </div>
       </header>
@@ -416,11 +328,20 @@ function MemeAdContent() {
 
           <button
             onClick={handleContinueToTemplate}
-            disabled={!productName.trim()}
+            disabled={!productName.trim() || submitting}
             className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {selectedTemplate ? "Generate" : "Pick a meme template"}
-            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            {submitting ? (
+              <>
+                <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                Submitting...
+              </>
+            ) : (
+              <>
+                {selectedTemplate ? "Generate" : "Pick a meme template"}
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </>
+            )}
           </button>
         </section>
       )}
@@ -476,11 +397,20 @@ function MemeAdContent() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleGenerate}
-              disabled={!selectedTemplate}
+              disabled={!selectedTemplate || submitting}
               className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-              Generate
+              {submitting ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                  Generate
+                </>
+              )}
             </button>
             <button
               onClick={() => setStep("input")}
@@ -489,147 +419,6 @@ function MemeAdContent() {
               Back
             </button>
           </div>
-        </section>
-      )}
-
-      {/* ── Step 3: Generating ── */}
-      {step === "generating" && (
-        <section className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h2 className="text-2xl font-bold font-headline mb-2">Creating your meme ads</h2>
-          <p className="text-on-surface-variant text-sm mb-6">
-            {labelVariations.length === 0
-              ? "Generating meme labels..."
-              : "Rendering your meme ad..."}
-          </p>
-
-          {/* Progress bar */}
-          <div className="w-full h-2 bg-surface-container-high rounded-full mb-8 overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-500 animate-pulse"
-              style={{ width: labelVariations.length === 0 ? "30%" : "80%" }}
-            />
-          </div>
-
-          <div className="max-w-sm mx-auto">
-            <div className="rounded-xl overflow-hidden bg-surface-container-low">
-              <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
-                <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
-                <span className="text-xs text-on-surface-variant font-medium">
-                  {labelVariations.length === 0 ? "Writing labels..." : "Generating..."}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Step 4: Review ── */}
-      {step === "review" && (
-        <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold font-headline">Your meme ads</h2>
-              <p className="text-on-surface-variant text-sm mt-1">
-                {validMemeCount} meme{validMemeCount !== 1 ? "s" : ""} generated. Click any to regenerate.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {generatedMemes.length < 3 && (
-                <button
-                  onClick={handleGenerateMore}
-                  disabled={generatingMore}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-all disabled:opacity-50"
-                >
-                  {generatingMore ? (
-                    <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
-                  ) : (
-                    <span className="material-symbols-outlined text-sm">add</span>
-                  )}
-                  Generate another variation
-                </button>
-              )}
-              <button
-                onClick={handleGenerate}
-                className="flex items-center gap-1.5 text-primary text-sm font-semibold hover:opacity-80 transition-opacity"
-              >
-                <span className="material-symbols-outlined text-sm">refresh</span>
-                Regenerate All
-              </button>
-            </div>
-          </div>
-
-          <div className={`grid gap-6 mb-8 ${generatedMemes.length === 1 ? "grid-cols-1 max-w-sm" : generatedMemes.length === 2 ? "grid-cols-2 max-w-2xl" : "grid-cols-3"}`}>
-            {generatedMemes.map((meme, i) => {
-              const isRegenerating = regeneratingIndex === i;
-              return (
-                <div key={i} className="group relative rounded-xl overflow-hidden bg-surface-container-lowest shadow-sm hover:shadow-lg transition-all">
-                  {meme.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={meme.image} alt={`Meme ${i + 1}`} className="w-full aspect-square object-cover" />
-                  ) : (
-                    <div className="w-full aspect-square flex items-center justify-center bg-surface-container-low text-on-surface-variant text-sm">
-                      Failed
-                    </div>
-                  )}
-
-                  {/* Regenerate overlay */}
-                  <button
-                    onClick={() => handleRegenerateMeme(i)}
-                    disabled={isRegenerating}
-                    className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
-                  >
-                    {isRegenerating ? (
-                      <span className="material-symbols-outlined animate-spin text-white text-3xl">progress_activity</span>
-                    ) : (
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="material-symbols-outlined text-white text-3xl">refresh</span>
-                        <span className="text-white text-xs font-bold">Regenerate</span>
-                      </div>
-                    )}
-                  </button>
-
-                  <div className="p-4">
-                    <p className="text-sm font-bold text-on-surface">Variation {i + 1}</p>
-                    {meme.labels && (
-                      <p className="text-xs text-on-surface-variant mt-1 truncate">
-                        {meme.labels.panel1} / {meme.labels.panel2}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Actions */}
-          <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
-            <div className="max-w-6xl w-full flex justify-between items-center">
-              <button
-                onClick={() => setStep("template")}
-                className="px-6 py-3 rounded-full font-bold font-headline text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-sm">arrow_back</span>
-                Change template
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={validMemeCount === 0}
-                className="px-10 py-4 primary-gradient text-white rounded-full font-bold font-headline shadow-[0px_10px_30px_rgba(111,51,213,0.3)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-              >
-                Save to library ({validMemeCount} meme{validMemeCount !== 1 ? "s" : ""})
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Step 5: Saving ── */}
-      {step === "saving" && (
-        <section className="max-w-md mx-auto text-center animate-in fade-in duration-300">
-          <span className="material-symbols-outlined animate-spin text-primary text-5xl mb-4">progress_activity</span>
-          <h2 className="text-xl font-bold font-headline mb-2">Saving to library...</h2>
-          <p className="text-on-surface-variant text-sm">You&apos;ll be redirected in a moment</p>
         </section>
       )}
     </main>

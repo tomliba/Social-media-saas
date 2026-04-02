@@ -41,7 +41,7 @@ export const carouselTemplates: CarouselTemplate[] = [
     icon: "vertical_split",
     description: "Bold split-screen text layout",
     placeholders: ["slideNumber", "totalSlides", "sectionLabel"],
-    contentPrompt: "a section label — the template handles visual layout automatically",
+    contentPrompt: "a section label. The template handles visual layout automatically",
   },
   {
     id: "comparison",
@@ -129,7 +129,7 @@ export const carouselTemplates: CarouselTemplate[] = [
     name: "Tweet Thread",
     filename: "tweet.html",
     icon: "chat_bubble_outline",
-    description: "Each slide is a tweet-style post — great for threads",
+    description: "Each slide is a tweet-style post, great for threads",
     placeholders: ["displayName", "handle", "tweetText", "likes", "retweets"],
     contentPrompt: "a tweet-style post with a strong opinion, insight, or story beat. Each slide should feel like a standalone tweet but connect to form a thread narrative. Also suggest realistic engagement numbers (likes and retweets)",
     supportsPhoto: true,
@@ -156,7 +156,7 @@ export const imagePostTemplates: CarouselTemplate[] = [
     icon: "format_align_center",
     description: "Minimal centered text, two lines",
     placeholders: ["slideNumber", "textLine1", "textLine2"],
-    contentPrompt: "two impactful text lines — one main statement and one supporting line",
+    contentPrompt: "two impactful text lines: one main statement and one supporting line",
   },
   {
     id: "quote",

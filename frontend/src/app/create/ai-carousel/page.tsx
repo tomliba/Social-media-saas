@@ -101,7 +101,7 @@ function AICarouselContent() {
       }
       const data = await res.json();
       if (!data.slides || data.slides.length === 0) {
-        throw new Error("No slides returned — try a different topic");
+        throw new Error("No slides returned. Try a different topic");
       }
       setPlannedSlides(data.slides);
       setStep("review-plan");
@@ -210,31 +210,43 @@ function AICarouselContent() {
   const handleSave = useCallback(async () => {
     setStep("saving");
     try {
-      const results = [{
-        title: topic,
-        images: generatedSlides.filter((s) => s.image).map((s) => s.image),
-        caption: "",
-      }];
+      const validSlides = generatedSlides.filter((s) => s.image);
 
-      const res = await fetch("/api/library", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jobId: `aic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          title: topic,
-          format: "carousel",
-          status: "ready",
-        }),
-      });
+      for (let i = 0; i < validSlides.length; i++) {
+        const slide = validSlides[i];
 
-      if (!res.ok) throw new Error("Save failed");
+        // Upload base64 image to get a real URL
+        const uploadRes = await fetch("/api/upload-generated", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            image: slide.image,
+            filename: `aic-slide${i + 1}-${Date.now()}`,
+          }),
+        });
+        if (!uploadRes.ok) throw new Error("Image upload failed");
+        const { url } = await uploadRes.json();
 
-      sessionStorage.setItem("pending-carousel-results", JSON.stringify(results));
-      sessionStorage.setItem("pending-format", "carousel");
+        // Save to library with the uploaded URL
+        const res = await fetch("/api/library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jobId: `aic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            title: `${topic}: Slide ${i + 1}`,
+            format: "image",
+            status: "ready",
+            videoUrl: url,
+            thumbnailUrl: url,
+          }),
+        });
+        if (!res.ok) throw new Error("Save failed");
+      }
+
       router.push("/library");
     } catch (err) {
       console.error("Failed to save carousel:", err);
-      setError("Failed to save — please try again");
+      setError("Failed to save. Please try again");
       setStep("review-slides");
     }
   }, [topic, generatedSlides, router]);
@@ -245,8 +257,8 @@ function AICarouselContent() {
   const pageDescription = isNotebook
     ? "Spiral-bound notebook pages with doodles, speech bubbles, and highlighters"
     : isHanddrawn
-      ? "Sketchy whiteboard style — warm, approachable, educational"
-      : "AI designs each slide as a unique infographic — diagrams, flow charts, comparisons";
+      ? "Sketchy whiteboard style. Warm, approachable, educational"
+      : "AI designs each slide as a unique infographic: diagrams, flow charts, comparisons";
 
   return (
     <main className="pt-24 pb-32 px-6 md:px-12 lg:px-16 max-w-screen-xl mx-auto">

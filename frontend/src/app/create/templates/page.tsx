@@ -103,7 +103,7 @@ function TemplatesContent() {
       if (data.ideas && data.ideas.length > 0) {
         setVideoIdeas(data.ideas);
       } else {
-        setError("No ideas returned — try a different niche or template");
+        setError("No ideas returned. Try a different niche or template");
       }
     } catch (err) {
       console.error("Failed to fetch video ideas:", err);
@@ -199,11 +199,11 @@ function TemplatesContent() {
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
             {isCarousel
-              ? "Choose a layout, theme, and topic — AI generates the slides"
+              ? "Choose a layout, theme, and topic. AI generates the slides"
               : isText
                 ? "Enter a topic and we'll create 10 ready-to-post text ideas"
                 : isImage
-                  ? "Choose a design, theme, and topic — AI generates the content"
+                  ? "Choose a design, theme, and topic. AI generates the content"
                   : "Select the visual format for your next viral hit"}
           </p>
         </div>

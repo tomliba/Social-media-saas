@@ -61,7 +61,7 @@ Return ONLY the JSON object. No markdown, no code fences.`;
       data = JSON.parse(result.response.text().trim());
     } catch {
       return NextResponse.json(
-        { error: "AI returned invalid JSON — please retry" },
+        { error: "AI returned invalid JSON. Please retry" },
         { status: 500 }
       );
     }

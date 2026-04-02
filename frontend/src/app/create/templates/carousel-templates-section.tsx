@@ -115,7 +115,7 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
         setIdeas(data.ideas);
         scrollTo(ideasSectionRef);
       } else {
-        setError("No ideas returned — try a different topic");
+        setError("No ideas returned. Try a different topic");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate ideas");
@@ -147,8 +147,8 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
 
   const aiCarouselOptions = [
     { id: "infographic", name: "AI Infographic", description: "AI designs each slide as a unique infographic", icon: "auto_awesome", preview: "/previews/ai/infographic.png", href: "/create/ai-carousel" },
-    { id: "handdrawn-color", name: "Hand-Drawn (Color)", description: "Sketchy whiteboard style — warm, approachable", icon: "draw", preview: "/previews/ai/handdrawn-color.png", href: "/create/ai-carousel?style=handdrawn" },
-    { id: "handdrawn-mono", name: "Hand-Drawn (Mono)", description: "Monochrome sketch style — clean, minimal", icon: "draw", preview: "/previews/ai/handdrawn-mono.png", href: "/create/ai-carousel?style=handdrawn" },
+    { id: "handdrawn-color", name: "Hand-Drawn (Color)", description: "Sketchy whiteboard style, warm and approachable", icon: "draw", preview: "/previews/ai/handdrawn-color.png", href: "/create/ai-carousel?style=handdrawn" },
+    { id: "handdrawn-mono", name: "Hand-Drawn (Mono)", description: "Monochrome sketch style, clean and minimal", icon: "draw", preview: "/previews/ai/handdrawn-mono.png", href: "/create/ai-carousel?style=handdrawn" },
     { id: "notebook", name: "Notebook", description: "Spiral-bound pages with doodles and highlighters", icon: "menu_book", preview: "/previews/ai/notebook.png", href: "/create/ai-carousel?style=notebook" },
   ];
 

@@ -18,7 +18,7 @@ const concepts: Concept[] = [
     id: "two_doors",
     name: "Two Doors",
     icon: "door_front",
-    description: "Person choosing between old way (red door) and your product (gold door)",
+    description: "Person choosing between the old way (red door) and your product (gold door)",
   },
   {
     id: "solo_vs_army",
@@ -30,7 +30,7 @@ const concepts: Concept[] = [
     id: "race_track",
     name: "Race Track",
     icon: "speed",
-    description: "Falling behind while others speed ahead — until your product appears",
+    description: "Falling behind while others speed ahead, until your product appears",
   },
   {
     id: "before_after_split",
@@ -54,12 +54,7 @@ const concepts: Concept[] = [
 
 // ── Types ──
 
-interface GeneratedAd {
-  variationIndex: number;
-  image: string; // base64 data URL
-}
-
-type Step = "input" | "concept" | "generating" | "review" | "saving";
+type Step = "input" | "concept";
 
 function AdCreativeContent() {
   const router = useRouter();
@@ -76,11 +71,7 @@ function AdCreativeContent() {
   // Flow state
   const [step, setStep] = useState<Step>("input");
   const [error, setError] = useState<string | null>(null);
-
-  // Generation state
-  const [generatedAds, setGeneratedAds] = useState<GeneratedAd[]>([]);
-  const [generatingIndex, setGeneratingIndex] = useState(0);
-  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // ── Step 1 → 2 ──
   const handleContinueToConcept = () => {
@@ -92,132 +83,79 @@ function AdCreativeContent() {
     }
   };
 
-  // ── Generate 1 variation ──
-  const generateOneAd = useCallback(async (existingResults: GeneratedAd[] = []) => {
-    if (!selectedConcept) return existingResults;
-    const i = existingResults.length;
-
+  // ── Background generation: generate image, upload to R2, update library entry ──
+  const generateInBackground = useCallback(async (libraryItemId: string, prod: string, desc: string, conceptId: string, variationIndex: number) => {
     try {
+      // 1. Generate image via server-side route (builds prompt + calls Flask)
       const res = await fetch("/api/ad-creative/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product,
-          description,
-          conceptId: selectedConcept,
-          variationIndex: i,
-        }),
+        body: JSON.stringify({ product: prod, description: desc, conceptId, variationIndex }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Generation failed");
-      }
+      if (!res.ok) throw new Error("Generation failed");
       const data = await res.json();
       const image = data.image?.startsWith("data:")
         ? data.image
         : `data:image/png;base64,${data.image}`;
-      const updated = [...existingResults, { variationIndex: i, image }];
-      setGeneratedAds(updated);
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Generation failed");
-      const updated = [...existingResults, { variationIndex: i, image: "" }];
-      setGeneratedAds(updated);
-      return updated;
-    }
-  }, [product, description, selectedConcept]);
 
+      // 2. Upload to R2
+      const uploadRes = await fetch("/api/upload-generated", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image, filename: `ad-${conceptId}-${Date.now()}` }),
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const { url } = await uploadRes.json();
+
+      // 3. Update library entry with final URL
+      await fetch(`/api/library/${libraryItemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ready", videoUrl: url, thumbnailUrl: url }),
+      });
+    } catch (err) {
+      await fetch(`/api/library/${libraryItemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "failed", error: err instanceof Error ? err.message : "Generation failed" }),
+      }).catch(() => {});
+    }
+  }, []);
+
+  // ── Generate: create library entry, redirect, fire background work ──
   const handleGenerate = useCallback(async () => {
-    if (!selectedConcept) return;
-    setStep("generating");
-    setError(null);
-    setGeneratedAds([]);
-    setGeneratingIndex(0);
-    await generateOneAd([]);
-    setStep("review");
-  }, [selectedConcept, generateOneAd]);
-
-  const [generatingMore, setGeneratingMore] = useState(false);
-  const handleGenerateMore = useCallback(async () => {
-    if (generatedAds.length >= 3) return;
-    setGeneratingMore(true);
-    setError(null);
-    await generateOneAd(generatedAds);
-    setGeneratingMore(false);
-  }, [generatedAds, generateOneAd]);
-
-  // ── Regenerate one ad ──
-  const handleRegenerateAd = useCallback(async (index: number) => {
-    setRegeneratingIndex(index);
+    if (!selectedConcept || submitting) return;
+    setSubmitting(true);
     setError(null);
 
     try {
-      const res = await fetch("/api/ad-creative/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product,
-          description,
-          conceptId: selectedConcept,
-          variationIndex: index,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Regeneration failed");
-      }
-      const data = await res.json();
-      const image = data.image?.startsWith("data:")
-        ? data.image
-        : `data:image/png;base64,${data.image}`;
-      setGeneratedAds((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], image };
-        return next;
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Regeneration failed");
-    } finally {
-      setRegeneratingIndex(null);
-    }
-  }, [product, description, selectedConcept]);
+      const conceptName = concepts.find((c) => c.id === selectedConcept)?.name || "Ad";
+      const title = `${product}: ${conceptName}`;
 
-  // ── Step 5: Save ──
-  const handleSave = useCallback(async () => {
-    setStep("saving");
-    try {
-      const images = generatedAds.filter((a) => a.image).map((a) => a.image);
-      const results = [{
-        title: `${product} — ${concepts.find((c) => c.id === selectedConcept)?.name || "Ad"}`,
-        images,
-        caption: "",
-      }];
-
+      // Create library entry with "rendering" status
       const res = await fetch("/api/library", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobId: `ad-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          title: results[0].title,
-          format: "carousel",
-          status: "ready",
+          title,
+          format: "image",
+          status: "rendering",
         }),
       });
+      if (!res.ok) throw new Error("Failed to create library entry");
+      const { item } = await res.json();
 
-      if (!res.ok) throw new Error("Save failed");
+      // Fire background generation (don't await)
+      generateInBackground(item.id, product, description, selectedConcept, 0);
 
-      sessionStorage.setItem("pending-carousel-results", JSON.stringify(results));
-      sessionStorage.setItem("pending-format", "carousel");
+      // Redirect immediately
       router.push("/library");
     } catch (err) {
-      console.error("Failed to save ads:", err);
-      setError("Failed to save — please try again");
-      setStep("review");
+      setError(err instanceof Error ? err.message : "Failed to start generation");
+      setSubmitting(false);
     }
-  }, [product, selectedConcept, generatedAds, router]);
-
-  const validAdCount = generatedAds.filter((a) => a.image).length;
-  const variationLabels = ["Headline focus", "Scene focus", "Product focus"];
+  }, [selectedConcept, submitting, product, description, generateInBackground, router]);
 
   return (
     <main className="pt-24 pb-32 px-6 md:px-12 lg:px-16 max-w-screen-xl mx-auto">
@@ -234,7 +172,7 @@ function AdCreativeContent() {
             Ad Creative
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            AI-generated illustrated ads — cartoon scenes, visual metaphors, comic panels
+            AI-generated illustrated ads: cartoon scenes, visual metaphors, comic panels
           </p>
         </div>
       </header>
@@ -284,11 +222,20 @@ function AdCreativeContent() {
 
           <button
             onClick={handleContinueToConcept}
-            disabled={!product.trim()}
+            disabled={!product.trim() || submitting}
             className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {selectedConcept ? "Generate" : "Pick a visual concept"}
-            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            {submitting ? (
+              <>
+                <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                Submitting...
+              </>
+            ) : (
+              <>
+                {selectedConcept ? "Generate" : "Pick a visual concept"}
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </>
+            )}
           </button>
         </section>
       )}
@@ -344,11 +291,20 @@ function AdCreativeContent() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleGenerate}
-              disabled={!selectedConcept}
+              disabled={!selectedConcept || submitting}
               className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-              Generate
+              {submitting ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                  Generate
+                </>
+              )}
             </button>
             <button
               onClick={() => setStep("input")}
@@ -357,141 +313,6 @@ function AdCreativeContent() {
               Back
             </button>
           </div>
-        </section>
-      )}
-
-      {/* ── Step 3: Generating ── */}
-      {step === "generating" && (
-        <section className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h2 className="text-2xl font-bold font-headline mb-2">Creating your ad</h2>
-          <p className="text-on-surface-variant text-sm mb-6">
-            Rendering your ad creative...
-          </p>
-
-          {/* Progress bar */}
-          <div className="w-full h-2 bg-surface-container-high rounded-full mb-8 overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-500 animate-pulse"
-              style={{ width: "80%" }}
-            />
-          </div>
-
-          <div className="max-w-sm mx-auto">
-            <div className="rounded-xl overflow-hidden bg-surface-container-low">
-              <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
-                <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
-                <span className="text-xs text-on-surface-variant font-medium">Generating...</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Step 4: Review ── */}
-      {step === "review" && (
-        <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold font-headline">Your ad creatives</h2>
-              <p className="text-on-surface-variant text-sm mt-1">
-                {validAdCount} variation{validAdCount !== 1 ? "s" : ""} generated. Click any ad to regenerate it.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {generatedAds.length < 3 && (
-                <button
-                  onClick={handleGenerateMore}
-                  disabled={generatingMore}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-all disabled:opacity-50"
-                >
-                  {generatingMore ? (
-                    <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
-                  ) : (
-                    <span className="material-symbols-outlined text-sm">add</span>
-                  )}
-                  Generate another variation
-                </button>
-              )}
-              <button
-                onClick={handleGenerate}
-                className="flex items-center gap-1.5 text-primary text-sm font-semibold hover:opacity-80 transition-opacity"
-              >
-                <span className="material-symbols-outlined text-sm">refresh</span>
-                Regenerate All
-              </button>
-            </div>
-          </div>
-
-          <div className={`grid gap-6 mb-8 ${generatedAds.length === 1 ? "grid-cols-1 max-w-sm" : generatedAds.length === 2 ? "grid-cols-2 max-w-2xl" : "grid-cols-3"}`}>
-            {generatedAds.map((ad, i) => {
-              const isRegenerating = regeneratingIndex === i;
-              return (
-                <div key={i} className="group relative rounded-xl overflow-hidden bg-surface-container-lowest shadow-sm hover:shadow-lg transition-all">
-                  {ad.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={ad.image} alt={`Variation ${i + 1}`} className="w-full aspect-square object-cover" />
-                  ) : (
-                    <div className="w-full aspect-square flex items-center justify-center bg-surface-container-low text-on-surface-variant text-sm">
-                      Failed
-                    </div>
-                  )}
-
-                  {/* Regenerate overlay */}
-                  <button
-                    onClick={() => handleRegenerateAd(i)}
-                    disabled={isRegenerating}
-                    className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
-                  >
-                    {isRegenerating ? (
-                      <span className="material-symbols-outlined animate-spin text-white text-3xl">progress_activity</span>
-                    ) : (
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="material-symbols-outlined text-white text-3xl">refresh</span>
-                        <span className="text-white text-xs font-bold">Regenerate</span>
-                      </div>
-                    )}
-                  </button>
-
-                  <div className="p-4">
-                    <p className="text-sm font-bold text-on-surface">{variationLabels[i]}</p>
-                    <p className="text-xs text-on-surface-variant mt-0.5">
-                      {concepts.find((c) => c.id === selectedConcept)?.name}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Actions */}
-          <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
-            <div className="max-w-6xl w-full flex justify-between items-center">
-              <button
-                onClick={() => setStep("concept")}
-                className="px-6 py-3 rounded-full font-bold font-headline text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-sm">arrow_back</span>
-                Change concept
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={validAdCount === 0}
-                className="px-10 py-4 primary-gradient text-white rounded-full font-bold font-headline shadow-[0px_10px_30px_rgba(111,51,213,0.3)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-              >
-                Save to library ({validAdCount} ad{validAdCount !== 1 ? "s" : ""})
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Step 5: Saving ── */}
-      {step === "saving" && (
-        <section className="max-w-md mx-auto text-center animate-in fade-in duration-300">
-          <span className="material-symbols-outlined animate-spin text-primary text-5xl mb-4">progress_activity</span>
-          <h2 className="text-xl font-bold font-headline mb-2">Saving to library...</h2>
-          <p className="text-on-surface-variant text-sm">You&apos;ll be redirected in a moment</p>
         </section>
       )}
     </main>

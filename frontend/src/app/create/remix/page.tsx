@@ -95,7 +95,7 @@ export default function RemixPage() {
         params.set("pastedScript", data.scripts[0].script);
         router.push(`/create/editor?${params.toString()}`);
       } else {
-        setError("Failed to generate script — try again");
+        setError("Failed to generate script. Try again");
       }
     } catch {
       setError("Failed to generate script");
@@ -121,7 +121,7 @@ export default function RemixPage() {
             Remix a viral video
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            Paste a YouTube or article link — AI creates your original version
+            Paste a YouTube or article link. AI creates your original version
           </p>
         </div>
       </header>
@@ -198,7 +198,7 @@ export default function RemixPage() {
             </div>
           </div>
           <p className="text-xs text-on-surface-variant mt-2">
-            YouTube, TikTok, blog posts, articles, news stories — any URL with content
+            YouTube, TikTok, blog posts, articles, news stories, any URL with content
           </p>
         </div>
 

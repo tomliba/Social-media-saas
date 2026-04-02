@@ -110,7 +110,7 @@ export default function UploadContentPage() {
         params.set("pastedScript", data.scripts[0].script);
         router.push(`/create/editor?${params.toString()}`);
       } else {
-        setError("Failed to generate script — try again");
+        setError("Failed to generate script. Try again");
       }
     } catch {
       setError("Failed to generate script");
@@ -137,7 +137,7 @@ export default function UploadContentPage() {
             Upload content
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            Upload a file or paste text — AI turns it into a video script
+            Upload a file or paste text. AI turns it into a video script
           </p>
         </div>
       </header>
@@ -245,7 +245,7 @@ export default function UploadContentPage() {
                   Drop a file here or click to browse
                 </p>
                 <p className="text-xs text-on-surface-variant">
-                  PDF, DOCX, or TXT — max 5 MB
+                  PDF, DOCX, or TXT. Max 5 MB
                 </p>
               </>
             )}

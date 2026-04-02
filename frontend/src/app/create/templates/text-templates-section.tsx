@@ -40,7 +40,7 @@ export default function TextTemplatesSection({ niche, tone }: { niche: string; t
         setIdeas(data.ideas);
         setTimeout(() => ideasRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
       } else {
-        setError("No ideas returned — try a different topic");
+        setError("No ideas returned. Try a different topic");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate ideas");

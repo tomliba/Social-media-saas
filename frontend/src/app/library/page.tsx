@@ -193,7 +193,7 @@ function ContentCard({
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
             <span className="text-sm font-medium text-primary">
-              Rendering...
+              {item.format === "image" ? "Generating..." : "Rendering..."}
             </span>
             <span className="text-xs text-on-surface-variant">
               {formatDuration(elapsedSec)} elapsed
@@ -219,14 +219,15 @@ function ContentCard({
 
         {isReady && (
           <>
-            {item.thumbnailUrl ? (
+            {(item.thumbnailUrl || (item.format === "image" && item.videoUrl)) ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img
-                src={item.thumbnailUrl}
+                src={item.thumbnailUrl || item.videoUrl!}
                 alt={item.title}
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="flex flex-col items-center gap-2 text-zinc-400">
+              <div className="w-full h-full bg-gradient-to-br from-zinc-100 to-zinc-200 flex flex-col items-center justify-center gap-2 text-zinc-400">
                 <span
                   className="material-symbols-outlined text-5xl"
                   style={{ fontVariationSettings: "'FILL' 1" }}
@@ -238,6 +239,9 @@ function ContentCard({
                     : item.format === "image"
                     ? "image"
                     : "article"}
+                </span>
+                <span className="text-xs font-medium text-zinc-400">
+                  {item.format === "video" ? "Video" : item.format === "carousel" ? "Carousel" : item.format === "text" ? "Text Post" : "Image"}
                 </span>
               </div>
             )}

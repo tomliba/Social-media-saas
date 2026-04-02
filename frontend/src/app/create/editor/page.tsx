@@ -425,6 +425,7 @@ function EditorContent() {
               ...(h.directResult && {
                 status: h.directResult.status,
                 videoUrl: h.directResult.videoUrl ?? null,
+                thumbnailUrl: h.directResult.videoUrl ?? null,
               }),
             }),
           });
@@ -452,7 +453,7 @@ function EditorContent() {
     try {
       const pgJobId = sessionStorage.getItem("pg_job_id");
       if (!pgJobId) {
-        throw new Error("pg_job_id not found — go back and generate ideas first");
+        throw new Error("pg_job_id not found. Go back and generate ideas first");
       }
 
       const handle = await triggerPostRenders({
@@ -527,6 +528,7 @@ function EditorContent() {
             format: "image",
             status: "ready",
             videoUrl: r.image,
+            thumbnailUrl: r.image,
           }),
         });
       }
@@ -577,6 +579,7 @@ function EditorContent() {
             format: "carousel",
             templateId: templateId ?? null,
             status: "ready",
+            thumbnailUrl: r.images[0] || null,
           }),
         });
       }
@@ -1106,7 +1109,7 @@ function EditorContent() {
                                 format_quote
                               </span>
                               <span className="text-sm font-semibold">
-                                Text only — no presenter
+                                Text only, no presenter
                               </span>
                             </button>
                             <button

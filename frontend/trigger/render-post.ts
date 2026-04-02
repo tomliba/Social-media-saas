@@ -251,11 +251,12 @@ export const renderPost = task({
     metadata.set("results", JSON.parse(JSON.stringify(finalResults)));
 
     // Update library item status to ready
+    const firstImage = finalResults[0]?.imageUrls?.[0] ?? null;
     try {
       await fetch(`${appUrl}/api/library/${runId}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "ready" }),
+        body: JSON.stringify({ status: "ready", thumbnailUrl: firstImage }),
       });
     } catch (err) {
       logger.warn("Failed to update library item", { error: String(err) });

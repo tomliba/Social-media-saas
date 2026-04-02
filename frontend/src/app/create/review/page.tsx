@@ -91,7 +91,7 @@ function VideoRunCard({
     return (
       <ErrorCard
         title={handle.title ?? "Video"}
-        message={errorMessage ?? "Render failed — try again"}
+        message={errorMessage ?? "Render failed. Try again"}
         stage={errorStage}
       />
     );
@@ -146,7 +146,7 @@ function ReadyVideoCard({
           <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
         </span>
         <span className="text-xs font-bold uppercase tracking-widest text-tertiary font-headline">
-          Video {index + 1} of {total} — Ready
+          Video {index + 1} of {total}, Ready
         </span>
       </div>
       <div
@@ -313,7 +313,7 @@ function PostRunCard({ handle }: { handle: RunHandle }) {
   }
 
   if (isFailed) {
-    return <ErrorCard title="Image Posts" message="Generation failed — try again" />;
+    return <ErrorCard title="Image Posts" message="Generation failed. Try again" />;
   }
 
   return (
@@ -359,7 +359,7 @@ function ReadyPostCard({
           <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
         </span>
         <span className="text-xs font-bold uppercase tracking-widest text-tertiary font-headline">
-          Post {index + 1} of {total} — Ready
+          Post {index + 1} of {total}, Ready
         </span>
       </div>
       <div
@@ -622,7 +622,7 @@ function ReadyCarouselCard({
           <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
         </span>
         <span className="text-xs font-bold uppercase tracking-widest text-tertiary font-headline">
-          Carousel {index + 1} of {total} — Ready
+          Carousel {index + 1} of {total}, Ready
         </span>
       </div>
       <div
@@ -742,7 +742,7 @@ function ReadyTextCard({
           <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
         </span>
         <span className="text-xs font-bold uppercase tracking-widest text-tertiary font-headline">
-          Text {index + 1} of {total} — Ready
+          Text {index + 1} of {total}, Ready
         </span>
       </div>
       <div
@@ -816,7 +816,7 @@ function ReadyImagePostCard({
           <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
         </span>
         <span className="text-xs font-bold uppercase tracking-widest text-tertiary font-headline">
-          Post {index + 1} of {total} — Ready
+          Post {index + 1} of {total}, Ready
         </span>
       </div>
       <div

@@ -61,7 +61,7 @@ No markdown, no code fences. Return raw JSON only.${threadInstruction}`;
       data = JSON.parse(result.response.text().trim());
     } catch {
       return NextResponse.json(
-        { error: "AI returned invalid JSON — please retry" },
+        { error: "AI returned invalid JSON. Please retry" },
         { status: 500 }
       );
     }

@@ -15,7 +15,7 @@ export default function HeroSection() {
         </p>
         <div className="flex flex-col gap-3 pt-4">
           <Link href="/signup" className="primary-gradient text-white text-lg font-bold px-10 py-5 rounded-lg w-fit hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20">
-            Start creating — it&apos;s free
+            Start creating, it&apos;s free
           </Link>
           <p className="flex items-center gap-2 text-on-surface-variant text-sm font-medium ml-4">
             <span

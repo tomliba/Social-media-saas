@@ -168,7 +168,7 @@ export const renderVideo = task({
         await fetch(`${appUrl}/api/library/${runId}/complete`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "ready", videoUrl: result.videoUrl }),
+          body: JSON.stringify({ status: "ready", videoUrl: result.videoUrl, thumbnailUrl: result.previewUrl }),
         });
       } catch (err) {
         logger.warn("Failed to update library item (simulation)", { error: String(err) });
@@ -500,6 +500,7 @@ export const renderVideo = task({
         body: JSON.stringify({
           status: "ready",
           videoUrl,
+          thumbnailUrl: previewUrl,
         }),
       });
     } catch (err) {

@@ -366,16 +366,32 @@ function AISceneContent() {
     setStep("saving");
     try {
       const validImages = generatedImages.filter((g) => g.image);
-      for (const img of validImages) {
+      for (let i = 0; i < validImages.length; i++) {
+        const img = validImages[i];
+
+        // Upload base64 image to get a real URL
+        const uploadRes = await fetch("/api/upload-generated", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            image: img.image,
+            filename: `ais-${scene?.id || "scene"}-${Date.now()}`,
+          }),
+        });
+        if (!uploadRes.ok) throw new Error("Image upload failed");
+        const { url } = await uploadRes.json();
+
+        // Save to library with the uploaded URL
         await fetch("/api/library", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             jobId: `ais-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            title: `${scene?.name ?? "AI Scene"} — ${contentText.trim().slice(0, 60)}`,
+            title: `${scene?.name ?? "AI Scene"}: ${contentText.trim().slice(0, 60)}`,
             format: "image",
             status: "ready",
-            videoUrl: img.image,
+            videoUrl: url,
+            thumbnailUrl: url,
           }),
         });
       }
@@ -383,7 +399,7 @@ function AISceneContent() {
       router.push("/library");
     } catch (err) {
       console.error("Failed to save:", err);
-      setError("Failed to save — please try again");
+      setError("Failed to save. Please try again");
       setStep("review");
     }
   }, [generatedImages, scene, contentText, router]);

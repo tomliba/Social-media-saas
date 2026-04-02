@@ -32,7 +32,7 @@ export default function PasteScriptPage() {
             Paste your own script
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            Paste your text below — we'll turn it into a video. You can still edit it on the next screen.
+            Paste your text below. We'll turn it into a video. You can still edit it on the next screen.
           </p>
         </div>
       </header>
@@ -45,7 +45,7 @@ export default function PasteScriptPage() {
         <textarea
           value={script}
           onChange={(e) => setScript(e.target.value)}
-          placeholder="Paste your own text — AI turns it into a video."
+          placeholder="Paste your own text. AI turns it into a video."
           className="w-full min-h-[300px] bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-6 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface placeholder:text-on-surface-variant/50 transition-all font-body leading-relaxed resize-none mb-6"
           autoFocus
         />
@@ -60,7 +60,7 @@ export default function PasteScriptPage() {
             Continue to editor
           </button>
           <span className="text-sm text-on-surface-variant">
-            No AI rewriting — your text goes straight to the editor
+            No AI rewriting. Your text goes straight to the editor
           </span>
         </div>
       </div>

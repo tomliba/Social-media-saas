@@ -103,13 +103,7 @@ interface ResearchBrief {
   suggestedHeadlines: string[];
 }
 
-interface GeneratedAd {
-  styleId: string;
-  headline: string;
-  image: string;
-}
-
-type Phase = "input" | "researching" | "review-brief" | "pick-styles" | "generating" | "review-ads" | "saving";
+type Phase = "input" | "researching" | "review-brief" | "pick-styles";
 
 const VISUAL_STYLE =
   "Visual: Dark near-black background (#0A0A0A). Monochromatic color world. High contrast. Cinematic lighting. Product clearly visible and photorealistic. Premium feel. Do NOT use light backgrounds. Do NOT add watermarks or logos. Format: 1:1 square (1080x1080).";
@@ -148,10 +142,6 @@ function EcommerceAdContent() {
   const [phase, setPhase] = useState<Phase>("input");
   const [error, setError] = useState<string | null>(null);
 
-  // Generation
-  const [generatedAds, setGeneratedAds] = useState<GeneratedAd[]>([]);
-  const [generatingIndex, setGeneratingIndex] = useState(0);
-  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
 
   // ── Photo handling ──
   const handlePhotoSelect = useCallback(async (file: File) => {
@@ -199,7 +189,7 @@ function EcommerceAdContent() {
       }
       const data: ResearchBrief = await res.json();
       if (!data.coreValueProp) {
-        throw new Error("Incomplete research brief — try again");
+        throw new Error("Incomplete research brief. Try again");
       }
       setBrief(data);
       setPhase("review-brief");
@@ -219,136 +209,101 @@ function EcommerceAdContent() {
     });
   };
 
-  // ── Phase 4: Generate ──
-  const handleGenerate = useCallback(async () => {
-    if (!brief || selectedStyles.size === 0) return;
-    setPhase("generating");
-    setError(null);
-    setGeneratedAds([]);
-    setGeneratingIndex(0);
+  const [submitting, setSubmitting] = useState(false);
 
-    const styleList = Array.from(selectedStyles);
-    const results: GeneratedAd[] = [];
-
-    for (let i = 0; i < styleList.length; i++) {
-      setGeneratingIndex(i);
-      const styleId = styleList[i];
-      const headline = brief.suggestedHeadlines[i] || brief.suggestedHeadlines[0] || "TRANSFORM YOUR WORLD";
-      const scene = buildSceneForStyle(styleId, brief, productName, headline);
-
-      const prompt = `Photorealistic e-commerce ad creative for "${productName}".
+  // ── Background generation for a single style ──
+  const generateOneInBackground = useCallback(async (
+    libraryItemId: string,
+    pName: string,
+    styleBrief: ResearchBrief,
+    styleId: string,
+    headline: string,
+    photo: string | null,
+  ) => {
+    try {
+      const scene = buildSceneForStyle(styleId, styleBrief, pName, headline);
+      const prompt = `Photorealistic e-commerce ad creative for "${pName}".
 Style: ${adStyles.find((s) => s.id === styleId)?.name || styleId}
 Scene: ${scene}
 Headline: "${headline}" — white bold ALL CAPS text.
 ${LAYOUT}
-${VISUAL_STYLE}${photoBase64 ? "\n\nThe product looks like the attached reference image. Include this exact product appearance in the scene." : ""}`;
+${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference image. Include this exact product appearance in the scene." : ""}`;
 
-      try {
-        const res = await fetch("/api/ai-carousel/generate-slide", {
+      // 1. Generate via Flask
+      const genRes = await fetch("/api/ai-carousel/generate-slide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, ...(photo ? { productImageBase64: photo } : {}) }),
+      });
+      if (!genRes.ok) throw new Error("Generation failed");
+      const genData = await genRes.json();
+      const image = genData.image?.startsWith("data:")
+        ? genData.image
+        : `data:image/png;base64,${genData.image}`;
+
+      // 2. Upload to R2
+      const uploadRes = await fetch("/api/upload-generated", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image, filename: `ecom-${styleId}-${Date.now()}` }),
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const { url } = await uploadRes.json();
+
+      // 3. Update library entry
+      await fetch(`/api/library/${libraryItemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ready", videoUrl: url, thumbnailUrl: url }),
+      });
+    } catch (err) {
+      await fetch(`/api/library/${libraryItemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "failed", error: err instanceof Error ? err.message : "Generation failed" }),
+      }).catch(() => {});
+    }
+  }, []);
+
+  // ── Phase 4: Generate — create library entries, redirect, fire background ──
+  const handleGenerate = useCallback(async () => {
+    if (!brief || selectedStyles.size === 0 || submitting) return;
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const styleList = Array.from(selectedStyles);
+
+      for (let i = 0; i < styleList.length; i++) {
+        const styleId = styleList[i];
+        const styleName = adStyles.find((s) => s.id === styleId)?.name || styleId;
+        const headline = brief.suggestedHeadlines[i] || brief.suggestedHeadlines[0] || "TRANSFORM YOUR WORLD";
+
+        // Create library entry with "rendering" status
+        const res = await fetch("/api/library", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            prompt,
-            ...(photoBase64 ? { productImageBase64: photoBase64 } : {}),
+            jobId: `ecom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            title: `${productName}: ${styleName}`,
+            format: "image",
+            status: "rendering",
           }),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Ad ${i + 1} failed`);
-        }
-        const data = await res.json();
-        const image = data.image?.startsWith("data:")
-          ? data.image
-          : `data:image/png;base64,${data.image}`;
-        results.push({ styleId, headline, image });
-        setGeneratedAds([...results]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : `Ad ${i + 1} failed`);
-        results.push({ styleId, headline, image: "" });
-        setGeneratedAds([...results]);
+        if (!res.ok) throw new Error("Failed to create library entry");
+        const { item } = await res.json();
+
+        // Fire background generation (don't await)
+        generateOneInBackground(item.id, productName, brief, styleId, headline, photoBase64);
       }
-    }
 
-    setPhase("review-ads");
-  }, [brief, selectedStyles, productName, photoBase64]);
-
-  // ── Regenerate one ad ──
-  const handleRegenerateAd = useCallback(async (index: number) => {
-    if (!brief) return;
-    setRegeneratingIndex(index);
-    setError(null);
-
-    const ad = generatedAds[index];
-    const scene = buildSceneForStyle(ad.styleId, brief, productName, ad.headline);
-
-    const prompt = `Photorealistic e-commerce ad creative for "${productName}".
-Style: ${adStyles.find((s) => s.id === ad.styleId)?.name || ad.styleId}
-Scene: ${scene}
-Headline: "${ad.headline}" — white bold ALL CAPS text.
-${LAYOUT}
-${VISUAL_STYLE}${photoBase64 ? "\n\nThe product looks like the attached reference image. Include this exact product appearance in the scene." : ""}`;
-
-    try {
-      const res = await fetch("/api/ai-carousel/generate-slide", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          ...(photoBase64 ? { productImageBase64: photoBase64 } : {}),
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Regeneration failed");
-      }
-      const data = await res.json();
-      const image = data.image?.startsWith("data:")
-        ? data.image
-        : `data:image/png;base64,${data.image}`;
-      setGeneratedAds((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], image };
-        return next;
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Regeneration failed");
-    } finally {
-      setRegeneratingIndex(null);
-    }
-  }, [brief, generatedAds, productName, photoBase64]);
-
-  // ── Save ──
-  const handleSave = useCallback(async () => {
-    setPhase("saving");
-    try {
-      const images = generatedAds.filter((a) => a.image).map((a) => a.image);
-      const title = `${productName} — E-Commerce Ads`;
-      const results = [{ title, images, caption: "" }];
-
-      const res = await fetch("/api/library", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jobId: `ecom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          title,
-          format: "carousel",
-          status: "ready",
-        }),
-      });
-
-      if (!res.ok) throw new Error("Save failed");
-
-      sessionStorage.setItem("pending-carousel-results", JSON.stringify(results));
-      sessionStorage.setItem("pending-format", "carousel");
+      // Redirect immediately
       router.push("/library");
     } catch (err) {
-      console.error("Failed to save:", err);
-      setError("Failed to save — please try again");
-      setPhase("review-ads");
+      setError(err instanceof Error ? err.message : "Failed to start generation");
+      setSubmitting(false);
     }
-  }, [productName, generatedAds, router]);
-
-  const validAdCount = generatedAds.filter((a) => a.image).length;
+  }, [brief, selectedStyles, submitting, productName, photoBase64, generateOneInBackground, router]);
 
   return (
     <main className="pt-24 pb-32 px-6 md:px-12 lg:px-16 max-w-screen-xl mx-auto">
@@ -365,7 +320,7 @@ ${VISUAL_STYLE}${photoBase64 ? "\n\nThe product looks like the attached referenc
             E-Commerce Ad
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            Research-backed product ads — 4 unique creatives with strategy
+            Research-backed product ads. 4 unique creatives with strategy
           </p>
         </div>
       </header>
@@ -474,7 +429,7 @@ ${VISUAL_STYLE}${photoBase64 ? "\n\nThe product looks like the attached referenc
       {phase === "review-brief" && brief && (
         <section className="max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           <h2 className="text-2xl font-bold font-headline mb-2">Product Identity Brief</h2>
-          <p className="text-on-surface-variant text-sm mb-6">AI research complete — review the strategy, then pick ad styles</p>
+          <p className="text-on-surface-variant text-sm mb-6">AI research complete. Review the strategy, then pick ad styles</p>
 
           <div className="space-y-4 mb-8">
             {/* Core value prop */}
@@ -596,10 +551,19 @@ ${VISUAL_STYLE}${photoBase64 ? "\n\nThe product looks like the attached referenc
           </div>
 
           <div className="flex items-center gap-3">
-            <button onClick={handleGenerate} disabled={selectedStyles.size === 0}
+            <button onClick={handleGenerate} disabled={selectedStyles.size === 0 || submitting}
               className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-              Generate {selectedStyles.size} ad{selectedStyles.size !== 1 ? "s" : ""}
+              {submitting ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                  Generate {selectedStyles.size} ad{selectedStyles.size !== 1 ? "s" : ""}
+                </>
+              )}
             </button>
             <button onClick={() => setPhase("review-brief")}
               className="px-6 py-3 rounded-full font-bold font-headline text-on-surface-variant hover:text-on-surface transition-all">
@@ -613,128 +577,6 @@ ${VISUAL_STYLE}${photoBase64 ? "\n\nThe product looks like the attached referenc
               <p><span className="text-on-surface font-bold">{selectedStyles.size}</span> of 4 selected</p>
             </div>
           )}
-        </section>
-      )}
-
-      {/* ── Phase 5: Generating ── */}
-      {phase === "generating" && (
-        <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h2 className="text-2xl font-bold font-headline mb-2">Creating your ads</h2>
-          <p className="text-on-surface-variant text-sm mb-6">
-            Generating ad {generatingIndex + 1} of {selectedStyles.size}...
-          </p>
-
-          <div className="w-full h-2 bg-surface-container-high rounded-full mb-8 overflow-hidden">
-            <div className="h-full bg-primary rounded-full transition-all duration-500"
-              style={{ width: `${((generatingIndex + 1) / selectedStyles.size) * 100}%` }} />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {generatedAds.map((ad, i) => (
-              <div key={i} className="rounded-xl overflow-hidden bg-surface-container-low">
-                {ad.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={ad.image} alt={ad.styleId} className="w-full aspect-square object-cover" />
-                ) : (
-                  <div className="w-full aspect-square flex items-center justify-center text-on-surface-variant text-sm">Failed</div>
-                )}
-                <div className="p-3">
-                  <p className="text-xs font-bold text-on-surface truncate">{adStyles.find((s) => s.id === ad.styleId)?.name}</p>
-                </div>
-              </div>
-            ))}
-            {generatedAds.length < selectedStyles.size && (
-              <div className="rounded-xl overflow-hidden bg-surface-container-low">
-                <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
-                  <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
-                  <span className="text-xs text-on-surface-variant font-medium">Generating...</span>
-                </div>
-                <div className="p-3">
-                  <p className="text-xs font-bold text-on-surface">
-                    {adStyles.find((s) => s.id === Array.from(selectedStyles)[generatedAds.length])?.name}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ── Phase 6: Review Ads ── */}
-      {phase === "review-ads" && (
-        <section className="max-w-5xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold font-headline">Your e-commerce ads</h2>
-              <p className="text-on-surface-variant text-sm mt-1">
-                {validAdCount} ad{validAdCount !== 1 ? "s" : ""} generated. Click any to regenerate.
-              </p>
-            </div>
-            <button onClick={handleGenerate}
-              className="flex items-center gap-1.5 text-primary text-sm font-semibold hover:opacity-80 transition-opacity">
-              <span className="material-symbols-outlined text-sm">refresh</span>
-              Regenerate All
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-            {generatedAds.map((ad, i) => {
-              const isRegenerating = regeneratingIndex === i;
-              const style = adStyles.find((s) => s.id === ad.styleId);
-              return (
-                <div key={i} className="group relative rounded-xl overflow-hidden bg-surface-container-lowest shadow-sm hover:shadow-lg transition-all">
-                  {ad.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={ad.image} alt={ad.styleId} className="w-full aspect-square object-cover" />
-                  ) : (
-                    <div className="w-full aspect-square flex items-center justify-center bg-surface-container-low text-on-surface-variant text-sm">Failed</div>
-                  )}
-
-                  <button onClick={() => handleRegenerateAd(i)} disabled={isRegenerating}
-                    className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    {isRegenerating ? (
-                      <span className="material-symbols-outlined animate-spin text-white text-3xl">progress_activity</span>
-                    ) : (
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="material-symbols-outlined text-white text-3xl">refresh</span>
-                        <span className="text-white text-xs font-bold">Regenerate</span>
-                      </div>
-                    )}
-                  </button>
-
-                  <div className="p-4">
-                    <p className="text-sm font-bold text-on-surface">{style?.name}</p>
-                    <p className="text-[10px] text-on-surface-variant mt-0.5 uppercase font-bold tracking-wider truncate">{ad.headline}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Actions */}
-          <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
-            <div className="max-w-6xl w-full flex justify-between items-center">
-              <button onClick={() => setPhase("pick-styles")}
-                className="px-6 py-3 rounded-full font-bold font-headline text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">arrow_back</span>
-                Change styles
-              </button>
-              <button onClick={handleSave} disabled={validAdCount === 0}
-                className="px-10 py-4 primary-gradient text-white rounded-full font-bold font-headline shadow-[0px_10px_30px_rgba(111,51,213,0.3)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3">
-                Save to library ({validAdCount} ad{validAdCount !== 1 ? "s" : ""})
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Saving ── */}
-      {phase === "saving" && (
-        <section className="max-w-md mx-auto text-center animate-in fade-in duration-300">
-          <span className="material-symbols-outlined animate-spin text-primary text-5xl mb-4">progress_activity</span>
-          <h2 className="text-xl font-bold font-headline mb-2">Saving to library...</h2>
-          <p className="text-on-surface-variant text-sm">You&apos;ll be redirected in a moment</p>
         </section>
       )}
     </main>

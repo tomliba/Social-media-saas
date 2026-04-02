@@ -83,7 +83,7 @@ Only include panel keys that the format uses (e.g. 2-panel formats only need pan
       data = JSON.parse(result.response.text().trim());
     } catch {
       return NextResponse.json(
-        { error: "AI returned invalid JSON — please retry" },
+        { error: "AI returned invalid JSON. Please retry" },
         { status: 500 }
       );
     }

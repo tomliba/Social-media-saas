@@ -199,7 +199,7 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
         setIdeas(data.ideas);
         scrollTo(ideasSectionRef);
       } else {
-        setError("No ideas returned — try a different input");
+        setError("No ideas returned. Try a different input");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate ideas");
@@ -234,7 +234,7 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
         setIdeas(data.ideas);
         scrollTo(ideasSectionRef);
       } else {
-        setError("No ideas returned — try a different file");
+        setError("No ideas returned. Try a different file");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate ideas");
@@ -344,51 +344,6 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
         <h2 className="text-2xl font-bold font-headline mb-2">Choose a design</h2>
         <p className="text-on-surface-variant text-sm mb-6">Pick the visual style for your image post</p>
 
-        {/* ── AI SCENES ── */}
-        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/50 mb-3">AI Scenes</p>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
-          {[
-            { id: "video-wall", name: "Video Wall", description: "Content on a massive TV screen in a shop" },
-            { id: "breaking-news", name: "Breaking News", description: "News anchor with your content on the studio screen" },
-            { id: "cyberpunk-flyer", name: "Cyberpunk Flyer", description: "Holographic flyer in a neon-drenched city" },
-            { id: "movie-theater", name: "Movie Theater", description: "Your content on the big screen, audience silhouettes" },
-            { id: "graffiti-mural", name: "Graffiti Mural", description: "Street art on a building wall" },
-            { id: "highway-billboard", name: "Highway Billboard", description: "Giant billboard under construction" },
-            { id: "bus-wrap", name: "Bus Wrap", description: "Full wrap ad on a double-decker bus" },
-            { id: "classic-newspaper", name: "Classic Newspaper", description: "Vintage broadsheet with your content" },
-            { id: "manga-panel", name: "Manga Panel", description: "Black and white manga page with characters" },
-            { id: "steampunk", name: "Steampunk", description: "Victorian-era infographic on parchment and brass" },
-            { id: "cave-painting", name: "Cave Painting", description: "Ancient art on a cavern wall" },
-            { id: "egyptian-hieroglyphs", name: "Egyptian Hieroglyphs", description: "Carved into a temple wall" },
-            { id: "vintage-encyclopedia", name: "Vintage Encyclopedia", description: "Beautiful typeset book page" },
-            { id: "nature-trail-sign", name: "Nature Trail Sign", description: "Laser-engraved wooden trail marker" },
-            { id: "whiteboard", name: "Whiteboard", description: "Clean whiteboard with colored markers" },
-            { id: "classroom-chalkboard", name: "Classroom Chalkboard", description: "Professor at a chalkboard" },
-            { id: "top-secret-briefing", name: "Top Secret Briefing", description: "Classified government file" },
-            { id: "tshirt-mockup", name: "T-Shirt Mockup", description: "Person wearing a shirt with your content" },
-          ].map((scene) => (
-            <button
-              key={scene.id}
-              onClick={() => router.push(`/create/ai-scene?scene=${scene.id}`)}
-              className="group flex flex-col rounded-xl bg-surface-container-lowest hover:shadow-lg transition-all active:scale-[0.97] overflow-hidden"
-            >
-              <div className="w-full aspect-square overflow-hidden bg-surface-container-low">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`/previews/scenes/${scene.id}.png`}
-                  alt={scene.name}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                />
-              </div>
-              <div className="px-3 py-2.5">
-                <h3 className="font-bold text-sm font-headline">{scene.name}</h3>
-                <p className="text-xs text-on-surface-variant leading-snug">{scene.description}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-
         {/* ── AD CREATIVES ── */}
         <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/50 mb-3">Ad Creatives</p>
 
@@ -490,6 +445,51 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
               <div className="px-3 py-2.5">
                 <h3 className="font-bold text-sm font-headline">{style.name}</h3>
                 <p className="text-xs text-on-surface-variant leading-snug">{style.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* ── AI SCENES ── */}
+        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/50 mb-3">AI Scenes</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
+          {[
+            { id: "video-wall", name: "Video Wall", description: "Content on a massive TV screen in a shop" },
+            { id: "breaking-news", name: "Breaking News", description: "News anchor with your content on the studio screen" },
+            { id: "cyberpunk-flyer", name: "Cyberpunk Flyer", description: "Holographic flyer in a neon-drenched city" },
+            { id: "movie-theater", name: "Movie Theater", description: "Your content on the big screen, audience silhouettes" },
+            { id: "graffiti-mural", name: "Graffiti Mural", description: "Street art on a building wall" },
+            { id: "highway-billboard", name: "Highway Billboard", description: "Giant billboard under construction" },
+            { id: "bus-wrap", name: "Bus Wrap", description: "Full wrap ad on a double-decker bus" },
+            { id: "classic-newspaper", name: "Classic Newspaper", description: "Vintage broadsheet with your content" },
+            { id: "manga-panel", name: "Manga Panel", description: "Black and white manga page with characters" },
+            { id: "steampunk", name: "Steampunk", description: "Victorian-era infographic on parchment and brass" },
+            { id: "cave-painting", name: "Cave Painting", description: "Ancient art on a cavern wall" },
+            { id: "egyptian-hieroglyphs", name: "Egyptian Hieroglyphs", description: "Carved into a temple wall" },
+            { id: "vintage-encyclopedia", name: "Vintage Encyclopedia", description: "Beautiful typeset book page" },
+            { id: "nature-trail-sign", name: "Nature Trail Sign", description: "Laser-engraved wooden trail marker" },
+            { id: "whiteboard", name: "Whiteboard", description: "Clean whiteboard with colored markers" },
+            { id: "classroom-chalkboard", name: "Classroom Chalkboard", description: "Professor at a chalkboard" },
+            { id: "top-secret-briefing", name: "Top Secret Briefing", description: "Classified government file" },
+            { id: "tshirt-mockup", name: "T-Shirt Mockup", description: "Person wearing a shirt with your content" },
+          ].map((scene) => (
+            <button
+              key={scene.id}
+              onClick={() => router.push(`/create/ai-scene?scene=${scene.id}`)}
+              className="group flex flex-col rounded-xl bg-surface-container-lowest hover:shadow-lg transition-all active:scale-[0.97] overflow-hidden"
+            >
+              <div className="w-full aspect-square overflow-hidden bg-surface-container-low">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/previews/scenes/${scene.id}.png`}
+                  alt={scene.name}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              </div>
+              <div className="px-3 py-2.5">
+                <h3 className="font-bold text-sm font-headline">{scene.name}</h3>
+                <p className="text-xs text-on-surface-variant leading-snug">{scene.description}</p>
               </div>
             </button>
           ))}
