@@ -250,13 +250,34 @@ export const renderPost = task({
     metadata.set("progress", 100);
     metadata.set("results", JSON.parse(JSON.stringify(finalResults)));
 
-    // Update library item status to ready
+    // Generate thumbnail via Flask
     const firstImage = finalResults[0]?.imageUrls?.[0] ?? null;
+    let thumbnailUrl: string | null = null;
+    if (firstImage) {
+      try {
+        const thumbRes = await fetch(`${flaskUrl}/thumbnail/image`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ image_url: firstImage }),
+        });
+        if (thumbRes.ok) {
+          const thumbData = await thumbRes.json() as { thumbnailUrl?: string };
+          thumbnailUrl = thumbData.thumbnailUrl ?? null;
+          logger.log("Thumbnail generated", { thumbnailUrl });
+        } else {
+          logger.warn("Thumbnail generation failed", { status: thumbRes.status });
+        }
+      } catch (err) {
+        logger.warn("Thumbnail generation error", { error: String(err) });
+      }
+    }
+
+    // Update library item status to ready
     try {
       await fetch(`${appUrl}/api/library/${runId}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "ready", thumbnailUrl: firstImage }),
+        body: JSON.stringify({ status: "ready", thumbnailUrl: thumbnailUrl ?? firstImage }),
       });
     } catch (err) {
       logger.warn("Failed to update library item", { error: String(err) });

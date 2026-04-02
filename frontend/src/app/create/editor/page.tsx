@@ -5,19 +5,27 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
 import { triggerPostRenders } from "@/app/actions/create-posts";
-import { voices, defaultVoice, getVoiceByName } from "@/lib/voices";
+import { defaultVoice } from "@/lib/voices";
+import type { Voice } from "@/lib/voices";
+import VoicePickerModal from "@/components/create/VoicePickerModal";
+import CharacterPickerModal from "@/components/create/CharacterPickerModal";
 import { slideSizes, getTemplateById, getImagePostTemplateById } from "@/lib/carousel-templates";
 
 const characters = [
-  { name: "Doctor", emoji: "\u{1F9D1}\u200D\u2695\uFE0F", color: "from-blue-400 to-cyan-300" },
-  { name: "Professor", emoji: "\u{1F468}\u200D\u{1F3EB}", color: "from-amber-400 to-yellow-300" },
-  { name: "Chef", emoji: "\u{1F468}\u200D\u{1F373}", color: "from-orange-400 to-red-300" },
-  { name: "Cowboy", emoji: "\u{1F920}", color: "from-yellow-600 to-amber-400" },
-  { name: "Robot", emoji: "\u{1F916}", color: "from-zinc-400 to-slate-300" },
-  { name: "Vampire", emoji: "\u{1F9DB}", color: "from-purple-600 to-violet-400" },
-  { name: "Wizard", emoji: "\u{1F9D9}", color: "from-indigo-500 to-blue-400" },
-  { name: "Finance Bro", emoji: "\u{1F4BC}", color: "from-emerald-500 to-green-400" },
-  { name: "Alien", emoji: "\u{1F47D}", color: "from-lime-400 to-green-300" },
+  { name: "Doctor", image: "/characters/doctor.png", color: "from-blue-400 to-cyan-300" },
+  { name: "Professor", image: "/characters/Proffesor.png", color: "from-amber-400 to-yellow-300" },
+  { name: "Chef", image: "/characters/chef.png", color: "from-orange-400 to-red-300" },
+  { name: "Cowboy", image: "/characters/cowboy.png", color: "from-yellow-600 to-amber-400" },
+  { name: "Robot", image: "/characters/Robot.png", color: "from-zinc-400 to-slate-300" },
+  { name: "Vampire", image: "/characters/Vempaire.png", color: "from-purple-600 to-violet-400" },
+  { name: "Wizard", image: "/characters/Wizard.png", color: "from-indigo-500 to-blue-400" },
+  { name: "Finance Bro", image: "/characters/Finance men.png", color: "from-emerald-500 to-green-400" },
+  { name: "Alien", image: "/characters/Alion.png", color: "from-lime-400 to-green-300" },
+  { name: "Gamer", image: "/characters/Gamer.png", color: "from-pink-500 to-purple-400" },
+  { name: "Chef Women", image: "/characters/cheff_women.png", color: "from-rose-400 to-pink-300" },
+  { name: "Fitness Men", image: "/characters/fitness_men.png", color: "from-red-500 to-orange-400" },
+  { name: "Fitness Women", image: "/characters/fitness_women.png", color: "from-teal-400 to-cyan-300" },
+  { name: "Teacher", image: "/characters/teacher.png", color: "from-sky-400 to-blue-300" },
 ];
 
 type SettingKey = "tone" | "presenter" | "voice" | "background" | "backgroundMode" | "duration" | "layout" | "platform";
@@ -31,18 +39,6 @@ interface SettingConfig {
 
 const videoSettingsConfig: SettingConfig[] = [
   {
-    key: "presenter",
-    label: "Presenter",
-    emoji: "\u{1F9D1}\u200D\u2695\uFE0F",
-    options: [],
-  },
-  {
-    key: "voice",
-    label: "Voice",
-    emoji: "\u{1F3A4}",
-    options: voices.map((v) => ({ label: v.name, emoji: v.emoji })),
-  },
-  {
     key: "backgroundMode",
     label: "Background",
     emoji: "\u2728",
@@ -52,16 +48,6 @@ const videoSettingsConfig: SettingConfig[] = [
       { label: "AI Images", emoji: "\u{1F3A8}", desc: "Custom AI-generated images" },
       { label: "Motion Graphics", emoji: "\u2728", desc: "Animated text and diagrams" },
       { label: "AI Video", emoji: "\u{1F916}", badge: "Soon", desc: "Coming soon" },
-    ],
-  },
-  {
-    key: "layout",
-    label: "Layout",
-    emoji: "\u{1F4D0}",
-    options: [
-      { label: "Standard", emoji: "\u{1F4D0}" },
-      { label: "Split screen", emoji: "\u{1F4CA}" },
-      { label: "Text only", emoji: "\u{1F4DD}" },
     ],
   },
 ];
@@ -195,7 +181,7 @@ function EditorContent() {
   const [settings, setSettings] = useState<Record<SettingKey, string>>({
     tone: toneParam,
     presenter: "Doctor",
-    voice: defaultVoice.name,
+    voice: defaultVoice.fishAudioId,
     background: "Stock footage",
     backgroundMode: "Smart Mix",
     duration: durationParam,
@@ -370,28 +356,25 @@ function EditorContent() {
   };
 
   const [creating, setCreating] = useState(false);
-  const [playingVoice, setPlayingVoice] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
+  const [characterModalOpen, setCharacterModalOpen] = useState(false);
+  const [selectedCharacter, setSelectedCharacter] = useState<typeof characters[number] | null>(null);
 
-  const playVoicePreview = (voiceName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (playingVoice === voiceName) {
-      audioRef.current?.pause();
-      setPlayingVoice(null);
-      return;
-    }
-    const voice = getVoiceByName(voiceName);
-    if (!voice.previewUrl) return;
+  const handleVoiceSelect = (voice: Voice) => {
+    setSelectedVoice(voice);
+    setSettings((prev) => ({ ...prev, voice: voice.fishAudioId }));
+    // Save as default via API (fire-and-forget)
+    fetch("/api/user/defaults", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ defaultVoiceId: voice.fishAudioId }),
+    }).catch(() => {});
+  };
 
-    setPlayingVoice(voiceName);
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    const audio = new Audio(voice.previewUrl);
-    audioRef.current = audio;
-    audio.onended = () => setPlayingVoice(null);
-    audio.onerror = () => setPlayingVoice(null);
-    audio.play();
+  const handleCharacterSelect = (char: typeof characters[number]) => {
+    setSelectedCharacter(char);
+    setSettings((prev) => ({ ...prev, presenter: char.name }));
   };
 
   // ── Video: create videos ──
@@ -1011,15 +994,36 @@ function EditorContent() {
             Creative Settings
           </h2>
           <div className="flex flex-wrap gap-4 items-start">
+            {/* Character picker pill — opens full modal */}
+            <button
+              onClick={() => setCharacterModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 rounded-full font-bold font-headline transition-all bg-surface-container-highest text-on-surface hover:bg-surface-dim"
+            >
+              {selectedCharacter ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={selectedCharacter.image} alt={selectedCharacter.name} className="w-6 h-6 object-contain" />
+              ) : (
+                <span className="material-symbols-outlined text-lg">person</span>
+              )}
+              <span>{selectedCharacter ? selectedCharacter.name : "Choose Character"}</span>
+              <span className="material-symbols-outlined text-lg">expand_more</span>
+            </button>
+
+            {/* Voice picker pill — opens full modal */}
+            <button
+              onClick={() => setVoiceModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 rounded-full font-bold font-headline transition-all bg-surface-container-highest text-on-surface hover:bg-surface-dim"
+            >
+              <span className="material-symbols-outlined text-lg">mic</span>
+              <span>{selectedVoice ? selectedVoice.name : "Choose Voice"}</span>
+              <span className="material-symbols-outlined text-lg">expand_more</span>
+            </button>
+
             {settingsConfig.map((setting) => {
               const isOpen = openPill === setting.key;
               const currentValue = settings[setting.key];
-              const currentEmoji =
-                setting.key === "presenter"
-                  ? characters.find((c) => c.name === currentValue)?.emoji ||
-                    "\u{1F9D1}\u200D\u2695\uFE0F"
-                  : setting.options.find((o) => o.label === currentValue)
-                      ?.emoji || setting.emoji;
+              const currentEmoji = setting.options.find((o) => o.label === currentValue)
+                    ?.emoji || setting.emoji;
 
               return (
                 <div key={setting.key} className="relative" ref={isOpen ? popoverRef : undefined}>
@@ -1043,92 +1047,6 @@ function EditorContent() {
                   {/* Popover */}
                   {isOpen && (
                     <div className="absolute bottom-full left-0 mb-4 bg-surface-container-lowest rounded-[1rem] shadow-[0px_30px_60px_rgba(111,51,213,0.15)] border border-outline-variant/15 p-6 z-40 min-w-[280px] max-h-[70vh] overflow-y-auto no-scrollbar">
-                      {setting.key === "presenter" ? (
-                        <>
-                          <div className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 font-headline">
-                            Choose Presenter Persona
-                          </div>
-                          <div className="grid grid-cols-5 gap-4 mb-6">
-                            {characters.map((char) => {
-                              const isSelected =
-                                currentValue === char.name;
-                              return (
-                                <button
-                                  key={char.name}
-                                  onClick={() =>
-                                    selectSetting("presenter", char.name)
-                                  }
-                                  className={`flex flex-col items-center gap-2 cursor-pointer transition-opacity ${
-                                    isSelected
-                                      ? "opacity-100"
-                                      : "opacity-40 hover:opacity-100"
-                                  }`}
-                                >
-                                  <div
-                                    className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl ${
-                                      isSelected
-                                        ? "ring-2 ring-primary ring-offset-2"
-                                        : ""
-                                    } bg-gradient-to-br ${char.color}`}
-                                  >
-                                    {char.emoji}
-                                  </div>
-                                  <span className="text-[10px] font-bold text-center">
-                                    {char.name}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <div className="space-y-3">
-                            <button
-                              onClick={() =>
-                                selectSetting("presenter", "HeyGen Avatar")
-                              }
-                              className="w-full flex items-center justify-between p-3 bg-surface-container-low rounded-[0.5rem] hover:bg-surface-container-high transition-colors cursor-pointer border border-primary/20"
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="material-symbols-outlined text-primary">
-                                  video_stable
-                                </span>
-                                <span className="text-sm font-semibold">
-                                  HeyGen realistic avatar
-                                </span>
-                              </div>
-                              <span className="bg-primary-container text-on-primary-container text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest">
-                                Pro
-                              </span>
-                            </button>
-                            <button
-                              onClick={() =>
-                                selectSetting("presenter", "Text only")
-                              }
-                              className="w-full flex items-center gap-3 p-3 bg-surface-container-lowest border border-outline-variant/30 rounded-[0.5rem] hover:bg-surface-container-low transition-colors cursor-pointer text-left"
-                            >
-                              <span className="material-symbols-outlined text-on-surface-variant">
-                                format_quote
-                              </span>
-                              <span className="text-sm font-semibold">
-                                Text only, no presenter
-                              </span>
-                            </button>
-                            <button
-                              onClick={() =>
-                                selectSetting("presenter", "Upload own")
-                              }
-                              className="w-full flex items-center gap-3 p-3 bg-surface-container-lowest border border-outline-variant/30 rounded-[0.5rem] hover:bg-surface-container-low transition-colors cursor-pointer text-left"
-                            >
-                              <span className="material-symbols-outlined text-on-surface-variant">
-                                cloud_upload
-                              </span>
-                              <span className="text-sm font-semibold">
-                                Upload your own video
-                              </span>
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
                           <div className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 font-headline">
                             {setting.label}
                           </div>
@@ -1171,17 +1089,6 @@ function EditorContent() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  {setting.key === "voice" && (
-                                    <span
-                                      onClick={(e) => playVoicePreview(opt.label, e)}
-                                      className={`material-symbols-outlined text-sm p-1 rounded-full hover:bg-primary/20 transition-colors ${
-                                        playingVoice === opt.label ? "text-primary animate-pulse" : "text-on-surface-variant"
-                                      }`}
-                                      style={{ fontVariationSettings: "'FILL' 1" }}
-                                    >
-                                      {playingVoice === opt.label ? "stop_circle" : "play_circle"}
-                                    </span>
-                                  )}
                                   {opt.badge && (
                                     <span className="bg-primary-container text-on-primary-container text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest">
                                       {opt.badge}
@@ -1197,8 +1104,6 @@ function EditorContent() {
                               );
                             })}
                           </div>
-                        </>
-                      )}
                     </div>
                   )}
                 </div>
@@ -1210,6 +1115,23 @@ function EditorContent() {
           </p>
         </section>
       )}
+
+      {/* Character Picker Modal */}
+      <CharacterPickerModal
+        open={characterModalOpen}
+        onClose={() => setCharacterModalOpen(false)}
+        onSelect={handleCharacterSelect}
+        characters={characters}
+        currentName={selectedCharacter?.name}
+      />
+
+      {/* Voice Picker Modal */}
+      <VoicePickerModal
+        open={voiceModalOpen}
+        onClose={() => setVoiceModalOpen(false)}
+        onSelect={handleVoiceSelect}
+        currentVoiceId={selectedVoice?.fishAudioId}
+      />
 
       {/* Carousel: Size picker */}
       {isCarousel && !carouselLoading && carouselSlides.length > 0 && (

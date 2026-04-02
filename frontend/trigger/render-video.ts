@@ -1,5 +1,5 @@
 import { task, metadata, logger } from "@trigger.dev/sdk";
-import { getVoiceByName, defaultVoice } from "../src/lib/voices";
+import { defaultVoice } from "../src/lib/voices";
 import type { VisualSegment } from "../src/lib/video-types";
 
 export interface RenderVideoPayload {
@@ -51,6 +51,11 @@ const characterMap: Record<string, string> = {
   Wizard: "wizard",
   "Finance Bro": "finance_bro",
   Alien: "alien",
+  Gamer: "gamer",
+  "Chef Women": "cheff_women",
+  "Fitness Men": "fitness_men",
+  "Fitness Women": "fitness_women",
+  Teacher: "teacher",
 };
 
 // Frontend background options → Flask bg_mode values
@@ -191,8 +196,8 @@ export const renderVideo = task({
     const tone = toneMap[payload.settings.tone] ?? "funny_clean";
     const duration = durationMap[payload.settings.duration] ?? 60;
     const character = characterMap[payload.settings.presenter] ?? "doctor";
-    const voice = getVoiceByName(payload.settings.voice ?? defaultVoice.name);
-    const voiceId = voice.fishAudioId;
+    // voice is now a Fish Audio ID (passed directly from the voice picker)
+    const voiceId = payload.settings.voice || defaultVoice.fishAudioId;
     const bgMode = bgModeMap[payload.settings.background] ?? "pexels";
     const backgroundMode = backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"] ?? "smart_mix";
     const layout = layoutMap[payload.settings.layout] ?? "standard";
@@ -482,7 +487,24 @@ export const renderVideo = task({
       const flaskPath = `/vg/preview/${outputDir}/${videoFilename}`;
       videoUrl = `/api/video-proxy?path=${encodeURIComponent(flaskPath)}`;
     }
-    const previewUrl = videoUrl;
+    // Generate thumbnail via Flask
+    let thumbnailUrl: string | null = null;
+    try {
+      const thumbRes = await fetch(`${flaskUrl}/thumbnail/video`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ video_url: videoUrl }),
+      });
+      if (thumbRes.ok) {
+        const thumbData = await thumbRes.json() as { thumbnailUrl?: string };
+        thumbnailUrl = thumbData.thumbnailUrl ?? null;
+        logger.log("Thumbnail generated", { thumbnailUrl });
+      } else {
+        logger.warn("Thumbnail generation failed", { status: thumbRes.status });
+      }
+    } catch (err) {
+      logger.warn("Thumbnail generation error", { error: String(err) });
+    }
 
     metadata.set("stage", "complete");
     metadata.set("stageLabel", "Complete!");
@@ -500,7 +522,7 @@ export const renderVideo = task({
         body: JSON.stringify({
           status: "ready",
           videoUrl,
-          thumbnailUrl: previewUrl,
+          thumbnailUrl: thumbnailUrl ?? videoUrl,
         }),
       });
     } catch (err) {
@@ -510,7 +532,7 @@ export const renderVideo = task({
     return {
       title: payload.title,
       videoUrl,
-      previewUrl,
+      previewUrl: thumbnailUrl ?? videoUrl,
       caption: `${scriptData.hook} ${scriptData.cta}`,
     };
   },

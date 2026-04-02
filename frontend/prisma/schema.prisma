@@ -61,6 +61,7 @@ model User {
   niche         String?
   tone          String    @default("Funny")
   character     String    @default("Doctor")
+  defaultVoiceId String?
   background    String    @default("Stock footage")
   duration      String    @default("30s")
   layout        String    @default("Standard")

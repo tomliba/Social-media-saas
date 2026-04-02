@@ -6,7 +6,7 @@
  * action so only two processes are needed locally (Next.js + Flask).
  */
 
-import { getVoiceByName, defaultVoice } from "./voices";
+import { defaultVoice } from "./voices";
 import type { VisualSegment } from "./video-types";
 
 // ── Setting maps (duplicated from trigger tasks — they run in a separate runtime) ──
@@ -35,6 +35,11 @@ const characterMap: Record<string, string> = {
   Wizard: "wizard",
   "Finance Bro": "finance_bro",
   Alien: "alien",
+  Gamer: "gamer",
+  "Chef Women": "cheff_women",
+  "Fitness Men": "fitness_men",
+  "Fitness Women": "fitness_women",
+  Teacher: "teacher",
 };
 
 const bgModeMap: Record<string, string> = {
@@ -127,8 +132,8 @@ export async function renderVideoViaFlask(
   const tone = toneMap[payload.settings.tone] ?? "funny_clean";
   const duration = durationMap[payload.settings.duration] ?? 60;
   const character = characterMap[payload.settings.presenter] ?? "doctor";
-  const voice = getVoiceByName(payload.settings.voice ?? defaultVoice.name);
-  const voiceId = voice.fishAudioId;
+  // voice is now a Fish Audio ID (passed directly from the voice picker)
+  const voiceId = payload.settings.voice || defaultVoice.fishAudioId;
   const bgMode = bgModeMap[payload.settings.background] ?? "pexels";
   const backgroundMode =
     backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"] ?? "smart_mix";
