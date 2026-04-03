@@ -329,6 +329,12 @@ function EditorContent() {
       ) {
         setOpenPill(null);
       }
+      if (
+        speedRef.current &&
+        !speedRef.current.contains(e.target as Node)
+      ) {
+        setSpeedOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -354,6 +360,10 @@ function EditorContent() {
     setSettings((prev) => ({ ...prev, [key]: value }));
     setOpenPill(null);
   };
+
+  const [selectedSpeed, setSelectedSpeed] = useState(1.0);
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const speedRef = useRef<HTMLDivElement>(null);
 
   const [creating, setCreating] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
@@ -387,7 +397,7 @@ function EditorContent() {
           title: s.title,
           script: s.script,
           template,
-          settings,
+          settings: { ...settings, speed: selectedSpeed },
         }))
       );
 
@@ -1018,6 +1028,51 @@ function EditorContent() {
               <span>{selectedVoice ? selectedVoice.name : "Choose Voice"}</span>
               <span className="material-symbols-outlined text-lg">expand_more</span>
             </button>
+
+            {/* Speed picker pill */}
+            <div className="relative" ref={speedRef}>
+              <button
+                onClick={() => setSpeedOpen((prev) => !prev)}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold font-headline transition-all ${
+                  speedOpen
+                    ? "bg-secondary-container text-on-secondary-container ring-2 ring-primary"
+                    : "bg-surface-container-highest text-on-surface hover:bg-surface-dim"
+                }`}
+              >
+                <span className="material-symbols-outlined text-lg">speed</span>
+                <span>Speed: {selectedSpeed === 1.0 ? "Normal" : `${selectedSpeed}x`}</span>
+                <span className="material-symbols-outlined text-lg">
+                  {speedOpen ? "expand_less" : "expand_more"}
+                </span>
+              </button>
+
+              {speedOpen && (
+                <div className="absolute bottom-full left-0 mb-4 bg-surface-container-lowest rounded-[1rem] shadow-[0px_30px_60px_rgba(111,51,213,0.15)] border border-outline-variant/15 p-6 z-40 min-w-[260px]">
+                  <div className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 font-headline">
+                    Speed
+                  </div>
+                  <div className="space-y-4">
+                    <div className="text-center text-2xl font-bold text-on-surface font-headline">
+                      {selectedSpeed === 1.0 ? "Normal" : `${selectedSpeed}x`}
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      value={selectedSpeed}
+                      onChange={(e) => setSelectedSpeed(Math.round(parseFloat(e.target.value) * 10) / 10)}
+                      className="w-full accent-primary cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-on-surface-variant font-medium">
+                      <span>0.5x</span>
+                      <span>1.0x</span>
+                      <span>2.0x</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {settingsConfig.map((setting) => {
               const isOpen = openPill === setting.key;

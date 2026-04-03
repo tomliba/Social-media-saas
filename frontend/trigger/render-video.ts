@@ -14,6 +14,7 @@ export interface RenderVideoPayload {
     backgroundMode?: string;
     duration: string;
     layout: string;
+    speed?: number;
   };
 }
 
@@ -132,9 +133,9 @@ function parseSSELine(line: string): FlaskSSEEvent | null {
 
 export const renderVideo = task({
   id: "render-video",
-  maxDuration: 300,
+  maxDuration: 600,
   queue: {
-    concurrencyLimit: 5,
+    concurrencyLimit: 1,
   },
   onFailure: async (params: { ctx: { run: { id: string } }; error: unknown }) => {
     const runId = params.ctx.run.id;
@@ -201,6 +202,7 @@ export const renderVideo = task({
     const bgMode = bgModeMap[payload.settings.background] ?? "pexels";
     const backgroundMode = backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"] ?? "smart_mix";
     const layout = layoutMap[payload.settings.layout] ?? "standard";
+    const speed = payload.settings.speed ?? 1.0;
 
     // Helper to record failure in metadata before re-throwing
     function failAtStage(stage: string, err: unknown): never {
@@ -229,7 +231,7 @@ export const renderVideo = task({
       metadata.set("stageLabel", "Generating script breakdown...");
       metadata.set("progress", 5);
 
-      logger.log("Settings mapped", { tone, duration, character, voiceId, bgMode, backgroundMode, layout });
+      logger.log("Settings mapped", { tone, duration, character, voiceId, bgMode, backgroundMode, layout, speed });
 
       const scriptRes = await fetch(`${flaskUrl}/vg/generate_script`, {
         method: "POST",
@@ -276,6 +278,7 @@ export const renderVideo = task({
         body: JSON.stringify({
           vg_job_id: jobId,
           voice_id: voiceId,
+          speed,
         }),
       });
 
@@ -381,6 +384,7 @@ export const renderVideo = task({
           bg_mode: bgMode,
           background_mode: backgroundMode,
           layout,
+          speed,
           visual_segments: resolvedData.segments,
         }),
       });

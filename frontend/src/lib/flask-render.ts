@@ -111,6 +111,7 @@ export interface DirectVideoRequest {
     backgroundMode?: string;
     duration: string;
     layout: string;
+    speed?: number;
   };
 }
 
@@ -138,6 +139,7 @@ export async function renderVideoViaFlask(
   const backgroundMode =
     backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"] ?? "smart_mix";
   const layout = layoutMap[payload.settings.layout] ?? "standard";
+  const speed = payload.settings.speed ?? 1.0;
 
   // Step 1: Generate script breakdown
   const scriptRes = await fetch(`${base}/vg/generate_script`, {
@@ -177,7 +179,7 @@ export async function renderVideoViaFlask(
     fetch(`${base}/vg/tts`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ vg_job_id: jobId, voice_id: voiceId }),
+      body: JSON.stringify({ vg_job_id: jobId, voice_id: voiceId, speed }),
     }),
   ]);
 
@@ -212,6 +214,7 @@ export async function renderVideoViaFlask(
       voice_id: voiceId,
       bg_mode: bgMode,
       layout,
+      speed,
       visualSegments: resolvedData.segments,
     }),
   });
