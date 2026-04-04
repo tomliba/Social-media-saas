@@ -11,6 +11,8 @@ interface VideoStyle {
   name: string;
   description: string;
   icon: string;
+  gradient: string;
+  badge?: string;
 }
 
 const videoStyles: VideoStyle[] = [
@@ -20,6 +22,16 @@ const videoStyles: VideoStyle[] = [
     description:
       "AI animated character with voice, lip sync, and custom backgrounds",
     icon: "person_play",
+    gradient: "from-violet-600 to-indigo-500",
+  },
+  {
+    id: "ai-story",
+    name: "AI voice story",
+    description:
+      "Faceless AI-narrated videos with generated scenes, captions, and music",
+    icon: "auto_stories",
+    gradient: "from-fuchsia-600 to-purple-500",
+    badge: "New",
   },
 ];
 
@@ -64,7 +76,7 @@ export default function VideoStylesPage() {
             <button
               key={style.id}
               onClick={() => handleSelect(style)}
-              className={`group flex flex-col items-start gap-3 rounded-2xl p-5 text-left transition-all
+              className={`group relative flex flex-col items-start gap-3 rounded-2xl overflow-hidden text-left transition-all
                 bg-surface-container-lowest border
                 ${
                   isSelected
@@ -72,11 +84,23 @@ export default function VideoStylesPage() {
                     : "border-outline-variant/30 hover:border-outline-variant"
                 }`}
             >
-              <span className="material-symbols-outlined text-3xl text-primary">
-                {style.icon}
-              </span>
+              {/* Gradient preview area */}
+              <div
+                className={`w-full h-36 bg-gradient-to-br ${style.gradient} flex items-center justify-center`}
+              >
+                <span className="material-symbols-outlined text-5xl text-white/90">
+                  {style.icon}
+                </span>
+              </div>
 
-              <div>
+              {/* Badge */}
+              {style.badge && (
+                <span className="absolute top-3 right-3 bg-white/90 text-primary text-xs px-2.5 py-0.5 rounded-full font-bold">
+                  {style.badge}
+                </span>
+              )}
+
+              <div className="p-5 pt-2">
                 <h3 className="font-headline font-semibold text-base text-on-surface mb-1">
                   {style.name}
                 </h3>

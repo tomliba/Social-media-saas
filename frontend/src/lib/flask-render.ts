@@ -112,6 +112,26 @@ export interface DirectVideoRequest {
     duration: string;
     layout: string;
     speed?: number;
+    /** AI Story mode — when set, skip script generation and use provided data */
+    aiStory?: {
+      vgJobId: string;
+      hook: string;
+      scenes: { text: string; image_prompt: string }[];
+      cta: string;
+      artStyle: string;
+      captionStyle: string | null;
+      captionFontSize: string | null;
+      captionTransform: string | null;
+      captionPosition: string | null;
+      music: string | null;
+      language: string;
+      filmGrain: boolean;
+      shakeEffect: boolean;
+      sceneMode: string;
+      tone: string;
+      duration: number;
+      transitionStyle: string;
+    };
   };
 }
 
@@ -141,45 +161,70 @@ export async function renderVideoViaFlask(
   const layout = layoutMap[payload.settings.layout] ?? "standard";
   const speed = payload.settings.speed ?? 1.0;
 
-  // Step 1: Generate script breakdown
-  const scriptRes = await fetch(`${base}/vg/generate_script`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      topic: payload.script,
-      tone,
-      language: "English",
-      duration,
-      character,
-      mode: "script",
-    }),
-  });
+  const aiStory = payload.settings.aiStory;
 
-  if (!scriptRes.ok) {
-    throw new Error(`Flask /vg/generate_script failed (${scriptRes.status}): ${await scriptRes.text()}`);
-  }
-
-  const scriptData = (await scriptRes.json()) as {
+  let scriptData: {
     vg_job_id: string;
     script: string;
     hook: string;
     cta: string;
     scenes: { text: string; image_prompt: string }[];
   };
+  let jobId: string;
 
-  const jobId = scriptData.vg_job_id;
+  if (aiStory) {
+    // AI Story mode: script already generated, use provided data
+    jobId = aiStory.vgJobId;
+    scriptData = {
+      vg_job_id: aiStory.vgJobId,
+      script: payload.script,
+      hook: aiStory.hook,
+      cta: aiStory.cta,
+      scenes: aiStory.scenes,
+    };
+  } else {
+    // Step 1: Generate script breakdown
+    const scriptRes = await fetch(`${base}/vg/generate_script`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        topic: payload.script,
+        tone,
+        language: "English",
+        duration,
+        character,
+        mode: "script",
+      }),
+    });
+
+    if (!scriptRes.ok) {
+      throw new Error(`Flask /vg/generate_script failed (${scriptRes.status}): ${await scriptRes.text()}`);
+    }
+
+    scriptData = (await scriptRes.json()) as typeof scriptData;
+    jobId = scriptData.vg_job_id;
+  }
 
   // Steps 2 & 3: Visual plan + TTS in parallel
   const [visualPlanRes, ttsRes] = await Promise.all([
     fetch(`${base}/vg/visual-plan`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ vg_job_id: jobId, background_mode: backgroundMode }),
+      body: JSON.stringify({
+        vg_job_id: jobId,
+        background_mode: backgroundMode,
+        ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
+      }),
     }),
     fetch(`${base}/vg/tts`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ vg_job_id: jobId, voice_id: voiceId, speed }),
+      body: JSON.stringify({
+        vg_job_id: jobId,
+        voice_id: voiceId,
+        speed,
+        ...(aiStory ? { language: aiStory.language } : {}),
+      }),
     }),
   ]);
 
@@ -196,7 +241,11 @@ export async function renderVideoViaFlask(
   const resolveRes = await fetch(`${base}/vg/resolve-assets`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ vg_job_id: jobId, segments: visualPlanData.segments }),
+    body: JSON.stringify({
+      vg_job_id: jobId,
+      segments: visualPlanData.segments,
+      ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
+    }),
   });
 
   if (!resolveRes.ok) {
@@ -206,17 +255,38 @@ export async function renderVideoViaFlask(
   const resolvedData = (await resolveRes.json()) as { segments: VisualSegment[] };
 
   // Step 5: Render
+  const renderBody: Record<string, unknown> = {
+    vg_job_id: jobId,
+    voice_id: voiceId,
+    bg_mode: bgMode,
+    layout,
+    speed,
+    visualSegments: resolvedData.segments,
+  };
+
+  if (aiStory) {
+    renderBody.style = "ai-story";
+    renderBody.art_style = aiStory.artStyle;
+    renderBody.caption_style = aiStory.captionStyle;
+    renderBody.caption_font_size = aiStory.captionFontSize;
+    renderBody.caption_text_transform = aiStory.captionTransform;
+    renderBody.caption_position = aiStory.captionPosition;
+    renderBody.music = aiStory.music;
+    renderBody.language = aiStory.language;
+    renderBody.film_grain = aiStory.filmGrain;
+    renderBody.shake_effect = aiStory.shakeEffect;
+    renderBody.scene_mode = aiStory.sceneMode;
+    renderBody.hook = aiStory.hook;
+    renderBody.cta = aiStory.cta;
+    renderBody.tone = aiStory.tone;
+    renderBody.duration = aiStory.duration;
+    renderBody.transition_style = aiStory.transitionStyle;
+  }
+
   const renderRes = await fetch(`${base}/vg/render`, {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      vg_job_id: jobId,
-      voice_id: voiceId,
-      bg_mode: bgMode,
-      layout,
-      speed,
-      visualSegments: resolvedData.segments,
-    }),
+    body: JSON.stringify(renderBody),
   });
 
   if (!renderRes.ok) {

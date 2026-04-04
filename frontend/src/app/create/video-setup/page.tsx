@@ -8,6 +8,7 @@ import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import VoicePickerModal from "@/components/create/VoicePickerModal";
 import CharacterPickerModal from "@/components/create/CharacterPickerModal";
+import AIStorySetup from "@/components/create/AIStorySetup";
 
 // ── Characters ──
 
@@ -121,6 +122,11 @@ function VideoSetupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const style = searchParams.get("style") || "character";
+
+  // ── Route to AI Story setup if style=ai-story ──
+  if (style === "ai-story") {
+    return <AIStorySetup />;
+  }
 
   // ── Step: 0 = setup, 1 = review scripts, 2 = creating ──
   const [step, setStep] = useState(0);

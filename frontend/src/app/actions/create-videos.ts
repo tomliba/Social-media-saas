@@ -14,6 +14,27 @@ export interface VideoRenderRequest {
     backgroundMode?: string;
     duration: string;
     layout: string;
+    speed?: number;
+    /** AI Story mode — when set, skip script generation and use provided data */
+    aiStory?: {
+      vgJobId: string;
+      hook: string;
+      scenes: { text: string; image_prompt: string }[];
+      cta: string;
+      artStyle: string;
+      captionStyle: string | null;
+      captionFontSize: string | null;
+      captionTransform: string | null;
+      captionPosition: string | null;
+      music: string | null;
+      language: string;
+      filmGrain: boolean;
+      shakeEffect: boolean;
+      sceneMode: string;
+      tone: string;
+      duration: number;
+      transitionStyle: string;
+    };
   };
 }
 

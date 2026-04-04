@@ -15,6 +15,26 @@ export interface RenderVideoPayload {
     duration: string;
     layout: string;
     speed?: number;
+    /** AI Story mode — when set, skip script generation and use provided data */
+    aiStory?: {
+      vgJobId: string;
+      hook: string;
+      scenes: { text: string; image_prompt: string }[];
+      cta: string;
+      artStyle: string;
+      captionStyle: string | null;
+      captionFontSize: string | null;
+      captionTransform: string | null;
+      captionPosition: string | null;
+      music: string | null;
+      language: string;
+      filmGrain: boolean;
+      shakeEffect: boolean;
+      sceneMode: string;
+      tone: string;
+      duration: number;
+      transitionStyle: string;
+    };
   };
 }
 
@@ -224,6 +244,23 @@ export const renderVideo = task({
       scenes: { text: string; image_prompt: string }[];
     };
 
+    const aiStory = payload.settings.aiStory;
+
+    if (aiStory) {
+      // ── AI Story mode: script already generated, use provided data ──
+      jobId = aiStory.vgJobId;
+      scriptData = {
+        vg_job_id: aiStory.vgJobId,
+        script: payload.script,
+        hook: aiStory.hook,
+        cta: aiStory.cta,
+        scenes: aiStory.scenes,
+      };
+      logger.log("AI Story mode — using pre-generated script", { jobId, sceneCount: aiStory.scenes.length });
+      metadata.set("stage", "script_ready");
+      metadata.set("stageLabel", "Script ready — generating speech...");
+      metadata.set("progress", 15);
+    } else {
     // ── Step 1: Generate script breakdown via Flask ──
     try {
       console.log(`[render-video] ▶ STAGE: script_generation | title="${payload.title}"`);
@@ -258,6 +295,7 @@ export const renderVideo = task({
     } catch (err) {
       failAtStage("script_generation", err);
     }
+    }
 
     metadata.set("stage", "script_ready");
     metadata.set("stageLabel", "Script ready — generating speech...");
@@ -279,6 +317,7 @@ export const renderVideo = task({
           vg_job_id: jobId,
           voice_id: voiceId,
           speed,
+          ...(aiStory ? { language: aiStory.language } : {}),
         }),
       });
 
@@ -315,6 +354,7 @@ export const renderVideo = task({
           script: scriptData.script,
           audio_duration_ms: ttsData.audio_duration_ms,
           word_timestamps: ttsData.word_timestamps,
+          ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
         }),
       });
 
@@ -345,6 +385,7 @@ export const renderVideo = task({
         body: JSON.stringify({
           vg_job_id: jobId,
           segments: visualPlanData.segments,
+          ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
         }),
       });
 
@@ -374,10 +415,7 @@ export const renderVideo = task({
     try {
       console.log(`[render-video] ▶ STAGE: vg_start | jobId="${jobId}"`);
 
-      const startRes = await fetch(`${flaskUrl}/vg/start`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
+      const startBody: Record<string, unknown> = {
           vg_job_id: jobId,
           script: scriptData.script,
           voice_id: voiceId,
@@ -386,7 +424,32 @@ export const renderVideo = task({
           layout,
           speed,
           visual_segments: resolvedData.segments,
-        }),
+        };
+
+      // Pass AI Story-specific fields to Flask
+      if (aiStory) {
+        startBody.style = "ai-story";
+        startBody.art_style = aiStory.artStyle;
+        startBody.caption_style = aiStory.captionStyle;
+        startBody.caption_font_size = aiStory.captionFontSize;
+        startBody.caption_text_transform = aiStory.captionTransform;
+        startBody.caption_position = aiStory.captionPosition;
+        startBody.music = aiStory.music;
+        startBody.language = aiStory.language;
+        startBody.film_grain = aiStory.filmGrain;
+        startBody.shake_effect = aiStory.shakeEffect;
+        startBody.scene_mode = aiStory.sceneMode;
+        startBody.hook = aiStory.hook;
+        startBody.cta = aiStory.cta;
+        startBody.tone = aiStory.tone;
+        startBody.duration = aiStory.duration;
+        startBody.transition_style = aiStory.transitionStyle;
+      }
+
+      const startRes = await fetch(`${flaskUrl}/vg/start`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(startBody),
       });
 
       if (!startRes.ok) {

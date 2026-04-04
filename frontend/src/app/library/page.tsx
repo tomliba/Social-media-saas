@@ -161,10 +161,16 @@ function ContentCard({
   item,
   onReview,
   onDelete,
+  selectionMode,
+  isSelected,
+  onToggleSelect,
 }: {
   item: ContentItem;
   onReview: () => void;
   onDelete: () => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const isRendering = item.status === "rendering";
@@ -176,7 +182,13 @@ function ContentCard({
   );
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden hover:shadow-md transition-shadow group">
+    <div
+      className={`bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow group ${
+        selectionMode && isSelected ? "border-primary ring-2 ring-primary/30" : "border-zinc-100"
+      }`}
+      onClick={selectionMode ? onToggleSelect : undefined}
+      style={selectionMode ? { cursor: "pointer" } : undefined}
+    >
       {/* Thumbnail area */}
       <div
         className={`aspect-video flex items-center justify-center relative ${
@@ -186,9 +198,21 @@ function ContentCard({
             ? "bg-gradient-to-br from-red-50 to-rose-50"
             : "bg-zinc-100"
         }`}
-        onClick={isReady ? onReview : undefined}
-        style={isReady ? { cursor: "pointer" } : undefined}
+        onClick={!selectionMode && isReady ? onReview : undefined}
+        style={!selectionMode && isReady ? { cursor: "pointer" } : undefined}
       >
+        {/* Selection checkbox */}
+        {selectionMode && (
+          <div className="absolute top-3 left-3 z-10">
+            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+              isSelected ? "bg-primary border-primary" : "bg-white/80 border-zinc-300 backdrop-blur-sm"
+            }`}>
+              {isSelected && (
+                <span className="material-symbols-outlined text-white text-sm font-bold">check</span>
+              )}
+            </div>
+          </div>
+        )}
         {isRendering && (
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
@@ -382,6 +406,44 @@ export default function LibraryPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [previewItem, setPreviewItem] = useState<ContentItem | null>(null);
 
+  // Selection mode
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setShowBulkConfirm(false);
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          fetch(`/api/library/${id}`, { method: "DELETE" })
+        )
+      );
+      setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
+      exitSelectionMode();
+    } catch (err) {
+      console.error("Bulk delete failed:", err);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const fetchLibrary = useCallback(async () => {
     try {
       const res = await fetch("/api/library");
@@ -438,13 +500,62 @@ export default function LibraryPage() {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-headline font-extrabold text-3xl text-on-surface mb-1">
-          Content Library
-        </h1>
-        <p className="text-on-surface-variant">
-          All your created content in one place
-        </p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          {selectionMode ? (
+            <>
+              <h1 className="font-headline font-extrabold text-3xl text-on-surface mb-1">
+                {selectedIds.size} selected
+              </h1>
+              <p className="text-on-surface-variant">
+                Tap cards to select or deselect
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="font-headline font-extrabold text-3xl text-on-surface mb-1">
+                Content Library
+              </h1>
+              <p className="text-on-surface-variant">
+                All your created content in one place
+              </p>
+            </>
+          )}
+        </div>
+        {items.length > 0 && (
+          <div className="flex items-center gap-2">
+            {selectionMode ? (
+              <>
+                <button
+                  onClick={() => setShowBulkConfirm(true)}
+                  disabled={selectedIds.size === 0 || bulkDeleting}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-error hover:bg-error-dim rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {bulkDeleting ? (
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <span className="material-symbols-outlined text-base">delete</span>
+                  )}
+                  {bulkDeleting ? "Deleting..." : "Delete selected"}
+                </button>
+                <button
+                  onClick={exitSelectionMode}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-on-surface-variant bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setSelectionMode(true)}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-on-surface-variant bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">checklist</span>
+                Select
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {items.length === 0 ? (
@@ -497,10 +608,37 @@ export default function LibraryPage() {
               ))}
             </div>
 
-            {/* Count */}
-            <span className="ml-auto text-sm text-on-surface-variant">
-              {filtered.length} item{filtered.length !== 1 ? "s" : ""}
-            </span>
+            {/* Select all / Count */}
+            <div className="ml-auto flex items-center gap-3">
+              {selectionMode && filtered.length > 0 && (
+                <button
+                  onClick={() => {
+                    const filteredIds = filtered.map((i) => i.id);
+                    const allSelected = filteredIds.every((id) => selectedIds.has(id));
+                    if (allSelected) {
+                      setSelectedIds(new Set());
+                    } else {
+                      setSelectedIds(new Set(filteredIds));
+                    }
+                  }}
+                  className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-on-surface transition-colors"
+                >
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                    filtered.length > 0 && filtered.every((i) => selectedIds.has(i.id))
+                      ? "bg-primary border-primary"
+                      : "border-zinc-300"
+                  }`}>
+                    {filtered.length > 0 && filtered.every((i) => selectedIds.has(i.id)) && (
+                      <span className="material-symbols-outlined text-white text-xs font-bold">check</span>
+                    )}
+                  </div>
+                  Select all
+                </button>
+              )}
+              <span className="text-sm text-on-surface-variant">
+                {filtered.length} item{filtered.length !== 1 ? "s" : ""}
+              </span>
+            </div>
           </div>
 
           {/* Grid */}
@@ -519,6 +657,9 @@ export default function LibraryPage() {
                   item={item}
                   onReview={() => setPreviewItem(item)}
                   onDelete={() => handleDelete(item.id)}
+                  selectionMode={selectionMode}
+                  isSelected={selectedIds.has(item.id)}
+                  onToggleSelect={() => toggleSelect(item.id)}
                 />
               ))}
             </div>
@@ -532,6 +673,49 @@ export default function LibraryPage() {
           item={previewItem}
           onClose={() => setPreviewItem(null)}
         />
+      )}
+
+      {/* Bulk Delete Confirmation */}
+      {showBulkConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowBulkConfirm(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-error text-xl">delete</span>
+              </div>
+              <h3 className="font-headline font-bold text-lg text-on-surface">
+                Delete {selectedIds.size} video{selectedIds.size !== 1 ? "s" : ""}?
+              </h3>
+            </div>
+            <p className="text-sm text-on-surface-variant mb-6">
+              This cannot be undone.
+            </p>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setShowBulkConfirm(false)}
+                className="px-4 py-2 text-sm font-bold text-on-surface-variant hover:bg-zinc-100 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowBulkConfirm(false);
+                  handleBulkDelete();
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-error hover:bg-error-dim rounded-xl transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">delete</span>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
