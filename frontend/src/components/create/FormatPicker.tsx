@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 const formats = [
   {
     name: "Video",
@@ -81,6 +83,8 @@ export default function FormatPicker({
   selectedFormat: string | null;
   onSelect: (name: string) => void;
 }) {
+  const router = useRouter();
+
   return (
     <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
       {formats.map((format) => {
@@ -88,7 +92,13 @@ export default function FormatPicker({
         return (
           <button
             key={format.name}
-            onClick={() => onSelect(format.name)}
+            onClick={() => {
+              if (format.name === "Video") {
+                router.push("/create/video-styles");
+                return;
+              }
+              onSelect(format.name);
+            }}
             className={`group relative flex flex-col items-start text-left overflow-hidden bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.99] ${
               isSelected
                 ? "ring-2 ring-primary shadow-lg shadow-primary/10"

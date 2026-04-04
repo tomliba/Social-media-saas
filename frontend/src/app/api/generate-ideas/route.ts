@@ -3,6 +3,7 @@ import { geminiFlash } from "@/lib/gemini";
 import { auth } from "@/lib/auth";
 
 const templateStructures: Record<string, string> = {
+  "Viral Ideas": "the most engaging, shareable, and high-retention video concepts across all formats. Pick the best format for each idea (Did You Know, Myth Buster, X vs Y, Top 5, Story Time, Hot Take, How-To, What Happens If, Before & After, Problem to Solution, Ranking, Mini Series). Mix different formats for variety.",
   "Did You Know": "surprising facts that make people say 'wait, really?!'",
   "Myth Buster": "common myths or misconceptions that are actually wrong",
   "X vs Y": "interesting comparisons between two related things",
