@@ -132,59 +132,102 @@ const toneOptions = [
 interface CaptionStyleDef {
   id: string;
   label: string;
-  previewStyle: React.CSSProperties;
+  baseStyle: React.CSSProperties;
+  activeStyle: React.CSSProperties;
+  containerStyle?: React.CSSProperties;
 }
 
 const captionStyles: CaptionStyleDef[] = [
   {
     id: "regular",
     label: "Regular",
-    previewStyle: { color: "#fff", fontWeight: 500, fontSize: 15, fontFamily: "sans-serif" },
+    baseStyle: {
+      color: "#fff", fontWeight: 800, fontSize: 15, fontFamily: "'Arial Black', Arial, sans-serif",
+      textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 -2px 0 #000, 0 2px 0 #000, -2px 0 0 #000, 2px 0 0 #000",
+    },
+    activeStyle: { color: "#FFD700" },
   },
   {
     id: "bold_stroke",
     label: "Bold Stroke",
-    previewStyle: { color: "#fff", fontWeight: 900, fontSize: 16, WebkitTextStroke: "1.5px #000", letterSpacing: 1 },
+    baseStyle: {
+      color: "#fff", fontWeight: 900, fontSize: 16, fontFamily: "Impact, sans-serif",
+      WebkitTextStroke: "2px #000", paintOrder: "stroke fill" as const,
+    },
+    activeStyle: { transform: "scale(1.1)", display: "inline-block" },
   },
   {
     id: "red_highlight",
     label: "Red Highlight",
-    previewStyle: { color: "#fff", fontWeight: 700, fontSize: 16 },
+    baseStyle: {
+      color: "#fff", fontWeight: 900, fontSize: 16, fontFamily: "Impact, sans-serif",
+      textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
+    },
+    activeStyle: { color: "#FF3333" },
   },
   {
     id: "sleek",
     label: "Sleek",
-    previewStyle: { color: "#fff", fontWeight: 600, fontSize: 16, textShadow: "0 0 12px rgba(168,85,247,0.8), 0 0 4px rgba(255,255,255,0.5)" },
+    baseStyle: {
+      color: "#fff", fontWeight: 300, fontSize: 15, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      textShadow: "0 0 10px rgba(255,255,255,0.5)",
+    },
+    activeStyle: { textShadow: "0 0 16px rgba(255,255,255,0.9), 0 0 6px rgba(255,255,255,0.6)" },
   },
   {
     id: "karaoke",
     label: "Karaoke",
-    previewStyle: { color: "#fff", fontWeight: 700, fontSize: 16 },
+    baseStyle: {
+      color: "#fff", fontWeight: 800, fontSize: 15, fontFamily: "'Arial Black', Arial, sans-serif",
+      textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+    },
+    activeStyle: { background: "#7C3AED", borderRadius: 6, padding: "2px 6px" },
   },
   {
     id: "majestic",
     label: "Majestic",
-    previewStyle: { color: "#fff", fontWeight: 700, fontSize: 16, fontStyle: "italic", fontFamily: "Georgia, serif" },
+    baseStyle: {
+      color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "Georgia, serif", fontStyle: "italic",
+      textShadow: "0 2px 8px rgba(180,140,60,0.5)",
+    },
+    activeStyle: { textShadow: "0 2px 12px rgba(180,140,60,0.8)" },
   },
   {
     id: "beast",
     label: "Beast",
-    previewStyle: { color: "#fff", fontWeight: 900, fontSize: 18, WebkitTextStroke: "2px #000", letterSpacing: 2 },
+    baseStyle: {
+      color: "#fff", fontWeight: 900, fontSize: 19, fontFamily: "Impact, sans-serif",
+      WebkitTextStroke: "3.5px #000", paintOrder: "stroke fill" as const,
+    },
+    activeStyle: { transform: "scale(1.1)", display: "inline-block" },
+    containerStyle: { transform: "rotate(-2deg)" },
   },
   {
     id: "elegant",
     label: "Elegant",
-    previewStyle: { color: "#fff", fontWeight: 300, fontSize: 15, letterSpacing: 4, fontFamily: "Georgia, serif" },
+    baseStyle: {
+      color: "#CCCCCC", fontWeight: 400, fontSize: 15, fontFamily: "Georgia, serif",
+      letterSpacing: 3,
+    },
+    activeStyle: { color: "#fff" },
   },
   {
     id: "pixel",
     label: "Pixel",
-    previewStyle: { color: "#0f0", fontWeight: 700, fontSize: 14, fontFamily: "monospace", letterSpacing: 1 },
+    baseStyle: {
+      color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "'Courier New', Courier, monospace",
+      textShadow: "2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000",
+    },
+    activeStyle: { color: "#fff" },
   },
   {
     id: "clarity",
     label: "Clarity",
-    previewStyle: { color: "#fff", fontWeight: 500, fontSize: 15, textTransform: "lowercase" as const, letterSpacing: 0.5 },
+    baseStyle: {
+      color: "#fff", fontWeight: 400, fontSize: 15, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      textTransform: "lowercase" as const, textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+    },
+    activeStyle: {},
   },
 ];
 
@@ -285,7 +328,6 @@ export default function AIStorySetup() {
   const [sceneMode, setSceneMode] = useState<"static" | "animated">("static");
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [captionStyle, setCaptionStyle] = useState("regular");
-  const [captionSettingsOpen, setCaptionSettingsOpen] = useState(false);
   const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">("medium");
   const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">("uppercase");
   const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">("bottom");
@@ -967,30 +1009,17 @@ export default function AIStorySetup() {
                 return (
                   <button
                     key={cs.id}
-                    onClick={() => {
-                      if (isSelected) {
-                        setCaptionSettingsOpen((prev) => !prev);
-                      } else {
-                        setCaptionStyle(cs.id);
-                      }
-                    }}
+                    onClick={() => setCaptionStyle(cs.id)}
                     className={`rounded-xl overflow-hidden transition-all border ${
                       isSelected
                         ? "border-2 border-primary"
                         : "border-outline-variant/30 hover:border-outline-variant"
                     }`}
                   >
-                    <div className="h-20 bg-zinc-900 flex items-center justify-center px-2">
-                      <span style={cs.previewStyle}>
-                        {cs.id === "regular" ? (
-                          "REGULAR"
-                        ) : cs.id === "red_highlight" ? (
-                          <>Sample <span className="text-red-500">text</span></>
-                        ) : cs.id === "karaoke" ? (
-                          <>Sample <span className="bg-primary px-1 rounded">text</span></>
-                        ) : (
-                          "Sample text"
-                        )}
+                    <div className="h-20 bg-[#1a1a1a] flex items-center justify-center px-3" style={cs.containerStyle}>
+                      <span style={cs.baseStyle}>
+                        Sample{" "}
+                        <span style={{ ...cs.baseStyle, ...cs.activeStyle }}>text</span>
                       </span>
                     </div>
                     <div className={`py-2 text-center text-[11px] font-bold font-headline ${
@@ -1003,9 +1032,8 @@ export default function AIStorySetup() {
               })}
             </div>
 
-            {/* Extra caption settings panel */}
-            {captionSettingsOpen && (
-              <div className="mt-4 p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/20 space-y-4">
+            {/* Caption settings */}
+            <div className="mt-4 space-y-4">
                 {/* Font size */}
                 <div>
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block font-headline">
@@ -1080,8 +1108,7 @@ export default function AIStorySetup() {
                     ))}
                   </div>
                 </div>
-              </div>
-            )}
+            </div>
           </>
         )}
       </section>
