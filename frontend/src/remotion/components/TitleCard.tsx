@@ -1,79 +1,102 @@
 import React from "react";
-import { useCurrentFrame, useVideoConfig } from "remotion";
-import {
-  mgContainerStyle,
-  mgSpring,
-  labelStyle,
-  ACCENT,
-  FONT_FAMILY,
-} from "../mg-constants";
+import { useCurrentFrame, spring } from "remotion";
+import type { TitleCardData } from "../types";
+import { SAFE_ZONE, FONT_FAMILY, COLORS } from "./shared";
 
-interface TitleCardProps {
-  headline: string;
-  subtitle?: string;
-  accent_color?: string;
+export const TitleCard: React.FC<{
+  data: TitleCardData;
   startFrame: number;
   endFrame: number;
-}
-
-export const TitleCard: React.FC<TitleCardProps> = ({
-  headline,
-  subtitle,
-  accent_color = ACCENT,
-  startFrame,
-  endFrame,
-}) => {
+  fps: number;
+}> = ({ data, startFrame, endFrame, fps }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const relFrame = frame - startFrame;
 
-  // Headline: spring from scale(2.0) to scale(1.0)
-  const headlineProgress = mgSpring(frame, fps, startFrame);
-  const headlineScale = 2.0 - headlineProgress * 1.0; // 2.0 → 1.0
+  const accentColor = data.accent_color || COLORS.accent;
 
-  // Subtitle: slides up, 10 frames after headline
-  const subtitleProgress = mgSpring(frame, fps, startFrame + 10);
+  const headlineSpring = spring({
+    frame: relFrame,
+    fps,
+    config: { damping: 12, stiffness: 100, mass: 0.8 },
+  });
+
+  const subtitleSpring = spring({
+    frame: Math.max(0, relFrame - 8),
+    fps,
+    config: { damping: 14, stiffness: 80, mass: 0.6 },
+  });
+
+  const lineSpring = spring({
+    frame: Math.max(0, relFrame - 4),
+    fps,
+    config: { damping: 16, stiffness: 140, mass: 0.5 },
+  });
 
   return (
     <div
       style={{
-        ...mgContainerStyle,
-        background: `radial-gradient(ellipse at center, ${accent_color}1F 0%, #0a0a0a 70%)`,
+        ...SAFE_ZONE,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
       }}
     >
-      {/* Headline */}
       <div
         style={{
+          width: 160,
+          height: 7,
+          backgroundColor: accentColor,
+          borderRadius: 4,
+          marginBottom: 44,
+          transform: `scaleX(${lineSpring})`,
+          transformOrigin: "center",
+        }}
+      />
+
+      <div
+        style={{
+          fontSize: 112,
+          fontWeight: 900,
           fontFamily: FONT_FAMILY,
-          fontWeight: 800,
-          fontSize: 64,
-          color: "white",
+          color: COLORS.text,
           textAlign: "center",
-          lineHeight: 1.2,
-          opacity: headlineProgress,
-          transform: `scale(${headlineScale})`,
-          maxWidth: 900,
+          lineHeight: 1.15,
+          opacity: headlineSpring,
+          transform: `translateY(${(1 - headlineSpring) * 40}px)`,
         }}
       >
-        {headline}
+        {data.headline}
       </div>
 
-      {/* Subtitle */}
-      {subtitle && (
+      {data.subtitle && (
         <div
           style={{
-            ...labelStyle,
-            color: accent_color,
-            fontSize: 36,
-            marginTop: 16,
+            fontSize: 62,
+            fontWeight: 500,
+            fontFamily: FONT_FAMILY,
+            color: COLORS.textSecondary,
             textAlign: "center",
-            opacity: subtitleProgress,
-            transform: `translateY(${(1 - subtitleProgress) * 20}px)`,
-            maxWidth: 800,
+            marginTop: 28,
+            opacity: subtitleSpring,
+            transform: `translateY(${(1 - subtitleSpring) * 20}px)`,
           }}
         >
-          {subtitle}
+          {data.subtitle}
         </div>
       )}
+
+      <div
+        style={{
+          width: 160,
+          height: 7,
+          backgroundColor: accentColor,
+          borderRadius: 4,
+          marginTop: 44,
+          transform: `scaleX(${lineSpring})`,
+          transformOrigin: "center",
+        }}
+      />
     </div>
   );
 };

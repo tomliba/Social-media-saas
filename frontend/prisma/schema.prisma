@@ -101,6 +101,9 @@ model ContentItem {
   durationSec     Int?
   renderTimeSec   Int?
   error           String?
+  previewData     String?  // JSON: audioUrl, backgroundPaths, captions, volumePerFrame, durationInFrames, fps, backgroundType, showCaptions
+  creativeSettings String? // JSON: captionStyle, music, musicUrl, filmGrain, shakeEffect, transitionStyle, hookText, etc.
+  resolvedSegments String? // JSON: resolved visual segments for render-export
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

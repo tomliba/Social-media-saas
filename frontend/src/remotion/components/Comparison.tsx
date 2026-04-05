@@ -1,186 +1,142 @@
 import React from "react";
-import { useCurrentFrame, useVideoConfig } from "remotion";
-import {
-  mgContainerStyle,
-  mgSpring,
-  FONT_FAMILY,
-  DIVIDER_COLOR,
-} from "../mg-constants";
+import { useCurrentFrame, spring } from "remotion";
+import type { ComparisonData } from "../types";
+import { SAFE_ZONE, FONT_FAMILY, COLORS } from "./shared";
 
-interface ComparisonProps {
-  left_label: string;
-  right_label: string;
-  left_items?: string[];
-  right_items?: string[];
+export const Comparison: React.FC<{
+  data: ComparisonData;
   startFrame: number;
   endFrame: number;
-}
-
-const RED = "rgba(239,68,68,0.08)";
-const GREEN = "rgba(34,197,94,0.08)";
-const RED_TEXT = "#ef4444";
-const GREEN_TEXT = "#22c55e";
-
-export const Comparison: React.FC<ComparisonProps> = ({
-  left_label,
-  right_label,
-  left_items = [],
-  right_items = [],
-  startFrame,
-  endFrame,
-}) => {
+  fps: number;
+}> = ({ data, startFrame, endFrame, fps }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const relFrame = frame - startFrame;
+  const duration = endFrame - startFrame;
 
-  const leftSlide = mgSpring(frame, fps, startFrame);
-  const rightSlide = mgSpring(frame, fps, startFrame + 4);
-  const vsProgress = mgSpring(frame, fps, startFrame + 8);
+  const labelSpring = spring({
+    frame: relFrame,
+    fps,
+    config: { damping: 14, stiffness: 120, mass: 0.8 },
+  });
+
+  const dividerSpring = spring({
+    frame: Math.max(0, relFrame - 6),
+    fps,
+    config: { damping: 12, stiffness: 100, mass: 0.6 },
+  });
+
+  const leftItems = data.left_items || [];
+  const rightItems = data.right_items || [];
+  const maxItems = Math.max(leftItems.length, rightItems.length);
+  const itemDelay = Math.min(8, Math.floor((duration - 20) / Math.max(maxItems, 1)));
 
   return (
-    <div style={mgContainerStyle}>
+    <div style={{ ...SAFE_ZONE, display: "flex", flexDirection: "column", justifyContent: "center" }}>
       <div
         style={{
           display: "flex",
-          width: "100%",
-          height: "100%",
-          position: "relative",
+          justifyContent: "space-between",
+          marginBottom: 48,
+          opacity: labelSpring,
         }}
       >
-        {/* Left column */}
         <div
           style={{
             flex: 1,
-            background: RED,
-            borderRadius: "16px 0 0 16px",
-            padding: "40px 32px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            opacity: leftSlide,
-            transform: `translateX(${(1 - leftSlide) * -60}px)`,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: FONT_FAMILY,
-              fontWeight: 700,
-              fontSize: 48,
-              color: "white",
-              marginBottom: 32,
-            }}
-          >
-            {left_label}
-          </div>
-          {left_items.slice(0, 5).map((item, i) => {
-            const p = mgSpring(frame, fps, startFrame + 16 + i * 8);
-            return (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  marginBottom: 16,
-                  opacity: p,
-                  transform: `translateX(${(1 - p) * -30}px)`,
-                }}
-              >
-                <span style={{ fontSize: 32, color: RED_TEXT }}>✗</span>
-                <span
-                  style={{
-                    fontFamily: FONT_FAMILY,
-                    fontWeight: 400,
-                    fontSize: 36,
-                    color: "white",
-                  }}
-                >
-                  {item}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* VS badge */}
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: `translate(-50%, -50%) scale(${0.5 + vsProgress * 0.5})`,
-            opacity: vsProgress,
-            width: 64,
-            height: 64,
-            borderRadius: "50%",
-            background: DIVIDER_COLOR,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10,
-            fontFamily: FONT_FAMILY,
+            fontSize: 68,
             fontWeight: 800,
-            fontSize: 24,
-            color: "white",
+            fontFamily: FONT_FAMILY,
+            color: "#ef4444",
+            textAlign: "center",
+            transform: `translateX(${(1 - labelSpring) * -40}px)`,
           }}
         >
-          VS
+          {data.left_label}
         </div>
-
-        {/* Right column */}
         <div
           style={{
             flex: 1,
-            background: GREEN,
-            borderRadius: "0 16px 16px 0",
-            padding: "40px 32px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            opacity: rightSlide,
-            transform: `translateX(${(1 - rightSlide) * 60}px)`,
+            fontSize: 68,
+            fontWeight: 800,
+            fontFamily: FONT_FAMILY,
+            color: "#22c55e",
+            textAlign: "center",
+            transform: `translateX(${(1 - labelSpring) * 40}px)`,
           }}
         >
-          <div
-            style={{
-              fontFamily: FONT_FAMILY,
-              fontWeight: 700,
-              fontSize: 48,
-              color: "white",
-              marginBottom: 32,
-            }}
-          >
-            {right_label}
-          </div>
-          {right_items.slice(0, 5).map((item, i) => {
-            const p = mgSpring(frame, fps, startFrame + 16 + i * 8);
-            return (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  marginBottom: 16,
-                  opacity: p,
-                  transform: `translateX(${(1 - p) * 30}px)`,
-                }}
-              >
-                <span style={{ fontSize: 32, color: GREEN_TEXT }}>✓</span>
-                <span
-                  style={{
-                    fontFamily: FONT_FAMILY,
-                    fontWeight: 400,
-                    fontSize: 36,
-                    color: "white",
-                  }}
-                >
-                  {item}
-                </span>
-              </div>
-            );
-          })}
+          {data.right_label}
         </div>
       </div>
+
+      <div
+        style={{
+          width: "100%",
+          height: 4,
+          backgroundColor: COLORS.textSecondary,
+          marginBottom: 48,
+          transform: `scaleX(${dividerSpring})`,
+          transformOrigin: "center",
+          opacity: dividerSpring * 0.4,
+        }}
+      />
+
+      {Array.from({ length: maxItems }).map((_, i) => {
+        const itemFrame = relFrame - 14 - i * itemDelay;
+        const s = spring({
+          frame: Math.max(0, itemFrame),
+          fps,
+          config: { damping: 12, stiffness: 100, mass: 0.6 },
+        });
+        const appeared = itemFrame >= 0;
+
+        return (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 40,
+              opacity: appeared ? s : 0,
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                fontSize: 54,
+                fontWeight: 600,
+                fontFamily: FONT_FAMILY,
+                color: COLORS.text,
+                textAlign: "center",
+                paddingRight: 20,
+                transform: `translateX(${(1 - (appeared ? s : 0)) * -30}px)`,
+              }}
+            >
+              {leftItems[i] || ""}
+            </div>
+            <div
+              style={{
+                width: 3,
+                backgroundColor: COLORS.textSecondary,
+                opacity: 0.3,
+              }}
+            />
+            <div
+              style={{
+                flex: 1,
+                fontSize: 54,
+                fontWeight: 600,
+                fontFamily: FONT_FAMILY,
+                color: COLORS.text,
+                textAlign: "center",
+                paddingLeft: 20,
+                transform: `translateX(${(1 - (appeared ? s : 0)) * 30}px)`,
+              }}
+            >
+              {rightItems[i] || ""}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

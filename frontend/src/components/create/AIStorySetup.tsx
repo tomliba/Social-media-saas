@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import VoicePickerModal from "@/components/create/VoicePickerModal";
-import { triggerVideoRenders } from "@/app/actions/create-videos";
+import { triggerPrepareAssets } from "@/app/actions/prepare-assets";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 
@@ -275,7 +275,7 @@ const durations = [
 // ── Step pills ──
 
 function StepPills({ current }: { current: number }) {
-  const steps = ["Setup", "Script", "Review"];
+  const steps = ["Setup", "Script"];
   return (
     <div className="flex gap-2 mb-8">
       {steps.map((s, i) => (
@@ -284,7 +284,9 @@ function StepPills({ current }: { current: number }) {
           className={`px-4 py-1.5 rounded-full text-xs font-bold font-headline transition-all ${
             i === current
               ? "bg-primary text-on-primary"
-              : "bg-surface-container text-on-surface-variant"
+              : i < current
+                ? "bg-primary/20 text-primary"
+                : "bg-surface-container text-on-surface-variant"
           }`}
         >
           {s}
@@ -315,7 +317,7 @@ interface ScriptData {
 export default function AIStorySetup() {
   const router = useRouter();
 
-  // ── Step: 0 = setup, 1 = script review, 2 = creating ──
+  // ── Step: 0 = setup, 1 = script review, 2 = preparing assets ──
   const [step, setStep] = useState(0);
 
   // Setup state
@@ -389,8 +391,10 @@ export default function AIStorySetup() {
   const [editScenes, setEditScenes] = useState<ScriptScene[]>([]);
   const [editCta, setEditCta] = useState("");
 
-  // Creating state
-  const [creating, setCreating] = useState(false);
+
+
+  // Preview flow state
+  const [prepareError, setPrepareError] = useState<string | null>(null);
 
   // Popover state
   const [durationPopoverOpen, setDurationPopoverOpen] = useState(false);
@@ -488,83 +492,77 @@ export default function AIStorySetup() {
     }
   }, [topic, customPrompt, tone, artStyle, duration, endScreenCta]);
 
-  // ── Accept and create (trigger render pipeline) ──
-  const handleAcceptAndCreate = async () => {
+  // ── Build the common aiStory settings object ──
+  const buildAiStorySettings = () => ({
+    vgJobId: scriptData!.vg_job_id,
+    hook: editHook,
+    scenes: editScenes,
+    cta: editCta,
+    artStyle,
+    captionStyle: captionsEnabled ? captionStyle : null,
+    captionFontSize: captionsEnabled ? captionFontSize : null,
+    captionTransform: captionsEnabled ? captionTransform : null,
+    captionPosition: captionsEnabled ? captionPosition : null,
+    music: music ? (musicTracks.find((t) => t.id === music)?.backendFile ?? music) : null,
+    language: videoLanguage,
+    filmGrain,
+    shakeEffect: shake,
+    sceneMode,
+    tone,
+    duration,
+    transitionStyle: "fade" as const,
+  });
+
+  // ── Preview video: create library item, trigger prepare-assets, navigate immediately ──
+  const handlePreviewVideo = async () => {
     if (!scriptData) return;
-    setCreating(true);
-    setStep(2);
+    setPrepareError(null);
 
     try {
-      // Build the full script text from scenes
       const fullScript = editScenes.map((s) => s.text).join(" ");
+      const aiStorySettings = buildAiStorySettings();
+      const title = editHook || scriptData.hook || "AI Voice Story";
 
-      const handles = await triggerVideoRenders([
-        {
-          title: editHook || scriptData.hook || "AI Voice Story",
+      // 1. Create library item with status "preparing"
+      const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const libRes = await fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId,
+          title,
+          format: "video",
+          templateId: "AI Story",
+          backgroundMode: "AI Images",
+          status: "preparing",
           script: fullScript,
-          template: "AI Story",
-          settings: {
-            tone,
-            presenter: "none",
-            voice: selectedVoice?.fishAudioId || defaultVoice.fishAudioId,
-            background: "AI images",
-            backgroundMode: "AI Images",
-            duration: `${duration}s`,
-            layout: "Standard",
-            speed,
-            aiStory: {
-              vgJobId: scriptData.vg_job_id,
-              hook: editHook,
-              scenes: editScenes,
-              cta: editCta,
-              artStyle,
-              captionStyle: captionsEnabled ? captionStyle : null,
-              captionFontSize: captionsEnabled ? captionFontSize : null,
-              captionTransform: captionsEnabled ? captionTransform : null,
-              captionPosition: captionsEnabled ? captionPosition : null,
-              music: music ? (musicTracks.find((t) => t.id === music)?.backendFile ?? music) : null,
-              language: videoLanguage,
-              filmGrain,
-              shakeEffect: shake,
-              sceneMode,
-              tone,
-              duration,
-              transitionStyle: "fade",
-            },
-          },
+          durationSec: duration,
+        }),
+      });
+
+      if (!libRes.ok) throw new Error("Failed to create library item");
+      const { item: libItem } = await libRes.json();
+
+      // 2. Trigger prepare-assets (fire and forget — task will PATCH library item on completion)
+      triggerPrepareAssets({
+        title,
+        script: fullScript,
+        libraryItemId: libItem.id,
+        settings: {
+          voice: selectedVoice?.fishAudioId || defaultVoice.fishAudioId,
+          speed,
+          backgroundMode: "AI Images",
+          aiStory: aiStorySettings,
         },
-      ]);
+      }).catch((err) => {
+        console.error("Failed to trigger prepare-assets:", err);
+      });
 
-      // Create library entries
-      await Promise.all(
-        handles.map(async (h) => {
-          await fetch("/api/library", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              jobId: h.runId,
-              title: h.title,
-              format: "video",
-              backgroundMode: "AI Images",
-              script: fullScript,
-              durationSec: duration,
-              ...(h.directResult && {
-                status: h.directResult.status,
-                videoUrl: h.directResult.videoUrl ?? null,
-                thumbnailUrl: h.directResult.videoUrl ?? null,
-              }),
-            }),
-          });
-        })
-      );
-
-      sessionStorage.setItem("pending-renders", JSON.stringify(handles));
-      sessionStorage.setItem("pending-format", "video");
+      // 3. Navigate immediately
       router.push("/library");
     } catch (err) {
-      console.error("Failed to trigger AI story render:", err);
-      setCreating(false);
-      setStep(1);
+      console.error("Failed to start preview:", err);
+      setPrepareError(err instanceof Error ? err.message : "Failed to start preview");
     }
   };
 
@@ -572,7 +570,7 @@ export default function AIStorySetup() {
   if (step >= 1) {
     return (
       <main className="min-h-screen bg-surface pt-8 pb-48 px-6 max-w-4xl mx-auto">
-        <StepPills current={step >= 2 ? 2 : 1} />
+        <StepPills current={1} />
 
         {/* Back to setup */}
         <button
@@ -587,8 +585,15 @@ export default function AIStorySetup() {
           Review your story
         </h1>
         <p className="text-on-surface-variant text-sm mb-10">
-          Edit the hook, scenes, and CTA before creating your video
+          Edit the hook, scenes, and CTA before previewing your video
         </p>
+
+        {/* Error from prepare-assets */}
+        {prepareError && (
+          <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm font-medium">
+            {prepareError}
+          </div>
+        )}
 
         {/* Hook */}
         <div className="mb-8">
@@ -687,27 +692,13 @@ export default function AIStorySetup() {
           </button>
 
           <button
-            onClick={handleAcceptAndCreate}
-            disabled={creating}
-            className={`flex-1 max-w-md py-4 rounded-xl text-base font-bold font-headline flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95 ${
-              creating
-                ? "bg-primary/80 text-on-primary cursor-wait"
-                : "bg-primary text-on-primary shadow-primary/30"
-            }`}
+            onClick={handlePreviewVideo}
+            className="flex-1 max-w-md py-4 rounded-xl text-base font-bold font-headline flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95 bg-primary text-on-primary shadow-primary/30"
           >
-            {creating ? (
-              <>
-                <span className="material-symbols-outlined animate-spin">progress_activity</span>
-                Launching render...
-              </>
-            ) : (
-              <>
-                Accept and create
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  auto_awesome
-                </span>
-              </>
-            )}
+              Preview video
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                play_circle
+              </span>
           </button>
         </footer>
 

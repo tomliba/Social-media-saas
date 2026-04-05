@@ -18,17 +18,18 @@ export async function POST(
     );
   }
 
-  // Look up by jobId (the Trigger.dev run ID) — id param is the jobId
-  const item = await prisma.contentItem.findUnique({
-    where: { jobId: id },
-  });
+  // Look up by item id first, then fall back to jobId (Trigger.dev run ID)
+  let item = await prisma.contentItem.findUnique({ where: { id } });
+  if (!item) {
+    item = await prisma.contentItem.findUnique({ where: { jobId: id } });
+  }
 
   if (!item) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const updated = await prisma.contentItem.update({
-    where: { jobId: id },
+    where: { id: item.id },
     data: {
       status,
       videoUrl: videoUrl ?? null,

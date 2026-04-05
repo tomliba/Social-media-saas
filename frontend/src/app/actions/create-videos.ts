@@ -34,6 +34,10 @@ export interface VideoRenderRequest {
       tone: string;
       duration: number;
       transitionStyle: string;
+      /** When true, TTS/visual-plan/resolve-assets are already done (preview→export flow) */
+      assetsReady?: boolean;
+      /** Pre-resolved visual segments from prepare-assets task */
+      resolvedSegments?: import("@/lib/video-types").VisualSegment[];
     };
   };
 }

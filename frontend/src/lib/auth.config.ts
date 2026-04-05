@@ -44,6 +44,7 @@ export const authConfig: NextAuthConfig = {
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/_next") ||
         pathname.endsWith("/complete") || // Trigger.dev server-to-server callback
+        pathname.endsWith("/preview-ready") || // prepare-assets server-to-server callback
         pathname.includes(".");
 
       if (isPublic) return true;

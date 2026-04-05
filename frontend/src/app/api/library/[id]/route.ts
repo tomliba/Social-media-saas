@@ -20,7 +20,7 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const { status, videoUrl, thumbnailUrl, error } = body;
+  const { status, videoUrl, thumbnailUrl, error, jobId } = body;
 
   const updated = await prisma.contentItem.update({
     where: { id },
@@ -29,6 +29,7 @@ export async function PATCH(
       ...(videoUrl !== undefined && { videoUrl }),
       ...(thumbnailUrl !== undefined && { thumbnailUrl }),
       ...(error !== undefined && { error }),
+      ...(jobId !== undefined && { jobId }),
     },
   });
 

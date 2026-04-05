@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import type { PreviewData, CreativeSettings } from "@/components/create/AIStoryPreview";
+import { triggerRenderPreview } from "@/app/actions/render-preview";
+
+const AIStoryPreview = dynamic(() => import("@/components/create/AIStoryPreview"), { ssr: false });
 
 interface ContentItem {
   id: string;
@@ -17,6 +22,9 @@ interface ContentItem {
   durationSec: number | null;
   renderTimeSec: number | null;
   error: string | null;
+  previewData: string | null;
+  creativeSettings: string | null;
+  resolvedSegments: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -31,6 +39,8 @@ const formatFilters = [
 
 const statusFilters = [
   { key: "all", label: "All" },
+  { key: "preparing", label: "Preparing", icon: "hourglass_top" },
+  { key: "preview", label: "Preview", icon: "play_circle" },
   { key: "rendering", label: "Rendering", icon: "hourglass_top" },
   { key: "ready", label: "Ready", icon: "check_circle" },
   { key: "failed", label: "Failed", icon: "error" },
@@ -66,10 +76,95 @@ function formatLabel(format: string): string {
 function VideoPreviewModal({
   item,
   onClose,
+  onItemUpdated,
 }: {
   item: ContentItem;
   onClose: () => void;
+  onItemUpdated?: (updated: ContentItem) => void;
 }) {
+  const [exporting, setExporting] = useState(false);
+  const isPreview = item.status === "preview";
+
+  // Parse stored JSON for preview items
+  const parsedPreviewData: PreviewData | null = (() => {
+    if (!isPreview || !item.previewData) return null;
+    try { return JSON.parse(item.previewData); } catch { return null; }
+  })();
+  const parsedCreativeSettings: CreativeSettings | null = (() => {
+    if (!isPreview || !item.creativeSettings) return null;
+    try { return JSON.parse(item.creativeSettings); } catch { return null; }
+  })();
+
+  const handlePreviewExport = async () => {
+    if (exporting || !parsedPreviewData || !parsedCreativeSettings) return;
+    setExporting(true);
+    try {
+      // Trigger the render-preview task with preview data from the library item
+      const handle = await triggerRenderPreview({
+        libraryItemId: item.id,
+        title: item.title,
+        previewData: parsedPreviewData,
+        creativeSettings: parsedCreativeSettings,
+      });
+
+      // Update library item: status → rendering
+      await fetch(`/api/library/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rendering", jobId: handle.runId }),
+      });
+
+      if (onItemUpdated) {
+        onItemUpdated({ ...item, status: "rendering", jobId: handle.runId });
+      }
+
+      onClose();
+    } catch (err) {
+      console.error("Export from preview failed:", err);
+      setExporting(false);
+    }
+  };
+
+  // Preview items → show AIStoryPreview in the modal
+  if (isPreview && parsedPreviewData && parsedCreativeSettings) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden max-h-[95vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Close button */}
+          <div className="flex justify-end px-4 pt-3">
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-full hover:bg-zinc-100 flex items-center justify-center transition-colors"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+
+          <AIStoryPreview
+            previewData={parsedPreviewData}
+            creativeSettings={parsedCreativeSettings}
+            onExport={handlePreviewExport}
+            onBack={onClose}
+          />
+
+          {exporting && (
+            <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center gap-3 rounded-2xl">
+              <div className="w-10 h-10 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
+              <span className="text-sm font-medium text-primary">Starting render...</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Default: existing modal for ready/rendering/failed items
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
@@ -173,6 +268,8 @@ function ContentCard({
   onToggleSelect?: () => void;
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const isPreparing = item.status === "preparing";
+  const isPreview = item.status === "preview";
   const isRendering = item.status === "rendering";
   const isReady = item.status === "ready";
   const isFailed = item.status === "failed";
@@ -192,14 +289,16 @@ function ContentCard({
       {/* Thumbnail area */}
       <div
         className={`aspect-video flex items-center justify-center relative ${
-          isRendering
+          isPreparing || isRendering
             ? "bg-gradient-to-br from-violet-50 to-purple-50"
             : isFailed
             ? "bg-gradient-to-br from-red-50 to-rose-50"
+            : isPreview
+            ? "bg-gradient-to-br from-violet-50 to-purple-50"
             : "bg-zinc-100"
         }`}
-        onClick={!selectionMode && isReady ? onReview : undefined}
-        style={!selectionMode && isReady ? { cursor: "pointer" } : undefined}
+        onClick={!selectionMode && (isReady || isPreview) ? onReview : undefined}
+        style={!selectionMode && (isReady || isPreview) ? { cursor: "pointer" } : undefined}
       >
         {/* Selection checkbox */}
         {selectionMode && (
@@ -213,6 +312,18 @@ function ContentCard({
             </div>
           </div>
         )}
+        {isPreparing && (
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
+            <span className="text-sm font-medium text-primary">
+              Preparing...
+            </span>
+            <span className="text-xs text-on-surface-variant">
+              {formatDuration(elapsedSec)} elapsed
+            </span>
+          </div>
+        )}
+
         {isRendering && (
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
@@ -224,6 +335,35 @@ function ContentCard({
             </span>
           </div>
         )}
+
+        {isPreview && (() => {
+          let thumbUrl: string | null = null;
+          if (item.previewData) {
+            try {
+              const pd = JSON.parse(item.previewData);
+              if (pd.backgroundPaths?.[0]?.startsWith("https://")) {
+                thumbUrl = pd.backgroundPaths[0];
+              }
+            } catch { /* ignore */ }
+          }
+          return thumbUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={thumbUrl} alt={item.title} className="w-full h-full object-cover" />
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                  <span className="material-symbols-outlined text-3xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <span className="material-symbols-outlined text-4xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
+              <span className="text-sm font-medium text-primary">Preview ready</span>
+            </div>
+          );
+        })()}
 
         {isFailed && (
           <div className="flex flex-col items-center gap-2 px-4 text-center">
@@ -289,10 +429,24 @@ function ContentCard({
         <h3 className="font-headline font-bold text-sm text-on-surface truncate mb-1">
           {item.title}
         </h3>
-        <p className="text-xs text-on-surface-variant mb-1">
-          {formatLabel(item.format)}
-          {item.backgroundMode && ` \u00B7 ${item.backgroundMode}`}
-        </p>
+        <div className="flex items-center gap-2 mb-1">
+          <p className="text-xs text-on-surface-variant">
+            {formatLabel(item.format)}
+            {item.backgroundMode && ` \u00B7 ${item.backgroundMode}`}
+          </p>
+          {isPreparing && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-primary bg-primary/10 rounded-full">
+              <span className="material-symbols-outlined text-[10px] animate-spin">progress_activity</span>
+              Preparing
+            </span>
+          )}
+          {isPreview && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-primary bg-primary/10 rounded-full">
+              <span className="material-symbols-outlined text-[10px]">play_circle</span>
+              Preview
+            </span>
+          )}
+        </div>
         <p className="text-xs text-on-surface-variant">
           {item.durationSec ? `${formatDuration(item.durationSec)} \u00B7 ` : ""}
           {relativeTime(item.createdAt)}
@@ -300,6 +454,26 @@ function ContentCard({
 
         {/* Actions */}
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-zinc-100">
+          {isPreview && (
+            <button
+              onClick={onReview}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary bg-violet-50 hover:bg-violet-100 rounded-lg transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm">play_circle</span>
+              Preview
+            </button>
+          )}
+
+          {isPreview && (
+            <button
+              onClick={onReview}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white primary-gradient rounded-lg transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm">movie</span>
+              Render HD
+            </button>
+          )}
+
           {isReady && (
             <button
               onClick={onReview}
@@ -462,14 +636,14 @@ export default function LibraryPage() {
     fetchLibrary();
   }, [fetchLibrary]);
 
-  // Poll every 10s while any items are rendering
-  const hasRenderingItems = items.some((i) => i.status === "rendering");
+  // Poll every 10s while any items are rendering or preparing
+  const hasInProgressItems = items.some((i) => i.status === "rendering" || i.status === "preparing");
 
   useEffect(() => {
-    if (!hasRenderingItems) return;
+    if (!hasInProgressItems) return;
     const interval = setInterval(fetchLibrary, 10000);
     return () => clearInterval(interval);
-  }, [hasRenderingItems, fetchLibrary]);
+  }, [hasInProgressItems, fetchLibrary]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -672,6 +846,10 @@ export default function LibraryPage() {
         <VideoPreviewModal
           item={previewItem}
           onClose={() => setPreviewItem(null)}
+          onItemUpdated={(updated) => {
+            setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+            setPreviewItem(null);
+          }}
         />
       )}
 

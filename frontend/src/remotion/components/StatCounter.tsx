@@ -1,89 +1,79 @@
 import React from "react";
-import { useCurrentFrame, useVideoConfig, interpolate } from "remotion";
-import {
-  mgContainerStyle,
-  mgSpring,
-  labelStyle,
-  FONT_FAMILY,
-} from "../mg-constants";
+import { useCurrentFrame, interpolate, spring } from "remotion";
+import type { StatCounterData } from "../types";
+import { SAFE_ZONE, FONT_FAMILY, COLORS } from "./shared";
 
-interface StatCounterProps {
-  number: number;
-  suffix?: string;
-  label: string;
-  color?: string;
+export const StatCounter: React.FC<{
+  data: StatCounterData;
   startFrame: number;
   endFrame: number;
-}
-
-export const StatCounter: React.FC<StatCounterProps> = ({
-  number: targetNumber,
-  suffix = "",
-  label,
-  color = "#6366f1",
-  startFrame,
-  endFrame,
-}) => {
+  fps: number;
+}> = ({ data, startFrame, endFrame, fps }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const relFrame = frame - startFrame;
+  const duration = endFrame - startFrame;
 
-  // Count-up over 40 frames
-  const countEnd = startFrame + 40;
-  const currentNumber = Math.round(
-    interpolate(frame, [startFrame, countEnd], [0, targetNumber], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-    })
-  );
+  const countDuration = Math.floor(duration * 0.6);
+  const countProgress = interpolate(relFrame, [5, 5 + countDuration], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
 
-  const numberProgress = mgSpring(frame, fps, startFrame);
-  const labelProgress = mgSpring(frame, fps, startFrame + 10);
+  const easedProgress = 1 - Math.pow(1 - countProgress, 3);
+  const currentNumber = Math.round(data.number * easedProgress);
+
+  const entrance = spring({
+    frame: relFrame,
+    fps,
+    config: { damping: 14, stiffness: 100, mass: 0.8 },
+  });
+
+  const labelSpring = spring({
+    frame: Math.max(0, relFrame - 8),
+    fps,
+    config: { damping: 12, stiffness: 80, mass: 0.6 },
+  });
+
+  const accentColor = data.color || COLORS.accent;
 
   return (
-    <div style={mgContainerStyle}>
-      {/* Radial glow behind number */}
+    <div
+      style={{
+        ...SAFE_ZONE,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
       <div
         style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -60%)",
-          width: 500,
-          height: 500,
-          borderRadius: "50%",
-          background: `radial-gradient(circle, ${color}26 0%, transparent 70%)`,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Number + suffix */}
-      <div
-        style={{
+          fontSize: 240,
+          fontWeight: 900,
           fontFamily: FONT_FAMILY,
-          fontWeight: 800,
-          fontSize: 120,
-          color,
-          fontVariantNumeric: "tabular-nums",
-          opacity: numberProgress,
-          transform: `scale(${0.8 + numberProgress * 0.2})`,
+          color: accentColor,
+          opacity: entrance,
+          transform: `scale(${0.5 + entrance * 0.5})`,
           lineHeight: 1,
         }}
       >
         {currentNumber.toLocaleString()}
-        {suffix}
+        <span style={{ fontSize: 140 }}>{data.suffix}</span>
       </div>
 
-      {/* Label */}
       <div
         style={{
-          ...labelStyle,
-          marginTop: 24,
+          fontSize: 72,
+          fontWeight: 600,
+          fontFamily: FONT_FAMILY,
+          color: COLORS.textSecondary,
+          marginTop: 40,
+          opacity: labelSpring,
+          transform: `translateY(${(1 - labelSpring) * 20}px)`,
           textAlign: "center",
-          opacity: labelProgress,
-          transform: `translateY(${(1 - labelProgress) * 20}px)`,
         }}
       >
-        {label}
+        {data.label}
       </div>
     </div>
   );

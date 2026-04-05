@@ -131,6 +131,8 @@ export interface DirectVideoRequest {
       tone: string;
       duration: number;
       transitionStyle: string;
+      assetsReady?: boolean;
+      resolvedSegments?: VisualSegment[];
     };
   };
 }
@@ -352,6 +354,146 @@ export async function renderVideoViaFlask(
   return {
     videoUrl,
     caption: `${scriptData.hook} ${scriptData.cta}`,
+  };
+}
+
+// ── Asset preparation (preview flow) ──
+
+import type { PrepareAssetsPayload, PrepareAssetsOutput } from "../../trigger/prepare-assets";
+
+interface CaptionWord {
+  word: string;
+  startFrame: number;
+  endFrame: number;
+}
+
+interface CaptionEntry {
+  text: string;
+  startFrame: number;
+  endFrame: number;
+  words: CaptionWord[];
+}
+
+export async function prepareAssetsViaFlask(
+  payload: PrepareAssetsPayload
+): Promise<PrepareAssetsOutput> {
+  const base = flaskUrl();
+  if (!base) {
+    throw new Error("FLASK_API_URL not set — cannot prepare assets without Flask backend");
+  }
+
+  const headers = flaskHeaders();
+  const aiStory = payload.settings.aiStory;
+  const jobId = aiStory.vgJobId;
+  const voiceId = payload.settings.voice || defaultVoice.fishAudioId;
+  const speed = payload.settings.speed ?? 1.0;
+  const bgMode = backgroundModeMap[payload.settings.backgroundMode ?? "AI Images"] ?? "ai_images";
+
+  // Step 1: TTS
+  const ttsRes = await fetch(`${base}/vg/tts`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      vg_job_id: jobId,
+      voice_id: voiceId,
+      speed,
+      language: aiStory.language,
+    }),
+  });
+
+  if (!ttsRes.ok) {
+    throw new Error(`Flask /vg/tts failed (${ttsRes.status}): ${await ttsRes.text()}`);
+  }
+
+  const ttsData = (await ttsRes.json()) as {
+    audio_duration_ms: number;
+    word_timestamps: unknown[];
+  };
+
+  // Step 2: Visual plan
+  const vpRes = await fetch(`${base}/vg/visual-plan`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      vg_job_id: jobId,
+      background_mode: bgMode,
+      script: payload.script,
+      audio_duration_ms: ttsData.audio_duration_ms,
+      word_timestamps: ttsData.word_timestamps,
+      art_style: aiStory.artStyle,
+      style: "ai-story",
+      scene_mode: aiStory.sceneMode,
+    }),
+  });
+
+  if (!vpRes.ok) {
+    throw new Error(`Flask /vg/visual-plan failed (${vpRes.status}): ${await vpRes.text()}`);
+  }
+
+  const visualPlanData = (await vpRes.json()) as { segments: VisualSegment[] };
+
+  // Step 3: Resolve assets
+  const raRes = await fetch(`${base}/vg/resolve-assets`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      vg_job_id: jobId,
+      segments: visualPlanData.segments,
+      art_style: aiStory.artStyle,
+      style: "ai-story",
+      scene_mode: aiStory.sceneMode,
+    }),
+  });
+
+  if (!raRes.ok) {
+    throw new Error(`Flask /vg/resolve-assets failed (${raRes.status}): ${await raRes.text()}`);
+  }
+
+  const resolvedData = (await raRes.json()) as { segments: VisualSegment[] };
+
+  // Step 4: Get preview data
+  const pdRes = await fetch(`${base}/vg/preview-data`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      vg_job_id: jobId,
+      segments: resolvedData.segments,
+    }),
+  });
+
+  if (!pdRes.ok) {
+    throw new Error(`Flask /vg/preview-data failed (${pdRes.status}): ${await pdRes.text()}`);
+  }
+
+  // Flask returns camelCase: audioUrl, backgroundPaths, volumePerFrame, durationInFrames
+  const previewResponse = (await pdRes.json()) as {
+    audioUrl: string;
+    backgroundPaths: string[];
+    backgroundType: string;
+    captions: CaptionEntry[];
+    volumePerFrame: number[];
+    durationInFrames: number;
+    fps: number;
+    showCaptions: boolean;
+  };
+
+  console.log("[prepareAssetsViaFlask] /vg/preview-data response keys:", Object.keys(previewResponse));
+
+  const showCaptions = !!aiStory.captionStyle;
+
+  return {
+    previewData: {
+      audioUrl: previewResponse.audioUrl,
+      backgroundPaths: previewResponse.backgroundPaths,
+      captions: previewResponse.captions,
+      volumePerFrame: previewResponse.volumePerFrame,
+      durationInFrames: previewResponse.durationInFrames,
+      fps: previewResponse.fps,
+      backgroundType: (previewResponse.backgroundType as "video" | "image") || "image",
+      showCaptions,
+    },
+    resolvedSegments: resolvedData.segments,
+    jobId,
   };
 }
 

@@ -34,6 +34,10 @@ export interface RenderVideoPayload {
       tone: string;
       duration: number;
       transitionStyle: string;
+      /** When true, TTS/visual-plan/resolve-assets are already done (preview→export flow) */
+      assetsReady?: boolean;
+      /** Pre-resolved visual segments from prepare-assets task */
+      resolvedSegments?: VisualSegment[];
     };
   };
 }
@@ -301,7 +305,8 @@ export const renderVideo = task({
     metadata.set("stageLabel", "Script ready — generating speech...");
     metadata.set("progress", 15);
 
-    // ── Step 2: TTS (before visual plan so segments align to real speech timing) ──
+    // ── Step 2: TTS (ALWAYS runs — creates the job in Flask's memory + generates voiceover.mp3) ──
+    let resolvedData: { segments: VisualSegment[] };
     let ttsData: { audio_duration_ms: number; word_timestamps: unknown[] };
 
     try {
@@ -336,6 +341,16 @@ export const renderVideo = task({
     metadata.set("stageLabel", "Speech ready — planning visuals...");
     metadata.set("progress", 22);
 
+    if (aiStory?.assetsReady && aiStory.resolvedSegments) {
+      // ── Assets-ready shortcut: skip visual-plan + resolve-assets, use stored segments ──
+      logger.log("Assets already prepared (preview→export) — skipping visual-plan + resolve-assets", {
+        segmentCount: aiStory.resolvedSegments.length,
+      });
+      resolvedData = { segments: aiStory.resolvedSegments };
+      metadata.set("stage", "pipeline_starting");
+      metadata.set("stageLabel", "Starting video render...");
+      metadata.set("progress", 40);
+    } else {
     // ── Step 3: Visual plan (uses real speech timing for segment alignment) ──
     let visualPlanData: { segments: VisualSegment[] };
 
@@ -374,7 +389,6 @@ export const renderVideo = task({
     metadata.set("progress", 30);
 
     // ── Step 4: Resolve assets (fetch Pexels clip per segment) ──
-    let resolvedData: { segments: VisualSegment[] };
 
     try {
       console.log(`[render-video] ▶ STAGE: resolve_assets | jobId="${jobId}" segments=${visualPlanData.segments.length}`);
@@ -410,6 +424,7 @@ export const renderVideo = task({
     metadata.set("stage", "pipeline_starting");
     metadata.set("stageLabel", "Starting video pipeline (render)...");
     metadata.set("progress", 40);
+    } // end of non-assetsReady path
 
     // ── Step 5: Start pipeline via /vg/start (lipsync + Remotion render — TTS already done) ──
     try {

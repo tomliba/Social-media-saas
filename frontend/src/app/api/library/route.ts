@@ -28,7 +28,11 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { jobId, title, format, templateId, backgroundMode, script, durationSec, status: itemStatus, videoUrl, thumbnailUrl } = body;
+  const {
+    jobId, title, format, templateId, backgroundMode, script, durationSec,
+    status: itemStatus, videoUrl, thumbnailUrl,
+    previewData, creativeSettings, resolvedSegments,
+  } = body;
 
   if (!jobId || !title || !format) {
     return NextResponse.json(
@@ -50,6 +54,9 @@ export async function POST(req: NextRequest) {
       videoUrl: videoUrl ?? null,
       thumbnailUrl: thumbnailUrl ?? null,
       status: itemStatus ?? "rendering",
+      previewData: previewData ?? null,
+      creativeSettings: creativeSettings ?? null,
+      resolvedSegments: resolvedSegments ?? null,
     },
   });
 
