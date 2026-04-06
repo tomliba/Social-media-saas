@@ -229,4 +229,6 @@ export interface VideoProps {
   shakeEffect?: boolean;
   /** Scene transition style (ai-story only, character videos keep default crossfade) */
   transitionStyle?: SceneTransitionStyle;
+  /** Per-scene duration in frames — controls how long each background image is shown */
+  imageDurations?: number[];
 }

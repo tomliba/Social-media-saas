@@ -8,10 +8,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  console.log("[preview-ready] Called with id:", id, "method:", req.method);
   const body = await req.json();
   const { status, previewData, creativeSettings, resolvedSegments, durationSec } = body;
 
   const item = await prisma.contentItem.findUnique({ where: { id } });
+  console.log("[preview-ready] Prisma result:", item ? "found" : "not found", "id:", id);
   if (!item) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

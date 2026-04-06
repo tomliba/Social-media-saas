@@ -11,6 +11,7 @@ export interface RenderPreviewPayload {
     volumePerFrame: number[];
     durationInFrames: number;
     fps: number;
+    imageDurations?: number[];
   };
   creativeSettings: {
     hookText?: string;
@@ -128,6 +129,7 @@ export const renderPreview = task({
           shake_effect: creativeSettings.shakeEffect ?? false,
           transition_style: creativeSettings.transitionStyle,
           scale: 1.0,
+          ...(previewData.imageDurations && { image_durations: previewData.imageDurations }),
         }),
       });
 

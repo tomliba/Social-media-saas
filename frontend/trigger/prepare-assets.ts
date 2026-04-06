@@ -7,6 +7,8 @@ export interface PrepareAssetsPayload {
   script: string;
   /** Library item ID — task will PATCH this item with preview data on completion */
   libraryItemId?: string;
+  /** Pre-generated scene image R2 URLs — skips visual-plan and resolve-assets when provided */
+  preGeneratedImageUrls?: string[];
   settings: {
     voice: string;
     speed?: number;
@@ -44,6 +46,8 @@ export interface PrepareAssetsOutput {
     fps: number;
     backgroundType: "video" | "image";
     showCaptions: boolean;
+    /** Per-scene duration in frames (when pre-generated images with scene-timing are used) */
+    imageDurations?: number[];
   };
   /** Resolved visual segments — passed to render-video on export */
   resolvedSegments: VisualSegment[];
@@ -147,70 +151,137 @@ export const prepareAssets = task({
     metadata.set("stageLabel", "Voiceover ready — planning visuals...");
     metadata.set("progress", 30);
 
-    // ── Step 2: Visual plan ──
-    let visualPlanData: { segments: VisualSegment[] };
-
-    try {
-      metadata.set("stage", "visual_plan");
-      metadata.set("stageLabel", "Creating scene images...");
-      metadata.set("progress", 35);
-
-      const vpRes = await fetch(`${flaskUrl}/vg/visual-plan`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          vg_job_id: jobId,
-          background_mode: backgroundMode,
-          script: payload.script,
-          audio_duration_ms: ttsData.audio_duration_ms,
-          word_timestamps: ttsData.word_timestamps,
-          art_style: aiStory.artStyle,
-          style: "ai-story",
-          scene_mode: aiStory.sceneMode,
-        }),
-      });
-
-      if (!vpRes.ok) {
-        throw new Error(`Flask /vg/visual-plan failed (${vpRes.status}): ${await vpRes.text()}`);
-      }
-
-      visualPlanData = await vpRes.json() as { segments: VisualSegment[] };
-      logger.log("Visual plan complete", { segmentCount: visualPlanData.segments.length });
-    } catch (err) {
-      fail("visual_plan", err);
-    }
-
-    // ── Step 3: Resolve assets ──
     let resolvedData: { segments: VisualSegment[] };
 
-    try {
-      metadata.set("stage", "resolve_assets");
-      metadata.set("stageLabel", "Creating scene images...");
-      metadata.set("progress", 50);
+    const hasPreGeneratedUrls = payload.preGeneratedImageUrls && payload.preGeneratedImageUrls.length > 0;
+    let imageDurations: number[] | undefined;
 
-      const raRes = await fetch(`${flaskUrl}/vg/resolve-assets`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          vg_job_id: jobId,
-          segments: visualPlanData.segments,
-          art_style: aiStory.artStyle,
-          style: "ai-story",
-          scene_mode: aiStory.sceneMode,
-        }),
-      });
+    if (hasPreGeneratedUrls) {
+      // ── Pre-generated images — get scene timing (incl. hook + CTA), skip visual-plan + resolve-assets ──
+      const preUrls = payload.preGeneratedImageUrls!;
 
-      if (!raRes.ok) {
-        throw new Error(`Flask /vg/resolve-assets failed (${raRes.status}): ${await raRes.text()}`);
+      try {
+        metadata.set("stage", "scene_timing");
+        metadata.set("stageLabel", "Calculating scene timing...");
+        metadata.set("progress", 35);
+
+        const stRes = await fetch(`${flaskUrl}/vg/scene-timing`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            vg_job_id: jobId,
+            hook: aiStory.hook,
+            scenes: aiStory.scenes,
+            cta: aiStory.cta,
+            word_timestamps: ttsData.word_timestamps,
+            audio_duration_ms: ttsData.audio_duration_ms,
+          }),
+        });
+
+        if (!stRes.ok) {
+          throw new Error(`Flask /vg/scene-timing failed (${stRes.status}): ${await stRes.text()}`);
+        }
+
+        // Response includes timings for all entries: [hook, scene1, scene2, ..., cta]
+        const timingData = await stRes.json() as { scene_timings: { startSec: number; endSec: number; type?: string; label?: string }[] };
+        logger.log("Scene timing complete", { entryCount: timingData.scene_timings.length });
+
+        metadata.set("stage", "images_ready");
+        metadata.set("stageLabel", "Images ready — preparing preview...");
+        metadata.set("progress", 60);
+
+        // Map preGeneratedImageUrls sequentially: [hook, scene1, ..., cta]
+        const lastUrl = preUrls[preUrls.length - 1];
+        resolvedData = {
+          segments: timingData.scene_timings.map((timing, i) => ({
+            visual_type: "ai_image",
+            startSec: timing.startSec,
+            endSec: timing.endSec,
+            speech: timing.label ?? "",
+            asset_url: i < preUrls.length ? preUrls[i] : lastUrl,
+            data: {},
+          })),
+        };
+
+        logger.log("Using pre-generated image URLs", { count: preUrls.length, segments: resolvedData.segments.length });
+        logger.log("Scene timing debug", {
+          preGeneratedImageUrls: preUrls.length,
+          sceneTimings: timingData.scene_timings.length,
+          segments: resolvedData.segments.map((s, i) => ({
+            index: i,
+            startSec: s.startSec,
+            endSec: s.endSec,
+            urlPrefix: s.asset_url?.substring(0, 50),
+          })),
+        });
+      } catch (err) {
+        fail("scene_timing", err);
+      }
+    } else {
+      // ── Step 2: Visual plan ──
+      let visualPlanData: { segments: VisualSegment[] };
+
+      try {
+        metadata.set("stage", "visual_plan");
+        metadata.set("stageLabel", "Creating scene images...");
+        metadata.set("progress", 35);
+
+        const vpRes = await fetch(`${flaskUrl}/vg/visual-plan`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            vg_job_id: jobId,
+            background_mode: backgroundMode,
+            script: payload.script,
+            audio_duration_ms: ttsData.audio_duration_ms,
+            word_timestamps: ttsData.word_timestamps,
+            art_style: aiStory.artStyle,
+            style: "ai-story",
+            scene_mode: aiStory.sceneMode,
+          }),
+        });
+
+        if (!vpRes.ok) {
+          throw new Error(`Flask /vg/visual-plan failed (${vpRes.status}): ${await vpRes.text()}`);
+        }
+
+        visualPlanData = await vpRes.json() as { segments: VisualSegment[] };
+        logger.log("Visual plan complete", { segmentCount: visualPlanData.segments.length });
+      } catch (err) {
+        fail("visual_plan", err);
       }
 
-      resolvedData = await raRes.json() as { segments: VisualSegment[] };
-      logger.log("Assets resolved", {
-        segmentCount: resolvedData.segments.length,
-        withUrls: resolvedData.segments.filter((s) => s.asset_url).length,
-      });
-    } catch (err) {
-      fail("resolve_assets", err);
+      // ── Step 3: Resolve assets ──
+
+      try {
+        metadata.set("stage", "resolve_assets");
+        metadata.set("stageLabel", "Creating scene images...");
+        metadata.set("progress", 50);
+
+        const raRes = await fetch(`${flaskUrl}/vg/resolve-assets`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            vg_job_id: jobId,
+            segments: visualPlanData.segments,
+            art_style: aiStory.artStyle,
+            style: "ai-story",
+            scene_mode: aiStory.sceneMode,
+          }),
+        });
+
+        if (!raRes.ok) {
+          throw new Error(`Flask /vg/resolve-assets failed (${raRes.status}): ${await raRes.text()}`);
+        }
+
+        resolvedData = await raRes.json() as { segments: VisualSegment[] };
+        logger.log("Assets resolved", {
+          segmentCount: resolvedData.segments.length,
+          withUrls: resolvedData.segments.filter((s) => s.asset_url).length,
+        });
+      } catch (err) {
+        fail("resolve_assets", err);
+      }
     }
 
     // ── Step 4: Get preview data (R2 URLs for audio, images, captions) ──
@@ -231,12 +302,16 @@ export const prepareAssets = task({
       metadata.set("stageLabel", "Preparing preview...");
       metadata.set("progress", 85);
 
+      const previewDataBody: Record<string, unknown> = { vg_job_id: jobId };
+      if (hasPreGeneratedUrls) {
+        // Use the mapped URLs (in segment order, with last-URL reuse applied)
+        previewDataBody.background_urls = resolvedData.segments.map((s) => s.asset_url);
+      }
+
       const pdRes = await fetch(`${flaskUrl}/vg/preview-data`, {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          vg_job_id: jobId,
-        }),
+        body: JSON.stringify(previewDataBody),
       });
 
       if (!pdRes.ok) {
@@ -269,6 +344,15 @@ export const prepareAssets = task({
 
     const showCaptions = !!aiStory.captionStyle;
 
+    // Compute per-scene image durations in frames from resolved segment timing
+    if (hasPreGeneratedUrls) {
+      const fps = previewResponse.fps || 30;
+      imageDurations = resolvedData.segments.map((seg) =>
+        Math.round((seg.endSec - seg.startSec) * fps)
+      );
+      logger.log("Image durations (frames)", { imageDurations });
+    }
+
     const previewData = {
       audioUrl: previewResponse.audioUrl,
       backgroundPaths: (previewResponse.backgroundPaths ?? []).filter(
@@ -280,6 +364,7 @@ export const prepareAssets = task({
       fps: previewResponse.fps,
       backgroundType: (previewResponse.backgroundType as "video" | "image") || "image",
       showCaptions,
+      ...(imageDurations && { imageDurations }),
     };
 
     // Build creative settings for the Remotion player
@@ -316,6 +401,7 @@ export const prepareAssets = task({
     if (payload.libraryItemId) {
       try {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000";
+        logger.log("Calling preview-ready webhook", { url: `${appUrl}/api/library/${payload.libraryItemId}/preview-ready`, hasPreviewData: !!previewData });
         const patchRes = await fetch(`${appUrl}/api/library/${payload.libraryItemId}/preview-ready`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -328,7 +414,7 @@ export const prepareAssets = task({
           }),
         });
         if (!patchRes.ok) {
-          logger.error("Failed to PATCH library item", { status: patchRes.status, body: await patchRes.text() });
+          logger.error("preview-ready webhook failed", { status: patchRes.status, body: await patchRes.text() });
         } else {
           logger.log("Library item updated to preview status", { libraryItemId: payload.libraryItemId });
         }

@@ -982,18 +982,35 @@ const StoryImageBackground: React.FC<{
   paths: string[];
   durationInFrames: number;
   transitionStyle: SceneTransitionStyle;
-}> = ({ paths, durationInFrames, transitionStyle }) => {
+  imageDurations?: number[];
+}> = ({ paths, durationInFrames, transitionStyle, imageDurations }) => {
+  console.log("[StoryImageBackground] paths:", paths.length, "imageDurations:", imageDurations?.length, "match:", imageDurations?.length === paths.length);
   const frame = useCurrentFrame();
   if (paths.length === 0) return null;
-  const framesPerSlide = Math.floor(durationInFrames / paths.length);
   const tf = TRANSITION_FRAMES[transitionStyle] || 0;
+
+  // Build per-image frame ranges from imageDurations or equal distribution
+  let imageRanges: { start: number; end: number }[];
+  if (imageDurations && imageDurations.length === paths.length) {
+    let cumulative = 0;
+    imageRanges = imageDurations.map((dur) => {
+      const start = cumulative;
+      cumulative += dur;
+      return { start, end: cumulative };
+    });
+  } else {
+    const framesPerSlide = Math.floor(durationInFrames / paths.length);
+    imageRanges = paths.map((_, i) => ({
+      start: i * framesPerSlide,
+      end: i === paths.length - 1 ? durationInFrames : (i + 1) * framesPerSlide,
+    }));
+  }
 
   return (
     <AbsoluteFill>
       {paths.map((imgPath, i) => {
-        const slideStart = i * framesPerSlide;
-        const slideEnd =
-          i === paths.length - 1 ? durationInFrames : (i + 1) * framesPerSlide;
+        const slideStart = imageRanges[i].start;
+        const slideEnd = imageRanges[i].end;
 
         const extendedStart = Math.max(0, slideStart - tf);
         const extendedEnd = Math.min(durationInFrames, slideEnd + tf);
@@ -1307,6 +1324,7 @@ export const Video: React.FC<VideoProps> = ({
   transitionStyle = "fade",
   music,
   musicUrl,
+  imageDurations,
 }) => {
   const frame = useCurrentFrame();
 
@@ -1336,6 +1354,7 @@ export const Video: React.FC<VideoProps> = ({
               paths={backgroundPaths}
               durationInFrames={durationInFrames}
               transitionStyle={transitionStyle}
+              imageDurations={imageDurations}
             />
           ) : (
             <ImageBackground paths={backgroundPaths} durationInFrames={durationInFrames} />

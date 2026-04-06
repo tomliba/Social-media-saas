@@ -16,6 +16,8 @@ export interface PreviewData {
   fps: number;
   backgroundType: "video" | "image";
   showCaptions: boolean;
+  /** Per-scene duration in frames (when pre-generated images with scene-timing are used) */
+  imageDurations?: number[];
 }
 
 export interface CreativeSettings {
@@ -76,6 +78,7 @@ export default function AIStoryPreview({
     transitionStyle: creativeSettings.transitionStyle,
     hookText: creativeSettings.hookText,
     style: creativeSettings.style ?? "ai-story",
+    imageDurations: previewData.imageDurations,
   };
 
   return (

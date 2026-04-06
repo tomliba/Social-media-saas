@@ -113,18 +113,18 @@ function artPreviewSrc(id: string): string | null {
 // ── Tones ──
 
 const toneOptions = [
-  { label: "Dramatic", id: "dramatic" },
-  { label: "Funny", id: "funny" },
-  { label: "Serious", id: "serious" },
-  { label: "Mysterious", id: "mysterious" },
-  { label: "Motivational", id: "motivational" },
-  { label: "Sarcastic", id: "sarcastic" },
-  { label: "Friendly", id: "friendly" },
-  { label: "Horror", id: "horror" },
-  { label: "Inspirational", id: "inspirational" },
-  { label: "Dark", id: "dark" },
-  { label: "Casual", id: "casual" },
-  { label: "Cursing", id: "cursing" },
+  { label: "Regular", id: "Regular" },
+  { label: "Storytelling", id: "Storytelling" },
+  { label: "Dramatic", id: "Dramatic" },
+  { label: "Horror", id: "Horror" },
+  { label: "Funny", id: "Funny" },
+  { label: "Cursing", id: "Cursing" },
+  { label: "Sarcastic", id: "Sarcastic" },
+  { label: "Motivational", id: "Motivational" },
+  { label: "Mysterious", id: "Mysterious" },
+  { label: "Wholesome", id: "Wholesome" },
+  { label: "Dark", id: "Dark" },
+  { label: "Epic", id: "Epic" },
 ];
 
 // ── Caption styles ──
@@ -303,6 +303,13 @@ function StepPills({ current }: { current: number }) {
 interface ScriptScene {
   text: string;
   image_prompt: string;
+  /** Backward compat: Gemini may return image_prompt_1 instead of image_prompt */
+  image_prompt_1?: string;
+}
+
+/** Get the effective image prompt (prefers image_prompt, falls back to image_prompt_1) */
+function getImagePrompt(scene: ScriptScene): string {
+  return scene.image_prompt || scene.image_prompt_1 || "";
 }
 
 interface ScriptData {
@@ -312,6 +319,8 @@ interface ScriptData {
   cta: string;
   scenes: ScriptScene[];
   video_keywords?: string[];
+  hook_image_prompt?: string;
+  cta_image_prompt?: string;
 }
 
 export default function AIStorySetup() {
@@ -324,7 +333,7 @@ export default function AIStorySetup() {
   const [topic, setTopic] = useState("scary_stories");
   const [customPrompt, setCustomPrompt] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
-  const [tone, setTone] = useState("dramatic");
+  const [tone, setTone] = useState("Regular");
   const [artStyle, setArtStyle] = useState("anime");
   const [artModalOpen, setArtModalOpen] = useState(false);
   const [sceneMode, setSceneMode] = useState<"static" | "animated">("static");
@@ -390,6 +399,21 @@ export default function AIStorySetup() {
   const [editHook, setEditHook] = useState("");
   const [editScenes, setEditScenes] = useState<ScriptScene[]>([]);
   const [editCta, setEditCta] = useState("");
+  const [editHookImagePrompt, setEditHookImagePrompt] = useState("");
+  const [editCtaImagePrompt, setEditCtaImagePrompt] = useState("");
+
+  // Scene image generation state — one URL per scene
+  const [sceneImageUrls, setSceneImageUrls] = useState<(string | null)[]>([]);
+  const [sceneImageStatus, setSceneImageStatus] = useState<("loading" | "done" | "error")[]>([]);
+  const [regeneratingScene, setRegeneratingScene] = useState<number | null>(null);
+
+  // Hook & CTA image state
+  const [hookImageUrl, setHookImageUrl] = useState<string | null>(null);
+  const [hookImageStatus, setHookImageStatus] = useState<"loading" | "done" | "error">("loading");
+  const [ctaImageUrl, setCtaImageUrl] = useState<string | null>(null);
+  const [ctaImageStatus, setCtaImageStatus] = useState<"loading" | "done" | "error">("loading");
+  const [regeneratingHook, setRegeneratingHook] = useState(false);
+  const [regeneratingCta, setRegeneratingCta] = useState(false);
 
 
 
@@ -441,6 +465,172 @@ export default function AIStorySetup() {
 
   const selectedArt = artStyles.find((a) => a.id === artStyle) || artStyles[0];
 
+  // ── Generate scene images (fire-and-forget, updates state as results arrive) ──
+  const generateSceneImages = useCallback(async (sd: ScriptData) => {
+    const hasHookPrompt = !!sd.hook_image_prompt;
+    const hasCtaPrompt = !!sd.cta_image_prompt;
+
+    setSceneImageUrls(sd.scenes.map(() => null));
+    setSceneImageStatus(sd.scenes.map(() => "loading"));
+    if (hasHookPrompt) { setHookImageUrl(null); setHookImageStatus("loading"); }
+    if (hasCtaPrompt) { setCtaImageUrl(null); setCtaImageStatus("loading"); }
+
+    try {
+      const res = await fetch("/api/generate-scene-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vg_job_id: sd.vg_job_id,
+          scenes: sd.scenes.map((s) => ({ text: s.text, image_prompt: getImagePrompt(s) })),
+          ...(hasHookPrompt && { hook_image_prompt: sd.hook_image_prompt }),
+          ...(hasCtaPrompt && { cta_image_prompt: sd.cta_image_prompt }),
+          art_style: artStyle,
+          style: "ai-story",
+          duration,
+        }),
+      });
+
+      if (!res.ok) {
+        setSceneImageStatus(sd.scenes.map(() => "error"));
+        if (hasHookPrompt) setHookImageStatus("error");
+        if (hasCtaPrompt) setCtaImageStatus("error");
+        return;
+      }
+
+      const data = await res.json() as {
+        image_urls?: string[];
+        hook_image_url?: string;
+        cta_image_url?: string;
+      };
+      const urls = data.image_urls ?? [];
+
+      setSceneImageUrls(sd.scenes.map((_, i) => urls[i] || null));
+      setSceneImageStatus(sd.scenes.map((_, i) => urls[i] ? "done" : "error"));
+
+      if (hasHookPrompt) {
+        setHookImageUrl(data.hook_image_url ?? null);
+        setHookImageStatus(data.hook_image_url ? "done" : "error");
+      }
+      if (hasCtaPrompt) {
+        setCtaImageUrl(data.cta_image_url ?? null);
+        setCtaImageStatus(data.cta_image_url ? "done" : "error");
+      }
+    } catch {
+      setSceneImageStatus(sd.scenes.map(() => "error"));
+      if (hasHookPrompt) setHookImageStatus("error");
+      if (hasCtaPrompt) setCtaImageStatus("error");
+    }
+  }, [artStyle, duration]);
+
+  // ── Regenerate a single scene image ──
+  const handleRegenerateImage = useCallback(async (sceneIndex: number) => {
+    if (!scriptData) return;
+    setRegeneratingScene(sceneIndex);
+
+    setSceneImageStatus((prev) => {
+      const next = [...prev];
+      next[sceneIndex] = "loading";
+      return next;
+    });
+
+    try {
+      const scene = editScenes[sceneIndex];
+      const res = await fetch("/api/regenerate-scene-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vg_job_id: scriptData.vg_job_id,
+          scene_index: sceneIndex,
+          image_prompt: getImagePrompt(scene),
+          art_style: artStyle,
+          style: "ai-story",
+        }),
+      });
+
+      if (!res.ok) {
+        setSceneImageStatus((prev) => {
+          const next = [...prev];
+          next[sceneIndex] = "error";
+          return next;
+        });
+        return;
+      }
+
+      const data = await res.json() as { image_url?: string };
+      if (data.image_url) {
+        setSceneImageUrls((prev) => {
+          const next = [...prev];
+          next[sceneIndex] = data.image_url!;
+          return next;
+        });
+        setSceneImageStatus((prev) => {
+          const next = [...prev];
+          next[sceneIndex] = "done";
+          return next;
+        });
+      } else {
+        setSceneImageStatus((prev) => {
+          const next = [...prev];
+          next[sceneIndex] = "error";
+          return next;
+        });
+      }
+    } catch {
+      setSceneImageStatus((prev) => {
+        const next = [...prev];
+        next[sceneIndex] = "error";
+        return next;
+      });
+    } finally {
+      setRegeneratingScene(null);
+    }
+  }, [scriptData, editScenes, artStyle]);
+
+  // ── Regenerate hook or CTA image ──
+  const handleRegenerateHookOrCta = useCallback(async (type: "hook" | "cta") => {
+    if (!scriptData) return;
+    const isHook = type === "hook";
+    if (isHook) { setRegeneratingHook(true); setHookImageStatus("loading"); }
+    else { setRegeneratingCta(true); setCtaImageStatus("loading"); }
+
+    try {
+      const prompt = isHook ? editHookImagePrompt : editCtaImagePrompt;
+      const res = await fetch("/api/regenerate-scene-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vg_job_id: scriptData.vg_job_id,
+          scene_index: isHook ? -1 : -2,
+          image_prompt: prompt || (isHook ? editHook : editCta),
+          art_style: artStyle,
+          style: "ai-story",
+          image_type: type,
+        }),
+      });
+
+      if (!res.ok) {
+        if (isHook) setHookImageStatus("error");
+        else setCtaImageStatus("error");
+        return;
+      }
+
+      const data = await res.json() as { image_url?: string };
+      if (data.image_url) {
+        if (isHook) { setHookImageUrl(data.image_url); setHookImageStatus("done"); }
+        else { setCtaImageUrl(data.image_url); setCtaImageStatus("done"); }
+      } else {
+        if (isHook) setHookImageStatus("error");
+        else setCtaImageStatus("error");
+      }
+    } catch {
+      if (isHook) setHookImageStatus("error");
+      else setCtaImageStatus("error");
+    } finally {
+      if (isHook) setRegeneratingHook(false);
+      else setRegeneratingCta(false);
+    }
+  }, [scriptData, editHook, editCta, editHookImagePrompt, editCtaImagePrompt, artStyle]);
+
   // ── Generate story script ──
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
@@ -483,20 +673,28 @@ export default function AIStorySetup() {
       setEditHook(sd.hook || "");
       setEditScenes(sd.scenes.map((s) => ({ ...s })));
       setEditCta(endScreenCta || sd.cta || "Follow for more!");
+      setEditHookImagePrompt(sd.hook_image_prompt || "");
+      setEditCtaImagePrompt(sd.cta_image_prompt || "");
       setStep(1);
+
+      // Fire-and-forget: generate images in the background
+      generateSceneImages(sd);
     } catch (err) {
       console.error("Generate story error:", err);
       setGenerateError(err instanceof Error ? err.message : "Failed to generate story");
     } finally {
       setGenerating(false);
     }
-  }, [topic, customPrompt, tone, artStyle, duration, endScreenCta]);
+  }, [topic, customPrompt, tone, artStyle, duration, endScreenCta, generateSceneImages]);
 
   // ── Build the common aiStory settings object ──
   const buildAiStorySettings = () => ({
     vgJobId: scriptData!.vg_job_id,
     hook: editHook,
-    scenes: editScenes,
+    scenes: editScenes.map((s) => ({
+      text: s.text,
+      image_prompt: getImagePrompt(s),
+    })),
     cta: editCta,
     artStyle,
     captionStyle: captionsEnabled ? captionStyle : null,
@@ -543,11 +741,22 @@ export default function AIStorySetup() {
       if (!libRes.ok) throw new Error("Failed to create library item");
       const { item: libItem } = await libRes.json();
 
+      // Collect pre-generated image URLs: [hook?, ...scenes, cta?] in order
+      const allImageUrls: (string | null)[] = [
+        ...(scriptData?.hook_image_prompt ? [hookImageUrl] : []),
+        ...sceneImageUrls,
+        ...(scriptData?.cta_image_prompt ? [ctaImageUrl] : []),
+      ];
+      const validImageUrls = allImageUrls.filter(
+        (url): url is string => typeof url === "string" && url.startsWith("https://")
+      );
+
       // 2. Trigger prepare-assets (fire and forget — task will PATCH library item on completion)
       triggerPrepareAssets({
         title,
         script: fullScript,
         libraryItemId: libItem.id,
+        ...(validImageUrls.length > 0 && { preGeneratedImageUrls: validImageUrls }),
         settings: {
           voice: selectedVoice?.fishAudioId || defaultVoice.fishAudioId,
           speed,
@@ -595,83 +804,254 @@ export default function AIStorySetup() {
           </div>
         )}
 
-        {/* Hook */}
-        <div className="mb-8">
-          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block font-headline">
-            Hook text
-          </label>
-          <textarea
-            value={editHook}
-            onChange={(e) => setEditHook(e.target.value)}
-            rows={2}
-            className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-4 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface font-body text-sm resize-none"
-          />
+        {/* Hook card */}
+        <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">
+              Hook
+            </span>
+          </div>
+          <div className="flex gap-4">
+            {/* Hook image (only when prompt exists) */}
+            {scriptData?.hook_image_prompt && (
+              <div className="relative w-[200px] h-[267px] flex-shrink-0 rounded-[12px] overflow-hidden bg-zinc-100">
+                {hookImageStatus === "loading" || regeneratingHook ? (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
+                    <div className="w-8 h-8 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
+                  </div>
+                ) : hookImageStatus === "done" && hookImageUrl ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={hookImageUrl} alt="Hook" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => handleRegenerateHookOrCta("hook")}
+                      className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors"
+                      title="Regenerate hook image"
+                    >
+                      <span className="material-symbols-outlined text-white text-sm">refresh</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-100 gap-1">
+                    <button
+                      onClick={() => handleRegenerateHookOrCta("hook")}
+                      className="w-10 h-10 rounded-full bg-zinc-200 hover:bg-zinc-300 flex items-center justify-center transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-zinc-500 text-xl">refresh</span>
+                    </button>
+                    <span className="text-[10px] text-zinc-400">Retry</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Hook text + visual prompt */}
+            <div className="flex-1 min-w-0 flex flex-col gap-3">
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
+                  Hook text
+                </label>
+                <textarea
+                  value={editHook}
+                  onChange={(e) => setEditHook(e.target.value)}
+                  rows={3}
+                  className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface font-body text-sm resize-none"
+                />
+              </div>
+              {scriptData?.hook_image_prompt && (
+                <div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
+                    Visual prompt
+                    <span className="font-normal normal-case tracking-normal ml-1 text-on-surface-variant/50">
+                      — describes what AI generates for the hook
+                    </span>
+                  </label>
+                  <textarea
+                    value={editHookImagePrompt}
+                    onChange={(e) => setEditHookImagePrompt(e.target.value)}
+                    rows={2}
+                    className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface-variant font-body text-sm resize-none"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Scene cards */}
         <div className="space-y-6 mb-8">
-          {editScenes.map((scene, i) => (
-            <div
-              key={i}
-              className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">
-                  Scene {i + 1} of {editScenes.length}
-                </span>
+          {editScenes.map((scene, i) => {
+            const imgUrl = sceneImageUrls[i];
+            const imgStatus = sceneImageStatus[i] || "loading";
+            const isRegenerating = regeneratingScene === i;
+
+            return (
+              <div
+                key={i}
+                className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">
+                    Scene {i + 1} of {editScenes.length}
+                  </span>
+                </div>
+
+                {/* Scene image + text side-by-side */}
+                <div className="flex gap-4">
+                  {/* Image */}
+                  <div className="relative w-[200px] h-[267px] flex-shrink-0 rounded-[12px] overflow-hidden bg-zinc-100">
+                    {imgStatus === "loading" || isRegenerating ? (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
+                        <div className="w-8 h-8 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
+                      </div>
+                    ) : imgStatus === "done" && imgUrl ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={imgUrl}
+                          alt={`Scene ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => handleRegenerateImage(i)}
+                          className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors"
+                          title="Regenerate image"
+                        >
+                          <span className="material-symbols-outlined text-white text-sm">refresh</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-100 gap-1">
+                        <button
+                          onClick={() => handleRegenerateImage(i)}
+                          className="w-10 h-10 rounded-full bg-zinc-200 hover:bg-zinc-300 flex items-center justify-center transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-zinc-500 text-xl">refresh</span>
+                        </button>
+                        <span className="text-[10px] text-zinc-400">Retry</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Text fields */}
+                  <div className="flex-1 min-w-0 flex flex-col gap-3">
+                    {/* Narration */}
+                    <div>
+                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
+                        Narration
+                      </label>
+                      <textarea
+                        value={scene.text}
+                        onChange={(e) => {
+                          setEditScenes((prev) => {
+                            const next = [...prev];
+                            next[i] = { ...next[i], text: e.target.value };
+                            return next;
+                          });
+                        }}
+                        rows={3}
+                        className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface font-body text-sm resize-none"
+                      />
+                    </div>
+
+                    {/* Visual prompt */}
+                    <div>
+                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
+                        Visual prompt
+                        <span className="font-normal normal-case tracking-normal ml-1 text-on-surface-variant/50">
+                          — describes what AI generates for this scene
+                        </span>
+                      </label>
+                      <textarea
+                        value={getImagePrompt(scene)}
+                          onChange={(e) => {
+                            setEditScenes((prev) => {
+                              const next = [...prev];
+                              next[i] = { ...next[i], image_prompt: e.target.value };
+                              return next;
+                            });
+                          }}
+                          rows={2}
+                          className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface-variant font-body text-sm resize-none"
+                        />
+                      </div>
+                  </div>
+                </div>
               </div>
-
-              {/* Narration text */}
-              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
-                Narration
-              </label>
-              <textarea
-                value={scene.text}
-                onChange={(e) => {
-                  setEditScenes((prev) => {
-                    const next = [...prev];
-                    next[i] = { ...next[i], text: e.target.value };
-                    return next;
-                  });
-                }}
-                rows={3}
-                className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface font-body text-sm resize-none mb-4"
-              />
-
-              {/* Visual prompt */}
-              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
-                Visual prompt
-                <span className="font-normal normal-case tracking-normal ml-1 text-on-surface-variant/50">
-                  — describes what AI generates for this scene
-                </span>
-              </label>
-              <textarea
-                value={scene.image_prompt}
-                onChange={(e) => {
-                  setEditScenes((prev) => {
-                    const next = [...prev];
-                    next[i] = { ...next[i], image_prompt: e.target.value };
-                    return next;
-                  });
-                }}
-                rows={2}
-                className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface-variant font-body text-sm resize-none"
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* CTA */}
-        <div className="mb-10">
-          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block font-headline">
-            End screen CTA
-          </label>
-          <input
-            type="text"
-            value={editCta}
-            onChange={(e) => setEditCta(e.target.value)}
-            className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface font-body text-sm"
-          />
+        {/* CTA card */}
+        <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20 mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-bold uppercase tracking-widest text-primary/60 font-headline">
+              CTA
+            </span>
+          </div>
+          <div className="flex gap-4">
+            {/* CTA image (only when prompt exists) */}
+            {scriptData?.cta_image_prompt && (
+              <div className="relative w-[200px] h-[267px] flex-shrink-0 rounded-[12px] overflow-hidden bg-zinc-100">
+                {ctaImageStatus === "loading" || regeneratingCta ? (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
+                    <div className="w-8 h-8 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
+                  </div>
+                ) : ctaImageStatus === "done" && ctaImageUrl ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={ctaImageUrl} alt="CTA" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => handleRegenerateHookOrCta("cta")}
+                      className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors"
+                      title="Regenerate CTA image"
+                    >
+                      <span className="material-symbols-outlined text-white text-sm">refresh</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-100 gap-1">
+                    <button
+                      onClick={() => handleRegenerateHookOrCta("cta")}
+                      className="w-10 h-10 rounded-full bg-zinc-200 hover:bg-zinc-300 flex items-center justify-center transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-zinc-500 text-xl">refresh</span>
+                    </button>
+                    <span className="text-[10px] text-zinc-400">Retry</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* CTA text + visual prompt */}
+            <div className="flex-1 min-w-0 flex flex-col gap-3">
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
+                  End screen CTA
+                </label>
+                <input
+                  type="text"
+                  value={editCta}
+                  onChange={(e) => setEditCta(e.target.value)}
+                  className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface font-body text-sm"
+                />
+              </div>
+              {scriptData?.cta_image_prompt && (
+                <div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
+                    Visual prompt
+                    <span className="font-normal normal-case tracking-normal ml-1 text-on-surface-variant/50">
+                      — describes what AI generates for the CTA
+                    </span>
+                  </label>
+                  <textarea
+                    value={editCtaImagePrompt}
+                    onChange={(e) => setEditCtaImagePrompt(e.target.value)}
+                    rows={2}
+                    className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface-variant font-body text-sm resize-none"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Bottom bar */}

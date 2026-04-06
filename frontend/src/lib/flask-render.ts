@@ -410,55 +410,103 @@ export async function prepareAssetsViaFlask(
     word_timestamps: unknown[];
   };
 
-  // Step 2: Visual plan
-  const vpRes = await fetch(`${base}/vg/visual-plan`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      vg_job_id: jobId,
-      background_mode: bgMode,
-      script: payload.script,
-      audio_duration_ms: ttsData.audio_duration_ms,
-      word_timestamps: ttsData.word_timestamps,
-      art_style: aiStory.artStyle,
-      style: "ai-story",
-      scene_mode: aiStory.sceneMode,
-    }),
-  });
+  const hasPreGeneratedUrls = payload.preGeneratedImageUrls && payload.preGeneratedImageUrls.length > 0;
+  let imageDurations: number[] | undefined;
 
-  if (!vpRes.ok) {
-    throw new Error(`Flask /vg/visual-plan failed (${vpRes.status}): ${await vpRes.text()}`);
+  let resolvedData: { segments: VisualSegment[] };
+
+  if (hasPreGeneratedUrls) {
+    // Pre-generated images — get scene timing (incl. hook + CTA), skip visual-plan + resolve-assets
+    const preUrls = payload.preGeneratedImageUrls!;
+
+    const stRes = await fetch(`${base}/vg/scene-timing`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        vg_job_id: jobId,
+        hook: aiStory.hook,
+        scenes: aiStory.scenes,
+        cta: aiStory.cta,
+        word_timestamps: ttsData.word_timestamps,
+        audio_duration_ms: ttsData.audio_duration_ms,
+      }),
+    });
+
+    if (!stRes.ok) {
+      throw new Error(`Flask /vg/scene-timing failed (${stRes.status}): ${await stRes.text()}`);
+    }
+
+    // Response includes timings for all entries: [hook, scene1, scene2, ..., cta]
+    const timingData = (await stRes.json()) as { scene_timings: { startSec: number; endSec: number; type?: string; label?: string }[] };
+
+    const lastUrl = preUrls[preUrls.length - 1];
+    resolvedData = {
+      segments: timingData.scene_timings.map((timing, i) => ({
+        visual_type: "ai_image",
+        startSec: timing.startSec,
+        endSec: timing.endSec,
+        speech: timing.label ?? "",
+        asset_url: i < preUrls.length ? preUrls[i] : lastUrl,
+        data: {},
+      })),
+    };
+  } else {
+    // Step 2: Visual plan
+    const vpRes = await fetch(`${base}/vg/visual-plan`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        vg_job_id: jobId,
+        background_mode: bgMode,
+        script: payload.script,
+        audio_duration_ms: ttsData.audio_duration_ms,
+        word_timestamps: ttsData.word_timestamps,
+        art_style: aiStory.artStyle,
+        style: "ai-story",
+        scene_mode: aiStory.sceneMode,
+      }),
+    });
+
+    if (!vpRes.ok) {
+      throw new Error(`Flask /vg/visual-plan failed (${vpRes.status}): ${await vpRes.text()}`);
+    }
+
+    const visualPlanData = (await vpRes.json()) as { segments: VisualSegment[] };
+
+    // Step 3: Resolve assets
+    const raRes = await fetch(`${base}/vg/resolve-assets`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        vg_job_id: jobId,
+        segments: visualPlanData.segments,
+        art_style: aiStory.artStyle,
+        style: "ai-story",
+        scene_mode: aiStory.sceneMode,
+      }),
+    });
+
+    if (!raRes.ok) {
+      throw new Error(`Flask /vg/resolve-assets failed (${raRes.status}): ${await raRes.text()}`);
+    }
+
+    resolvedData = (await raRes.json()) as { segments: VisualSegment[] };
   }
-
-  const visualPlanData = (await vpRes.json()) as { segments: VisualSegment[] };
-
-  // Step 3: Resolve assets
-  const raRes = await fetch(`${base}/vg/resolve-assets`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      vg_job_id: jobId,
-      segments: visualPlanData.segments,
-      art_style: aiStory.artStyle,
-      style: "ai-story",
-      scene_mode: aiStory.sceneMode,
-    }),
-  });
-
-  if (!raRes.ok) {
-    throw new Error(`Flask /vg/resolve-assets failed (${raRes.status}): ${await raRes.text()}`);
-  }
-
-  const resolvedData = (await raRes.json()) as { segments: VisualSegment[] };
 
   // Step 4: Get preview data
+  const previewDataBody: Record<string, unknown> = {
+    vg_job_id: jobId,
+    segments: resolvedData.segments,
+  };
+  if (hasPreGeneratedUrls) {
+    // Use the mapped URLs (in segment order, with last-URL reuse applied)
+    previewDataBody.background_urls = resolvedData.segments.map((s) => s.asset_url);
+  }
+
   const pdRes = await fetch(`${base}/vg/preview-data`, {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      vg_job_id: jobId,
-      segments: resolvedData.segments,
-    }),
+    body: JSON.stringify(previewDataBody),
   });
 
   if (!pdRes.ok) {
@@ -481,6 +529,14 @@ export async function prepareAssetsViaFlask(
 
   const showCaptions = !!aiStory.captionStyle;
 
+  // Compute per-scene image durations in frames from resolved segment timing
+  if (hasPreGeneratedUrls) {
+    const fps = previewResponse.fps || 30;
+    imageDurations = resolvedData.segments.map((seg) =>
+      Math.round((seg.endSec - seg.startSec) * fps)
+    );
+  }
+
   return {
     previewData: {
       audioUrl: previewResponse.audioUrl,
@@ -491,6 +547,7 @@ export async function prepareAssetsViaFlask(
       fps: previewResponse.fps,
       backgroundType: (previewResponse.backgroundType as "video" | "image") || "image",
       showCaptions,
+      ...(imageDurations && { imageDurations }),
     },
     resolvedSegments: resolvedData.segments,
     jobId,
