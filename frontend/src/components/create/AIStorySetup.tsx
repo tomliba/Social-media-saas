@@ -257,9 +257,8 @@ const musicTracks: MusicTrack[] = [
 // ── Video languages ──
 
 const videoLanguages = [
-  "Auto Detect", "English", "Spanish", "French", "German", "Italian",
-  "Portuguese", "Polish", "Hindi", "Arabic", "Hebrew", "Chinese",
-  "Japanese", "Korean", "Dutch", "Turkish", "Swedish", "Indonesian", "Filipino",
+  "Auto Detect", "English", "Chinese", "Japanese", "German", "French",
+  "Spanish", "Korean", "Portuguese",
 ];
 
 // ── Duration options ──
@@ -685,7 +684,7 @@ export default function AIStorySetup() {
     } finally {
       setGenerating(false);
     }
-  }, [topic, customPrompt, tone, artStyle, duration, endScreenCta, generateSceneImages]);
+  }, [topic, customPrompt, tone, artStyle, duration, videoLanguage, selectedVoice, endScreenCta, generateSceneImages]);
 
   // ── Build the common aiStory settings object ──
   const buildAiStorySettings = () => ({

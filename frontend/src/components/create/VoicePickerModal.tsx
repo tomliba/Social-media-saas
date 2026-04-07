@@ -140,6 +140,14 @@ export default function VoicePickerModal({
       : true
   );
 
+  // Split voices: English (or no language field) vs non-English
+  const LANGUAGE_ORDER = ["Chinese", "German", "Japanese", "French", "Spanish", "Korean", "Portuguese"] as const;
+  const englishVoices = voices.filter((v) => !v.language || v.language === "English");
+  const langGroups = LANGUAGE_ORDER.map((lang) => ({
+    lang,
+    voices: voices.filter((v) => v.language === lang),
+  })).filter((g) => g.voices.length > 0);
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
@@ -234,17 +242,17 @@ export default function VoicePickerModal({
             </div>
           )}
 
-          {/* All Voices */}
+          {/* English Voices */}
           <div className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 font-headline">
-            {search || genderFilter !== "All" || vibeFilter ? "Results" : "All Voices"}
+            {search || genderFilter !== "All" || vibeFilter ? "Results" : "English Voices"}
           </div>
-          {voices.length === 0 ? (
+          {englishVoices.length === 0 ? (
             <p className="text-sm text-on-surface-variant/60 py-8 text-center">
               No voices found
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {voices.map((voice) => (
+              {englishVoices.map((voice) => (
                 <VoiceCard
                   key={voice.fishAudioId}
                   voice={voice}
@@ -253,6 +261,34 @@ export default function VoicePickerModal({
                   onSelect={() => setSelectedVoice(voice)}
                   onPlay={(e) => playSample(voice, e)}
                 />
+              ))}
+            </div>
+          )}
+
+          {/* Non-English language groups */}
+          {langGroups.length > 0 && (
+            <div className="mt-6">
+              <div className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3 font-headline">
+                Languages
+              </div>
+              {langGroups.map(({ lang, voices: langVoices }) => (
+                <div key={lang} className="mb-4">
+                  <div className="text-xs font-semibold text-on-surface-variant/80 mb-2 ml-1">
+                    {lang}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {langVoices.map((voice) => (
+                      <VoiceCard
+                        key={voice.fishAudioId}
+                        voice={voice}
+                        isSelected={selectedVoice?.fishAudioId === voice.fishAudioId}
+                        isPlaying={playingId === voice.fishAudioId}
+                        onSelect={() => setSelectedVoice(voice)}
+                        onPlay={(e) => playSample(voice, e)}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}

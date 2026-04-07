@@ -16,6 +16,8 @@ export interface Voice {
   tags: string[];
   /** URL to a pre-recorded audio sample on R2 (instant playback, no API call) */
   sampleUrl?: string;
+  /** Language this voice speaks (e.g. "English", "Chinese"). Defaults to English if absent. */
+  language?: string;
 }
 
 /** Default Fish Audio voice ID used when none is selected */
