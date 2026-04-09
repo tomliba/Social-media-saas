@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
         language: body.language || "Auto Detect",
         voice_id: body.voiceId || undefined,
         mode: "topic",
+        scene_mode: body.scene_mode || "static",
       }),
     });
 

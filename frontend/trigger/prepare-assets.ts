@@ -194,7 +194,7 @@ export const prepareAssets = task({
         const lastUrl = preUrls[preUrls.length - 1];
         resolvedData = {
           segments: timingData.scene_timings.map((timing, i) => ({
-            visual_type: "ai_image",
+            visual_type: (i < preUrls.length && preUrls[i]?.endsWith(".mp4")) ? "pexels_clip" : "ai_image",
             startSec: timing.startSec,
             endSec: timing.endSec,
             speech: timing.label ?? "",

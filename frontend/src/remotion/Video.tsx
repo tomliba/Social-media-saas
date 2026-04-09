@@ -1024,15 +1024,31 @@ const StoryImageBackground: React.FC<{
         });
         const kbStyle = getKenBurnsStyle(direction, progress);
 
+        const renderMedia = (src: string, mediaStyle: React.CSSProperties) => {
+          const resolved = resolveAsset(src);
+          if (src.endsWith(".mp4") || src.endsWith(".webm")) {
+            return (
+              <OffthreadVideo
+                src={resolved}
+                style={{ width: "100%", height: "100%", objectFit: "cover" as const, ...mediaStyle }}
+                muted
+              />
+            );
+          }
+          return (
+            <Img
+              src={resolved}
+              style={{ width: "100%", height: "100%", objectFit: "cover" as const, ...mediaStyle }}
+            />
+          );
+        };
+
         // Snap / none: hard cut, no transition
         if (transitionStyle === "snap" || transitionStyle === "none") {
           if (frame < slideStart || frame >= slideEnd) return null;
           return (
             <AbsoluteFill key={i} style={{ overflow: "hidden" }}>
-              <Img
-                src={resolveAsset(imgPath)}
-                style={{ width: "100%", height: "100%", objectFit: "cover", ...kbStyle }}
-              />
+              {renderMedia(imgPath, imgPath.endsWith(".mp4") || imgPath.endsWith(".webm") ? {} : kbStyle)}
             </AbsoluteFill>
           );
         }
@@ -1065,10 +1081,7 @@ const StoryImageBackground: React.FC<{
                 opacity,
               }}
             >
-              <Img
-                src={resolveAsset(imgPath)}
-                style={{ width: "100%", height: "100%", objectFit: "cover", ...kbStyle }}
-              />
+              {renderMedia(imgPath, imgPath.endsWith(".mp4") || imgPath.endsWith(".webm") ? {} : kbStyle)}
             </AbsoluteFill>
           );
         }
@@ -1095,15 +1108,7 @@ const StoryImageBackground: React.FC<{
           }
           return (
             <AbsoluteFill key={i} style={{ opacity, overflow: "hidden" }}>
-              <Img
-                src={resolveAsset(imgPath)}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  transform: `${kbStyle.transform || ""} scale(${extraScale})`.trim(),
-                }}
-              />
+              {renderMedia(imgPath, imgPath.endsWith(".mp4") || imgPath.endsWith(".webm") ? {} : { transform: `${kbStyle.transform || ""} scale(${extraScale})`.trim() })}
             </AbsoluteFill>
           );
         }
@@ -1125,10 +1130,7 @@ const StoryImageBackground: React.FC<{
 
         return (
           <AbsoluteFill key={i} style={{ opacity, overflow: "hidden" }}>
-            <Img
-              src={resolveAsset(imgPath)}
-              style={{ width: "100%", height: "100%", objectFit: "cover", ...kbStyle }}
-            />
+            {renderMedia(imgPath, imgPath.endsWith(".mp4") || imgPath.endsWith(".webm") ? {} : kbStyle)}
           </AbsoluteFill>
         );
       })}

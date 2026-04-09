@@ -267,6 +267,7 @@ const durations = [
   { label: "30 seconds", value: 30 },
   { label: "60 seconds", value: 60 },
   { label: "90 seconds", value: 90 },
+  { label: "120 seconds", value: 120 },
 ];
 
 // ── Speed ──
@@ -406,6 +407,13 @@ export default function AIStorySetup() {
   const [sceneImageStatus, setSceneImageStatus] = useState<("loading" | "done" | "error")[]>([]);
   const [regeneratingScene, setRegeneratingScene] = useState<number | null>(null);
 
+  // Animation state
+  const [animationJobId, setAnimationJobId] = useState<string | null>(null);
+  const [animationStatus, setAnimationStatus] = useState<Record<number, { status: string; video_url: string | null; error: string | null }>>({});
+  const [animating, setAnimating] = useState(false);
+  const [editHookMotionPrompt, setEditHookMotionPrompt] = useState("");
+  const [editCtaMotionPrompt, setEditCtaMotionPrompt] = useState("");
+
   // Hook & CTA image state
   const [hookImageUrl, setHookImageUrl] = useState<string | null>(null);
   const [hookImageStatus, setHookImageStatus] = useState<"loading" | "done" | "error">("loading");
@@ -425,6 +433,7 @@ export default function AIStorySetup() {
   const topicRef = useRef<HTMLDivElement>(null);
   const durationPopRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
+  const animPollRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-select music when topic changes
   useEffect(() => {
@@ -485,6 +494,7 @@ export default function AIStorySetup() {
           ...(hasCtaPrompt && { cta_image_prompt: sd.cta_image_prompt }),
           art_style: artStyle,
           style: "ai-story",
+          scene_mode: sceneMode,
           duration,
         }),
       });
@@ -519,7 +529,7 @@ export default function AIStorySetup() {
       if (hasHookPrompt) setHookImageStatus("error");
       if (hasCtaPrompt) setCtaImageStatus("error");
     }
-  }, [artStyle, duration]);
+  }, [artStyle, duration, sceneMode]);
 
   // ── Regenerate a single scene image ──
   const handleRegenerateImage = useCallback(async (sceneIndex: number) => {
@@ -652,6 +662,7 @@ export default function AIStorySetup() {
           duration,
           language: videoLanguage,
           voiceId: selectedVoice?.fishAudioId || defaultVoice.fishAudioId,
+          scene_mode: sceneMode,
         }),
       });
 
@@ -670,10 +681,12 @@ export default function AIStorySetup() {
 
       setScriptData(sd);
       setEditHook(sd.hook || "");
-      setEditScenes(sd.scenes.map((s) => ({ ...s })));
+      setEditScenes(sd.scenes.map((s) => ({ ...s, motion_prompt: s.motion_prompt || "" })));
       setEditCta(endScreenCta || sd.cta || "Follow for more!");
       setEditHookImagePrompt(sd.hook_image_prompt || "");
       setEditCtaImagePrompt(sd.cta_image_prompt || "");
+      setEditHookMotionPrompt(sd.hook_motion_prompt || "");
+      setEditCtaMotionPrompt(sd.cta_motion_prompt || "");
       setStep(1);
 
       // Fire-and-forget: generate images in the background
@@ -690,9 +703,12 @@ export default function AIStorySetup() {
   const buildAiStorySettings = () => ({
     vgJobId: scriptData!.vg_job_id,
     hook: editHook,
-    scenes: editScenes.map((s) => ({
+    scenes: editScenes.map((s, i) => ({
       text: s.text,
       image_prompt: getImagePrompt(s),
+      ...(sceneMode === "animated" && animationStatus[i]?.video_url
+        ? { visual_type: "pexels_clip" as const }
+        : {}),
     })),
     cta: editCta,
     artStyle,
@@ -710,6 +726,122 @@ export default function AIStorySetup() {
     transitionStyle: "fade" as const,
   });
 
+  // ── Animate scenes: send images to video generation, poll for results ──
+  const startAnimationJob = useCallback(async (
+    segments: { index: number; image_url: string | null; motion_prompt: string; duration: number }[],
+    isRetry: boolean,
+  ) => {
+    if (animPollRef.current) {
+      clearInterval(animPollRef.current);
+      animPollRef.current = null;
+    }
+
+    const validSegments = segments.filter((seg) => seg.image_url);
+    if (validSegments.length === 0) {
+      setAnimating(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/animate-scenes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ segments: validSegments }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Animate scenes error:", errText);
+        setAnimating(false);
+        return;
+      }
+
+      const data = await res.json();
+      const jobId = data.job_id as string;
+      setAnimationJobId(jobId);
+
+      const interval = setInterval(async () => {
+        try {
+          const pollRes = await fetch(`/api/animate-status/${jobId}`);
+          if (pollRes.status === 404) {
+            clearInterval(interval);
+            animPollRef.current = null;
+            setAnimating(false);
+            return;
+          }
+          if (!pollRes.ok) return;
+          const pollData = await pollRes.json();
+
+          if (pollData.segments) {
+            const statusMap: Record<number, { status: string; video_url: string | null; error: string | null }> = {};
+            for (const [key, val] of Object.entries(pollData.segments)) {
+              const v = val as { status: string; video_url: string | null; error: string | null };
+              statusMap[Number(key)] = { status: v.status, video_url: v.video_url || null, error: v.error || null };
+            }
+            setAnimationStatus((prev) => ({ ...prev, ...statusMap }));
+          }
+
+          if (pollData.complete) {
+            clearInterval(interval);
+            animPollRef.current = null;
+
+            // Check for failed segments and retry once
+            if (!isRetry) {
+              const failedSegments = validSegments.filter((seg) => {
+                const latest = pollData.segments?.[String(seg.index)] as { status: string } | undefined;
+                return latest?.status === "failed";
+              });
+              if (failedSegments.length > 0) {
+                console.log(`Retrying ${failedSegments.length} failed segments`);
+                startAnimationJob(failedSegments, true);
+                return;
+              }
+            }
+
+            setAnimating(false);
+          }
+        } catch {
+          // keep polling on transient errors
+        }
+      }, 3000);
+      animPollRef.current = interval;
+    } catch (err) {
+      console.error("Animate scenes error:", err);
+      setAnimating(false);
+    }
+  }, []);
+
+  const handleAnimateScenes = useCallback(async () => {
+    const segments = editScenes
+      .map((s, i) => {
+        const words = (s.text || "").split(/\s+/).filter(Boolean).length;
+        const estimated = Math.ceil(words / 2.5) + 2;
+        const duration = Math.min(10, Math.max(5, estimated));
+        return {
+          index: i,
+          image_url: sceneImageUrls[i],
+          motion_prompt: s.motion_prompt || "",
+          duration,
+        };
+      })
+      .filter((seg) => seg.image_url);
+
+    // Add hook and CTA images if they exist
+    if (hookImageUrl) {
+      segments.unshift({ index: -1, image_url: hookImageUrl, motion_prompt: editHookMotionPrompt || "slow atmospheric zoom in", duration: 5 });
+    }
+    if (ctaImageUrl) {
+      segments.push({ index: -2, image_url: ctaImageUrl, motion_prompt: editCtaMotionPrompt || "gentle zoom out", duration: 5 });
+    }
+
+    if (segments.length === 0) return;
+
+    setAnimating(true);
+    setAnimationStatus({});
+
+    startAnimationJob(segments, false);
+  }, [editScenes, sceneImageUrls, hookImageUrl, ctaImageUrl, editHookMotionPrompt, editCtaMotionPrompt, startAnimationJob]);
+
   // ── Preview video: create library item, trigger prepare-assets, navigate immediately ──
   const handlePreviewVideo = async () => {
     if (!scriptData) return;
@@ -722,6 +854,9 @@ export default function AIStorySetup() {
 
       // 1. Create library item with status "preparing"
       const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const thumbnailUrl = [hookImageUrl, ...sceneImageUrls].find(
+        (url) => typeof url === "string" && url.startsWith("https://") && !url.endsWith(".mp4") && !url.endsWith(".webm")
+      ) || null;
       const libRes = await fetch("/api/library", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -734,23 +869,40 @@ export default function AIStorySetup() {
           status: "preparing",
           script: fullScript,
           durationSec: duration,
+          ...(thumbnailUrl && { thumbnailUrl }),
         }),
       });
 
       if (!libRes.ok) throw new Error("Failed to create library item");
       const { item: libItem } = await libRes.json();
 
-      // Collect pre-generated image URLs: [hook?, ...scenes, cta?] in order
+      // Collect pre-generated image/video URLs: [hook?, ...scenes, cta?] in order
+      // For animated scenes, substitute video URLs where available
+      const resolvedSceneUrls = sceneImageUrls.map((imgUrl, i) => {
+        const animVideo = animationStatus[i]?.video_url;
+        const useVideo = sceneMode === "animated" && animVideo;
+        console.log(`[DEBUG] Scene ${i}: animStatus=${animationStatus[i]?.status}, video_url=${animVideo}, using=${useVideo ? 'VIDEO' : 'IMAGE'}`);
+        return useVideo ? animVideo : imgUrl;
+      });
+      console.log(`[DEBUG] Hook: animStatus=${animationStatus[-1]?.status}, video_url=${animationStatus[-1]?.video_url}`);
+      console.log(`[DEBUG] CTA: animStatus=${animationStatus[-2]?.status}, video_url=${animationStatus[-2]?.video_url}`);
+      const resolvedHookUrl = sceneMode === "animated" && animationStatus[-1]?.video_url
+        ? animationStatus[-1].video_url
+        : hookImageUrl;
+      const resolvedCtaUrl = sceneMode === "animated" && animationStatus[-2]?.video_url
+        ? animationStatus[-2].video_url
+        : ctaImageUrl;
       const allImageUrls: (string | null)[] = [
-        ...(scriptData?.hook_image_prompt ? [hookImageUrl] : []),
-        ...sceneImageUrls,
-        ...(scriptData?.cta_image_prompt ? [ctaImageUrl] : []),
+        ...(scriptData?.hook_image_prompt ? [resolvedHookUrl] : []),
+        ...resolvedSceneUrls,
+        ...(scriptData?.cta_image_prompt ? [resolvedCtaUrl] : []),
       ];
       const validImageUrls = allImageUrls.filter(
         (url): url is string => typeof url === "string" && url.startsWith("https://")
       );
 
       // 2. Trigger prepare-assets (fire and forget — task will PATCH library item on completion)
+      console.log("[DEBUG preview] resolvedSceneUrls:", JSON.stringify(resolvedSceneUrls), "animationStatus keys:", Object.keys(animationStatus), "animationStatus:", JSON.stringify(animationStatus));
       triggerPrepareAssets({
         title,
         script: fullScript,
@@ -814,7 +966,16 @@ export default function AIStorySetup() {
             {/* Hook image (only when prompt exists) */}
             {scriptData?.hook_image_prompt && (
               <div className="relative w-[200px] h-[267px] flex-shrink-0 rounded-[12px] overflow-hidden bg-zinc-100">
-                {hookImageStatus === "loading" || regeneratingHook ? (
+                {animationStatus[-1]?.status === "done" && animationStatus[-1]?.video_url ? (
+                  <video
+                    src={animationStatus[-1].video_url}
+                    autoPlay
+                    loop
+                    muted
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                ) : hookImageStatus === "loading" || regeneratingHook ? (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
                     <div className="w-8 h-8 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
                   </div>
@@ -822,6 +983,17 @@ export default function AIStorySetup() {
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={hookImageUrl} alt="Hook" className="w-full h-full object-cover" />
+                    {(animationStatus[-1]?.status === "uploading" || animationStatus[-1]?.status === "animating") && (
+                      <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1">
+                        <div className="w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        <span className="text-[10px] text-white font-medium">Animating…</span>
+                      </div>
+                    )}
+                    {animationStatus[-1]?.status === "failed" && (
+                      <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-500/80 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-white text-sm">warning</span>
+                      </div>
+                    )}
                     <button
                       onClick={() => handleRegenerateHookOrCta("hook")}
                       className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors"
@@ -872,6 +1044,22 @@ export default function AIStorySetup() {
                   />
                 </div>
               )}
+              {sceneMode === "animated" && (
+                <div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
+                    Motion prompt
+                    <span className="font-normal normal-case tracking-normal ml-1 text-on-surface-variant/50">
+                      — camera movement and animation for the hook
+                    </span>
+                  </label>
+                  <textarea
+                    value={editHookMotionPrompt}
+                    onChange={(e) => setEditHookMotionPrompt(e.target.value)}
+                    rows={2}
+                    className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface-variant font-body text-sm resize-none"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -882,6 +1070,7 @@ export default function AIStorySetup() {
             const imgUrl = sceneImageUrls[i];
             const imgStatus = sceneImageStatus[i] || "loading";
             const isRegenerating = regeneratingScene === i;
+            const anim = animationStatus[i];
 
             return (
               <div
@@ -896,9 +1085,18 @@ export default function AIStorySetup() {
 
                 {/* Scene image + text side-by-side */}
                 <div className="flex gap-4">
-                  {/* Image */}
+                  {/* Image / Video */}
                   <div className="relative w-[200px] h-[267px] flex-shrink-0 rounded-[12px] overflow-hidden bg-zinc-100">
-                    {imgStatus === "loading" || isRegenerating ? (
+                    {anim?.status === "done" && anim.video_url ? (
+                      <video
+                        src={anim.video_url}
+                        autoPlay
+                        loop
+                        muted
+                        controls
+                        className="w-full h-full object-cover"
+                      />
+                    ) : imgStatus === "loading" || isRegenerating ? (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
                         <div className="w-8 h-8 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
                       </div>
@@ -910,6 +1108,17 @@ export default function AIStorySetup() {
                           alt={`Scene ${i + 1}`}
                           className="w-full h-full object-cover"
                         />
+                        {(anim?.status === "uploading" || anim?.status === "animating") && (
+                          <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1">
+                            <div className="w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                            <span className="text-[10px] text-white font-medium">Animating…</span>
+                          </div>
+                        )}
+                        {anim?.status === "failed" && (
+                          <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-500/80 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-white text-sm">warning</span>
+                          </div>
+                        )}
                         <button
                           onClick={() => handleRegenerateImage(i)}
                           className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors"
@@ -973,6 +1182,30 @@ export default function AIStorySetup() {
                           className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface-variant font-body text-sm resize-none"
                         />
                       </div>
+
+                    {/* Motion prompt (animated mode only) */}
+                    {sceneMode === "animated" && (
+                      <div>
+                        <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
+                          Motion prompt
+                          <span className="font-normal normal-case tracking-normal ml-1 text-on-surface-variant/50">
+                            — camera movement and animation for this scene
+                          </span>
+                        </label>
+                        <textarea
+                          value={scene.motion_prompt || ""}
+                          onChange={(e) => {
+                            setEditScenes((prev) => {
+                              const next = [...prev];
+                              next[i] = { ...next[i], motion_prompt: e.target.value };
+                              return next;
+                            });
+                          }}
+                          rows={2}
+                          className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface-variant font-body text-sm resize-none"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -991,7 +1224,16 @@ export default function AIStorySetup() {
             {/* CTA image (only when prompt exists) */}
             {scriptData?.cta_image_prompt && (
               <div className="relative w-[200px] h-[267px] flex-shrink-0 rounded-[12px] overflow-hidden bg-zinc-100">
-                {ctaImageStatus === "loading" || regeneratingCta ? (
+                {animationStatus[-2]?.status === "done" && animationStatus[-2]?.video_url ? (
+                  <video
+                    src={animationStatus[-2].video_url}
+                    autoPlay
+                    loop
+                    muted
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                ) : ctaImageStatus === "loading" || regeneratingCta ? (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
                     <div className="w-8 h-8 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
                   </div>
@@ -999,6 +1241,17 @@ export default function AIStorySetup() {
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={ctaImageUrl} alt="CTA" className="w-full h-full object-cover" />
+                    {(animationStatus[-2]?.status === "uploading" || animationStatus[-2]?.status === "animating") && (
+                      <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1">
+                        <div className="w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        <span className="text-[10px] text-white font-medium">Animating…</span>
+                      </div>
+                    )}
+                    {animationStatus[-2]?.status === "failed" && (
+                      <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-500/80 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-white text-sm">warning</span>
+                      </div>
+                    )}
                     <button
                       onClick={() => handleRegenerateHookOrCta("cta")}
                       className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors"
@@ -1049,6 +1302,22 @@ export default function AIStorySetup() {
                   />
                 </div>
               )}
+              {sceneMode === "animated" && (
+                <div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block font-headline">
+                    Motion prompt
+                    <span className="font-normal normal-case tracking-normal ml-1 text-on-surface-variant/50">
+                      — camera movement and animation for the CTA
+                    </span>
+                  </label>
+                  <textarea
+                    value={editCtaMotionPrompt}
+                    onChange={(e) => setEditCtaMotionPrompt(e.target.value)}
+                    rows={2}
+                    className="w-full bg-surface border border-outline-variant/15 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 text-on-surface-variant font-body text-sm resize-none"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1070,9 +1339,30 @@ export default function AIStorySetup() {
             )}
           </button>
 
+          {sceneMode === "animated" && sceneImageStatus.length > 0 && sceneImageStatus.every((s) => s !== "loading") && (
+            <button
+              onClick={handleAnimateScenes}
+              disabled={animating}
+              className="flex-1 max-w-md py-4 rounded-xl text-base font-bold font-headline flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95 bg-secondary-container text-on-secondary-container shadow-secondary-container/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {animating ? (
+                <span className="flex items-center gap-2">
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  Animating… {Object.values(animationStatus).filter((s) => s.status === "done").length}/{editScenes.length}
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                  Animate Scenes
+                </span>
+              )}
+            </button>
+          )}
+
           <button
             onClick={handlePreviewVideo}
-            className="flex-1 max-w-md py-4 rounded-xl text-base font-bold font-headline flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95 bg-primary text-on-primary shadow-primary/30"
+            disabled={sceneMode === "animated" && (animating || !Object.values(animationStatus).some((s) => s.status === "done"))}
+            className="flex-1 max-w-md py-4 rounded-xl text-base font-bold font-headline flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95 bg-primary text-on-primary shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
               Preview video
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -1340,7 +1630,7 @@ export default function AIStorySetup() {
                 <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">Premium</span>
               </div>
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                Each scene becomes a 3-5s AI video clip via Kling AI
+                Each scene becomes a 3-5s AI animated clip
               </p>
             </div>
           </button>
