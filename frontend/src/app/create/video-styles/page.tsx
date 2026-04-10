@@ -33,6 +33,15 @@ const videoStyles: VideoStyle[] = [
     gradient: "from-fuchsia-600 to-purple-500",
     badge: "New",
   },
+  {
+    id: "argument",
+    name: "Argument video",
+    description:
+      "Two characters debate over gameplay footage",
+    icon: "forum",
+    gradient: "from-orange-400 to-blue-500",
+    badge: "New",
+  },
 ];
 
 // ── Page ──
@@ -43,7 +52,11 @@ export default function VideoStylesPage() {
 
   function handleSelect(style: VideoStyle) {
     setSelected(style.id);
-    router.push(`/create/video-setup?style=${style.id}`);
+    if (style.id === "argument") {
+      router.push("/create/argument");
+    } else {
+      router.push(`/create/video-setup?style=${style.id}`);
+    }
   }
 
   return (

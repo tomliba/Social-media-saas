@@ -125,6 +125,63 @@ function VideoPreviewModal({
     }
   };
 
+  // Argument preview items
+  const argumentOutputDir = (() => {
+    if (item.templateId !== "Argument" || !item.previewData) return null;
+    try { return JSON.parse(item.previewData).output_dir; } catch { return null; }
+  })();
+
+  if (isPreview && item.templateId === "Argument" && item.videoUrl && argumentOutputDir) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
+          <div className="flex justify-end px-4 pt-3">
+            <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-zinc-100 flex items-center justify-center">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <div className="px-6 pb-6">
+            <h3 className="text-lg font-bold mb-3">{item.title}</h3>
+            <video src={item.videoUrl} controls autoPlay className="w-full max-h-[60vh] rounded-xl mb-4 object-contain bg-black" />
+            <p className="text-xs text-zinc-500 mb-4">Quick preview (360p, no AI images). Full render adds AI-generated images and renders in 1080p HD.</p>
+            <button
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  await fetch("/api/argument/full-render", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ library_item_id: item.id, output_dir: argumentOutputDir }),
+                  });
+                  await fetch(`/api/library/${item.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: "rendering" }),
+                  });
+                  onItemUpdated?.({ ...item, status: "rendering" });
+                  onClose();
+                } catch (err) {
+                  console.error("Full render failed:", err);
+                  setExporting(false);
+                }
+              }}
+              disabled={exporting}
+              className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50"
+            >
+              {exporting ? "Starting..." : "Render Full Quality (1080p)"}
+            </button>
+          </div>
+          {exporting && (
+            <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center gap-3 rounded-2xl">
+              <div className="w-10 h-10 border-3 border-violet-200 border-t-primary rounded-full animate-spin" />
+              <span className="text-sm font-medium text-primary">Starting full render...</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Preview items → show AIStoryPreview in the modal
   if (isPreview && parsedPreviewData && parsedCreativeSettings) {
     return (

@@ -9,9 +9,9 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await req.json();
-  const { status, videoUrl, thumbnailUrl, renderTimeSec, error } = body;
+  const { status, videoUrl, thumbnailUrl, renderTimeSec, error, previewData } = body;
 
-  if (!status || !["ready", "failed"].includes(status)) {
+  if (!status || !["ready", "failed", "preview"].includes(status)) {
     return NextResponse.json(
       { error: "status must be 'ready' or 'failed'" },
       { status: 400 }
@@ -36,6 +36,7 @@ export async function POST(
       thumbnailUrl: thumbnailUrl ?? null,
       renderTimeSec: renderTimeSec ?? null,
       error: error ?? null,
+      ...(previewData !== undefined && { previewData }),
     },
   });
 
