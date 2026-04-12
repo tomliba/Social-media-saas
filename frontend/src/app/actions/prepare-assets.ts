@@ -55,7 +55,8 @@ export async function triggerPrepareAssets(
   // Update library item if libraryItemId was provided
   if (payload.libraryItemId) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    await fetch(`${appUrl}/api/library/${payload.libraryItemId}/preview-ready`, {
+    console.log("[prepare-assets] Calling preview-ready with libraryItemId:", payload.libraryItemId, "appUrl:", appUrl);
+    const prRes = await fetch(`${appUrl}/api/library/${payload.libraryItemId}/preview-ready`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -66,6 +67,7 @@ export async function triggerPrepareAssets(
         durationSec: Math.round(result.previewData.durationInFrames / result.previewData.fps),
       }),
     });
+    console.log("[prepare-assets] preview-ready response:", prRes.status, await prRes.text());
   }
 
   return {

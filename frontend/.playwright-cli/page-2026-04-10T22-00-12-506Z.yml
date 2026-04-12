@@ -1,0 +1,219 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - link "The Fluid Curator" [ref=e3] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e4]:
+      - link "Create" [ref=e5] [cursor=pointer]:
+        - /url: /create
+      - button "notifications" [ref=e6]:
+        - generic [ref=e7]: notifications
+      - button "account_circle" [ref=e8]:
+        - generic [ref=e9]: account_circle
+  - complementary [ref=e10]:
+    - generic [ref=e12]:
+      - generic [ref=e14]: auto_awesome
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: Creator Hub
+        - paragraph [ref=e17]: Pro Plan
+    - navigation [ref=e18]:
+      - link "home Home" [ref=e19] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e20]: home
+        - generic [ref=e21]: Home
+      - link "add_circle Create" [ref=e22] [cursor=pointer]:
+        - /url: /create
+        - generic [ref=e23]: add_circle
+        - generic [ref=e24]: Create
+      - link "video_library Library 1" [ref=e25] [cursor=pointer]:
+        - /url: /library
+        - generic [ref=e26]: video_library
+        - generic [ref=e27]: Library
+        - generic [ref=e28]: "1"
+      - link "auto_awesome Autopilot" [ref=e29] [cursor=pointer]:
+        - /url: /autopilot
+        - generic [ref=e30]: auto_awesome
+        - generic [ref=e31]: Autopilot
+      - link "manage_accounts Accounts" [ref=e32] [cursor=pointer]:
+        - /url: /accounts
+        - generic [ref=e33]: manage_accounts
+        - generic [ref=e34]: Accounts
+      - link "settings Preferences" [ref=e35] [cursor=pointer]:
+        - /url: /preferences
+        - generic [ref=e36]: settings
+        - generic [ref=e37]: Preferences
+    - generic [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]: "Usage: 80%"
+        - generic [ref=e42]: bar_chart
+      - button "Upgrade Plan" [ref=e45]
+  - main [ref=e47]:
+    - generic [ref=e48]:
+      - link "arrow_back" [ref=e49] [cursor=pointer]:
+        - /url: /create
+        - generic [ref=e50]: arrow_back
+      - generic [ref=e51]:
+        - heading "AI Argument" [level=1] [ref=e52]
+        - paragraph [ref=e53]: Two characters debate any topic you choose
+    - generic [ref=e54]:
+      - generic [ref=e55]: Setup
+      - generic [ref=e56]: Script
+      - generic [ref=e57]: Settings
+    - generic [ref=e58]:
+      - generic [ref=e59]:
+        - generic [ref=e60]: Your niche
+        - textbox "e.g. fitness, history, finance, gaming, cooking..." [ref=e61]: fitness
+      - generic [ref=e62]:
+        - generic [ref=e63]: Characters
+        - generic [ref=e64]:
+          - button "Explainer (left) Peter Griffin Peter Griffin swap_horiz Tap to change" [ref=e65]:
+            - paragraph [ref=e66]: Explainer (left)
+            - img "Peter Griffin" [ref=e67]
+            - generic [ref=e68]: Peter Griffin
+            - generic [ref=e69]:
+              - generic [ref=e70]: swap_horiz
+              - text: Tap to change
+          - generic [ref=e73]: VS
+          - button "Asker (right) Stewie Griffin Stewie Griffin swap_horiz Tap to change" [ref=e74]:
+            - paragraph [ref=e75]: Asker (right)
+            - img "Stewie Griffin" [ref=e76]
+            - generic [ref=e77]: Stewie Griffin
+            - generic [ref=e78]:
+              - generic [ref=e79]: swap_horiz
+              - text: Tap to change
+      - generic [ref=e80]:
+        - generic [ref=e81]: Script source
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - button "local_fire_department Viral ideas AI generates 10 viral debate ideas for your niche expand_less" [ref=e185]:
+              - generic [ref=e85]: local_fire_department
+              - generic [ref=e86]:
+                - generic [ref=e87]: Viral ideas
+                - text: AI generates 10 viral debate ideas for your niche
+              - generic [ref=e88]: expand_less
+            - generic [ref=e186]:
+              - generic [ref=e187]:
+                - generic [ref=e188]: Conversation format
+                - generic [ref=e189]:
+                  - button "gavel Debate Two sides argue a hot take" [ref=e190]:
+                    - generic [ref=e191]: gavel
+                    - generic [ref=e192]:
+                      - generic [ref=e193]: Debate
+                      - generic [ref=e194]: Two sides argue a hot take
+                  - button "school Explainer Q&A One explains, the other asks questions" [ref=e195]:
+                    - generic [ref=e196]: school
+                    - generic [ref=e197]:
+                      - generic [ref=e198]: Explainer Q&A
+                      - generic [ref=e199]: One explains, the other asks questions
+                  - button "help Would You Rather Pick between two options and argue why" [ref=e200]:
+                    - generic [ref=e201]: help
+                    - generic [ref=e202]:
+                      - generic [ref=e203]: Would You Rather
+                      - generic [ref=e204]: Pick between two options and argue why
+                  - button "local_fire_department Roast Battle Characters roast each other" [ref=e205]:
+                    - generic [ref=e206]: local_fire_department
+                    - generic [ref=e207]:
+                      - generic [ref=e208]: Roast Battle
+                      - generic [ref=e209]: Characters roast each other
+                  - button "whatshot Hot Takes Controversial opinions, the other reacts" [ref=e210]:
+                    - generic [ref=e211]: whatshot
+                    - generic [ref=e212]:
+                      - generic [ref=e213]: Hot Takes
+                      - generic [ref=e214]: Controversial opinions, the other reacts
+                  - button "visibility Conspiracy Theory One presents a wild theory, the other is skeptical" [ref=e215]:
+                    - generic [ref=e216]: visibility
+                    - generic [ref=e217]:
+                      - generic [ref=e218]: Conspiracy Theory
+                      - generic [ref=e219]: One presents a wild theory, the other is skeptical
+                  - button "auto_stories Storytime One tells a crazy story, the other reacts" [ref=e220]:
+                    - generic [ref=e221]: auto_stories
+                    - generic [ref=e222]:
+                      - generic [ref=e223]: Storytime
+                      - generic [ref=e224]: One tells a crazy story, the other reacts
+                  - button "quiz Quiz / Trivia One quizzes the other on a topic" [ref=e225]:
+                    - generic [ref=e226]: quiz
+                    - generic [ref=e227]:
+                      - generic [ref=e228]: Quiz / Trivia
+                      - generic [ref=e229]: One quizzes the other on a topic
+                  - button "compare_arrows This or That Quick fire comparisons" [ref=e230]:
+                    - generic [ref=e231]: compare_arrows
+                    - generic [ref=e232]:
+                      - generic [ref=e233]: This or That
+                      - generic [ref=e234]: Quick fire comparisons
+                  - button "psychology Terrible Advice One gives bad advice, the other calls it out" [ref=e235]:
+                    - generic [ref=e236]: psychology
+                    - generic [ref=e237]:
+                      - generic [ref=e238]: Terrible Advice
+                      - generic [ref=e239]: One gives bad advice, the other calls it out
+              - button "auto_awesome Generate 10 viral ideas" [ref=e247]:
+                - generic [ref=e241]: auto_awesome
+                - text: Generate 10 viral ideas
+              - generic [ref=e244]:
+                - button "Is steady-state cardio or resistance training more effective for sustainable fat loss?" [ref=e248]
+                - button "Are workout supplements absolutely essential for significant muscle growth and strength gains?" [ref=e249]
+                - button "Does meal timing significantly impact muscle protein synthesis, or is total daily intake key?" [ref=e250]
+                - button "Is training every set to complete muscular failure necessary for optimal muscle hypertrophy?" [ref=e251]
+                - button "Are compound exercises always superior to isolation movements for overall muscle development?" [ref=e252]
+                - button "Is fasted cardio truly more effective for fat burning compared to fed state exercise sessions?" [ref=e253]
+                - button "Can anyone achieve an elite physique through consistent effort, or are genetics the ultimate limit?" [ref=e254]
+                - button "Are artificial sweeteners detrimental to gut health and fitness goals, or perfectly safe alternatives?" [ref=e255]
+                - button "Is high-intensity interval training (HIIT) always superior to low-intensity cardio for results?" [ref=e256]
+                - button "Is a comprehensive warm-up and stretching routine truly essential before every intense workout?" [ref=e257]
+              - textbox "Or type your own topic..." [ref=e242]
+          - 'button "content_paste Paste your own script Use A: and B: to mark speakers expand_more" [ref=e90]':
+            - generic [ref=e91]: content_paste
+            - generic [ref=e92]:
+              - generic [ref=e93]: Paste your own script
+              - text: "Use A: and B: to mark speakers"
+            - generic [ref=e94]: expand_more
+          - button "recycling Remix a viral video Paste a URL to extract and remix expand_more" [ref=e96]:
+            - generic [ref=e97]: recycling
+            - generic [ref=e98]:
+              - generic [ref=e99]: Remix a viral video
+              - text: Paste a URL to extract and remix
+            - generic [ref=e100]: expand_more
+          - button "edit_note Write your own prompt Freeform instructions to AI expand_more" [ref=e102]:
+            - generic [ref=e103]: edit_note
+            - generic [ref=e104]:
+              - generic [ref=e105]: Write your own prompt
+              - text: Freeform instructions to AI
+            - generic [ref=e106]: expand_more
+      - generic [ref=e107]:
+        - generic [ref=e108]: Background video
+        - button "GTA (10) GTA (10) Tap to change chevron_right" [ref=e109]:
+          - img "GTA (10)" [ref=e110]
+          - generic [ref=e111]:
+            - generic [ref=e112]: GTA (10)
+            - text: Tap to change
+          - generic [ref=e113]: chevron_right
+      - generic [ref=e114]:
+        - generic [ref=e115]: Tone
+        - generic [ref=e116]:
+          - button "Regular" [ref=e117]
+          - button "Storytelling" [ref=e118]
+          - button "Dramatic" [ref=e119]
+          - button "Horror" [ref=e120]
+          - button "Funny" [ref=e121]
+          - button "Cursing" [ref=e122]
+          - button "Sarcastic" [ref=e123]
+          - button "Motivational" [ref=e124]
+          - button "Mysterious" [ref=e125]
+          - button "Wholesome" [ref=e126]
+          - button "Dark" [ref=e127]
+          - button "Epic" [ref=e128]
+      - generic [ref=e129]:
+        - generic [ref=e130]: Duration & Speed
+        - generic [ref=e131]:
+          - button "timer 45 seconds expand_more" [ref=e133]:
+            - generic [ref=e134]: timer
+            - generic [ref=e135]: 45 seconds
+            - generic [ref=e136]: expand_more
+          - generic [ref=e137]:
+            - generic [ref=e138]: speed
+            - generic [ref=e139]: "Speed: 1.0x"
+            - slider [ref=e140] [cursor=pointer]: "1"
+      - button "progress_activity Generating script..." [disabled] [ref=e258]:
+        - generic [ref=e143]: progress_activity
+        - text: Generating script...
+  - button "Open Next.js Dev Tools" [ref=e149] [cursor=pointer]:
+    - img [ref=e150]
+  - alert [ref=e153]

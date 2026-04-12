@@ -1,0 +1,205 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - link "The Fluid Curator" [ref=e3] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e4]:
+      - link "Create" [ref=e5] [cursor=pointer]:
+        - /url: /create
+      - button "notifications" [ref=e6]:
+        - generic [ref=e7]: notifications
+      - button "account_circle" [ref=e8]:
+        - generic [ref=e9]: account_circle
+  - complementary [ref=e10]:
+    - generic [ref=e12]:
+      - generic [ref=e14]: auto_awesome
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: Creator Hub
+        - paragraph [ref=e17]: Pro Plan
+    - navigation [ref=e18]:
+      - link "home Home" [ref=e19] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e20]: home
+        - generic [ref=e21]: Home
+      - link "add_circle Create" [ref=e22] [cursor=pointer]:
+        - /url: /create
+        - generic [ref=e23]: add_circle
+        - generic [ref=e24]: Create
+      - link "video_library Library 1" [ref=e25] [cursor=pointer]:
+        - /url: /library
+        - generic [ref=e26]: video_library
+        - generic [ref=e27]: Library
+        - generic [ref=e28]: "1"
+      - link "auto_awesome Autopilot" [ref=e29] [cursor=pointer]:
+        - /url: /autopilot
+        - generic [ref=e30]: auto_awesome
+        - generic [ref=e31]: Autopilot
+      - link "manage_accounts Accounts" [ref=e32] [cursor=pointer]:
+        - /url: /accounts
+        - generic [ref=e33]: manage_accounts
+        - generic [ref=e34]: Accounts
+      - link "settings Preferences" [ref=e35] [cursor=pointer]:
+        - /url: /preferences
+        - generic [ref=e36]: settings
+        - generic [ref=e37]: Preferences
+    - generic [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]: "Usage: 80%"
+        - generic [ref=e42]: bar_chart
+      - button "Upgrade Plan" [ref=e45]
+  - main [ref=e47]:
+    - generic [ref=e48]:
+      - link "arrow_back" [ref=e49] [cursor=pointer]:
+        - /url: /create
+        - generic [ref=e50]: arrow_back
+      - generic [ref=e51]:
+        - heading "AI Argument" [level=1] [ref=e52]
+        - paragraph [ref=e53]: Two characters debate any topic you choose
+    - generic [ref=e54]:
+      - generic [ref=e55]: Setup
+      - generic [ref=e56]: Script
+      - generic [ref=e57]: Settings
+    - generic [ref=e342]:
+      - generic [ref=e343]:
+        - generic [ref=e344]:
+          - generic [ref=e345]: Caption style
+          - button [ref=e346]
+        - generic [ref=e348]:
+          - button "Sample text Regular" [ref=e349]:
+            - generic [ref=e351]: Sample text
+            - generic [ref=e352]: Regular
+          - button "Sample text Bold Stroke" [ref=e353]:
+            - generic [ref=e355]:
+              - text: Sample
+              - generic [ref=e356]: text
+            - generic [ref=e357]: Bold Stroke
+          - button "Sample text Red Highlight" [ref=e358]:
+            - generic [ref=e360]: Sample text
+            - generic [ref=e361]: Red Highlight
+          - button "Sample text Sleek" [ref=e362]:
+            - generic [ref=e364]: Sample text
+            - generic [ref=e365]: Sleek
+          - button "Sample text Karaoke" [ref=e366]:
+            - generic [ref=e368]: Sample text
+            - generic [ref=e369]: Karaoke
+          - button "Sample text Majestic" [ref=e370]:
+            - generic [ref=e372]: Sample text
+            - generic [ref=e373]: Majestic
+          - button "Sample text Beast" [ref=e374]:
+            - generic [ref=e376]:
+              - text: Sample
+              - generic [ref=e377]: text
+            - generic [ref=e378]: Beast
+          - button "Sample text Elegant" [ref=e379]:
+            - generic [ref=e381]: Sample text
+            - generic [ref=e382]: Elegant
+          - button "Sample text Pixel" [ref=e383]:
+            - generic [ref=e385]: Sample text
+            - generic [ref=e386]: Pixel
+          - button "Sample text Clarity" [ref=e387]:
+            - generic [ref=e389]: Sample text
+            - generic [ref=e390]: Clarity
+        - generic [ref=e391]:
+          - generic [ref=e392]:
+            - generic [ref=e393]: Font size
+            - generic [ref=e394]:
+              - button "small" [ref=e395]
+              - button "medium" [ref=e396]
+              - button "large" [ref=e397]
+          - generic [ref=e398]:
+            - generic [ref=e399]: Text transform
+            - generic [ref=e400]:
+              - button "Normal" [ref=e401]
+              - button "UPPERCASE" [ref=e402]
+              - button "Capitalize" [ref=e403]
+              - button "lowercase" [ref=e404]
+      - generic [ref=e405]:
+        - generic [ref=e406]:
+          - generic [ref=e407]: Background music
+          - generic [ref=e408]: Optional
+        - generic [ref=e409]:
+          - generic [ref=e410] [cursor=pointer]:
+            - generic [ref=e412]:
+              - generic [ref=e413]: Happy rhythm
+              - text: Upbeat and energetic, perfect for positive content
+            - button "play_circle" [ref=e414]:
+              - generic [ref=e415]: play_circle
+          - generic [ref=e416] [cursor=pointer]:
+            - generic [ref=e418]:
+              - generic [ref=e419]: Quiet before storm
+              - text: Building tension and anticipation
+            - button "play_circle" [ref=e420]:
+              - generic [ref=e421]: play_circle
+          - generic [ref=e422] [cursor=pointer]:
+            - generic [ref=e424]:
+              - generic [ref=e425]: Brilliant symphony
+              - text: Orchestral and majestic for epic storytelling
+            - button "play_circle" [ref=e426]:
+              - generic [ref=e427]: play_circle
+          - generic [ref=e428] [cursor=pointer]:
+            - generic [ref=e430]:
+              - generic [ref=e431]: Breathing shadows
+              - text: Mysterious and eerie ambiance
+            - button "play_circle" [ref=e432]:
+              - generic [ref=e433]: play_circle
+          - generic [ref=e434] [cursor=pointer]:
+            - generic [ref=e436]:
+              - generic [ref=e437]: Deep bass
+              - text: Dark interstellar atmosphere
+            - button "play_circle" [ref=e438]:
+              - generic [ref=e439]: play_circle
+          - generic [ref=e440] [cursor=pointer]:
+            - generic [ref=e442]:
+              - generic [ref=e443]: Cinematic drums
+              - text: Intense percussion for dramatic content
+            - button "play_circle" [ref=e444]:
+              - generic [ref=e445]: play_circle
+          - generic [ref=e446] [cursor=pointer]:
+            - generic [ref=e448]:
+              - generic [ref=e449]: Lo-fi chill
+              - text: Relaxed beats for casual content
+            - button "play_circle" [ref=e450]:
+              - generic [ref=e451]: play_circle
+          - generic [ref=e452] [cursor=pointer]:
+            - generic [ref=e454]:
+              - generic [ref=e455]: Suspense piano
+              - text: Sparse eerie piano for true crime and mystery
+            - button "play_circle" [ref=e456]:
+              - generic [ref=e457]: play_circle
+          - generic [ref=e458] [cursor=pointer]:
+            - generic [ref=e460]:
+              - generic [ref=e461]: Motivational rise
+              - text: Inspiring buildup with strings
+            - button "play_circle" [ref=e462]:
+              - generic [ref=e463]: play_circle
+          - button "music_off No music" [ref=e464]:
+            - generic [ref=e466]: music_off
+            - generic [ref=e467]: No music
+      - generic [ref=e468]:
+        - generic [ref=e469]:
+          - generic [ref=e470]: Effects
+          - generic [ref=e471]: Optional
+        - generic [ref=e472]:
+          - generic [ref=e473]:
+            - generic [ref=e474]:
+              - generic [ref=e475]:
+                - generic [ref=e476]: Film grain
+                - generic [ref=e477]: New
+              - paragraph [ref=e478]: Old film look with scanlines and noise
+            - button [ref=e479]
+          - generic [ref=e481]:
+            - generic [ref=e482]:
+              - generic [ref=e483]:
+                - generic [ref=e484]: Shake effect
+                - generic [ref=e485]: New
+              - paragraph [ref=e486]: Eerie motion for horror and thriller
+            - button [ref=e487]
+      - generic [ref=e490]:
+        - button "arrow_back Back to Script" [ref=e491]:
+          - generic [ref=e492]: arrow_back
+          - text: Back to Script
+        - button "movie Render Video" [ref=e493]:
+          - generic [ref=e494]: movie
+          - text: Render Video
+  - button "Open Next.js Dev Tools" [ref=e149] [cursor=pointer]:
+    - img [ref=e150]
+  - alert [ref=e153]

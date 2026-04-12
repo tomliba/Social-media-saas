@@ -13,6 +13,7 @@ export interface RenderPreviewPayload {
     fps: number;
     imageDurations?: number[];
   };
+  visualSegments?: { startSec: number; endSec: number; visual_type: string; speech?: string; data?: Record<string, unknown> }[];
   creativeSettings: {
     hookText?: string;
     style?: string;
@@ -130,6 +131,7 @@ export const renderPreview = task({
           transition_style: creativeSettings.transitionStyle,
           scale: 1.0,
           ...(previewData.imageDurations && { image_durations: previewData.imageDurations }),
+          ...(payload.visualSegments && { visual_segments: payload.visualSegments }),
         }),
       });
 

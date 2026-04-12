@@ -94,6 +94,10 @@ function VideoPreviewModal({
     if (!isPreview || !item.creativeSettings) return null;
     try { return JSON.parse(item.creativeSettings); } catch { return null; }
   })();
+  const parsedVisualSegments = (() => {
+    if (!isPreview || !item.resolvedSegments) return undefined;
+    try { return JSON.parse(item.resolvedSegments); } catch { return undefined; }
+  })();
 
   const handlePreviewExport = async () => {
     if (exporting || !parsedPreviewData || !parsedCreativeSettings) return;
@@ -105,6 +109,7 @@ function VideoPreviewModal({
         title: item.title,
         previewData: parsedPreviewData,
         creativeSettings: parsedCreativeSettings,
+        ...(parsedVisualSegments && { visualSegments: parsedVisualSegments }),
       });
 
       // Update library item: status → rendering

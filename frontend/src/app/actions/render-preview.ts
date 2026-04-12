@@ -49,6 +49,7 @@ export async function triggerRenderPreview(
       shake_effect: creativeSettings.shakeEffect ?? false,
       transition_style: creativeSettings.transitionStyle,
       scale: 1.0,
+      ...(payload.visualSegments && { visual_segments: payload.visualSegments }),
     }),
   });
 

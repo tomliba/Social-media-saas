@@ -842,6 +842,39 @@ export default function AIStorySetup() {
     startAnimationJob(segments, false);
   }, [editScenes, sceneImageUrls, hookImageUrl, ctaImageUrl, editHookMotionPrompt, editCtaMotionPrompt, startAnimationJob]);
 
+  // ── Retry animation for a single failed scene ──
+  const handleRetryAnimation = useCallback((sceneIndex: number) => {
+    const imgUrl = sceneIndex === -1
+      ? hookImageUrl
+      : sceneIndex === -2
+        ? ctaImageUrl
+        : sceneImageUrls[sceneIndex];
+    if (!imgUrl) return;
+
+    const motionPrompt = sceneIndex === -1
+      ? (editHookMotionPrompt || "slow atmospheric zoom in")
+      : sceneIndex === -2
+        ? (editCtaMotionPrompt || "gentle zoom out")
+        : (editScenes[sceneIndex]?.motion_prompt || "");
+
+    const words = sceneIndex >= 0
+      ? (editScenes[sceneIndex]?.text || "").split(/\s+/).filter(Boolean).length
+      : 0;
+    const duration = sceneIndex >= 0
+      ? Math.min(10, Math.max(5, Math.ceil(words / 2.5) + 2))
+      : 5;
+
+    setAnimationStatus((prev) => ({
+      ...prev,
+      [sceneIndex]: { status: "uploading", video_url: null, error: null },
+    }));
+
+    startAnimationJob(
+      [{ index: sceneIndex, image_url: imgUrl, motion_prompt: motionPrompt, duration }],
+      true,
+    );
+  }, [sceneImageUrls, hookImageUrl, ctaImageUrl, editScenes, editHookMotionPrompt, editCtaMotionPrompt, startAnimationJob]);
+
   // ── Preview video: create library item, trigger prepare-assets, navigate immediately ──
   const handlePreviewVideo = async () => {
     if (!scriptData) return;
@@ -990,9 +1023,14 @@ export default function AIStorySetup() {
                       </div>
                     )}
                     {animationStatus[-1]?.status === "failed" && (
-                      <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-500/80 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-white text-sm">warning</span>
-                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRetryAnimation(-1); }}
+                        className="absolute top-1.5 right-1.5 flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/90 hover:bg-red-600 transition-colors"
+                        title="Retry animation"
+                      >
+                        <span className="material-symbols-outlined text-white text-sm">refresh</span>
+                        <span className="text-[10px] text-white font-bold">Retry</span>
+                      </button>
                     )}
                     <button
                       onClick={() => handleRegenerateHookOrCta("hook")}
@@ -1115,9 +1153,14 @@ export default function AIStorySetup() {
                           </div>
                         )}
                         {anim?.status === "failed" && (
-                          <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-500/80 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-white text-sm">warning</span>
-                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleRetryAnimation(i); }}
+                            className="absolute top-1.5 right-1.5 flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/90 hover:bg-red-600 transition-colors"
+                            title="Retry animation"
+                          >
+                            <span className="material-symbols-outlined text-white text-sm">refresh</span>
+                            <span className="text-[10px] text-white font-bold">Retry</span>
+                          </button>
                         )}
                         <button
                           onClick={() => handleRegenerateImage(i)}
@@ -1248,9 +1291,14 @@ export default function AIStorySetup() {
                       </div>
                     )}
                     {animationStatus[-2]?.status === "failed" && (
-                      <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-500/80 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-white text-sm">warning</span>
-                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRetryAnimation(-2); }}
+                        className="absolute top-1.5 right-1.5 flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/90 hover:bg-red-600 transition-colors"
+                        title="Retry animation"
+                      >
+                        <span className="material-symbols-outlined text-white text-sm">refresh</span>
+                        <span className="text-[10px] text-white font-bold">Retry</span>
+                      </button>
                     )}
                     <button
                       onClick={() => handleRegenerateHookOrCta("cta")}
@@ -1342,7 +1390,7 @@ export default function AIStorySetup() {
           {sceneMode === "animated" && sceneImageStatus.length > 0 && sceneImageStatus.every((s) => s !== "loading") && (
             <button
               onClick={handleAnimateScenes}
-              disabled={animating}
+              disabled={animating || Object.values(animationStatus).length > 0 && Object.values(animationStatus).every((s) => s.status === "done")}
               className="flex-1 max-w-md py-4 rounded-xl text-base font-bold font-headline flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95 bg-secondary-container text-on-secondary-container shadow-secondary-container/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {animating ? (

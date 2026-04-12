@@ -1,5 +1,5 @@
 import React from "react";
-import { useCurrentFrame, interpolate, OffthreadVideo, Img, staticFile } from "remotion";
+import { useCurrentFrame, interpolate, OffthreadVideo, Img, staticFile, Sequence } from "remotion";
 import type { VisualSegment, TransitionType } from "../types";
 
 const resolveAsset = (path: string): string =>
@@ -37,14 +37,16 @@ const SegmentRenderer: React.FC<{
       });
       const scale = 1.0 + 0.05 * progress;
       return (
-        <OffthreadVideo
-          src={resolveAsset(segment.data.asset_url as string)}
-          style={{
-            width: "100%", height: "100%", objectFit: "cover",
-            transform: `scale(${scale})`,
-          }}
-          muted
-        />
+        <Sequence from={startFrame} durationInFrames={endFrame - startFrame} layout="none">
+          <OffthreadVideo
+            src={resolveAsset(segment.data.asset_url as string)}
+            style={{
+              width: "100%", height: "100%", objectFit: "cover",
+              transform: `scale(${scale})`,
+            }}
+            muted
+          />
+        </Sequence>
       );
     }
     case "ai_image": {
