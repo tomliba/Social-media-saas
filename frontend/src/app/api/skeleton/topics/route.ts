@@ -24,33 +24,21 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.FLASK_API_KEY;
     if (apiKey) headers["X-API-Key"] = apiKey;
 
-    const style = body.style || "ai-story";
-
-    const res = await fetch(`${flaskUrl}/vg/generate_script`, {
+    const res = await fetch(`${flaskUrl}/vg/skeleton/topics`, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        topic: body.topic,
-        custom_prompt: body.customPrompt || "",
-        tone: body.tone || "dramatic",
-        style,
-        art_style: body.artStyle || "anime",
-        duration: body.duration || 30,
-        language: body.language || "Auto Detect",
-        voice_id: body.voiceId || undefined,
-        mode: body.mode || "topic",
-        scene_mode: body.scene_mode || "static",
-        ...(body.niche && { niche: body.niche }),
-        ...(body.pastedScript && { pasted_script: body.pastedScript }),
-        ...(body.remixUrl && { remix_url: body.remixUrl }),
+        niche: body.niche || "",
+        ...(body.mode && { mode: body.mode }),
+        ...(body.format_id && { format_id: body.format_id }),
       }),
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error("Flask /vg/generate_script error:", errText);
+      console.error("Flask /vg/skeleton/topics error:", errText);
       return NextResponse.json(
-        { error: `Script generation failed (${res.status})` },
+        { error: `Topic generation failed (${res.status})` },
         { status: res.status }
       );
     }
@@ -58,9 +46,9 @@ export async function POST(req: NextRequest) {
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("generate-story error:", error);
+    console.error("skeleton/topics error:", error);
     return NextResponse.json(
-      { error: "Failed to generate story" },
+      { error: "Failed to generate topics" },
       { status: 500 }
     );
   }

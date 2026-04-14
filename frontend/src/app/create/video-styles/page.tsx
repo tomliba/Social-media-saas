@@ -42,6 +42,15 @@ const videoStyles: VideoStyle[] = [
     gradient: "from-orange-400 to-blue-500",
     badge: "New",
   },
+  {
+    id: "skeleton",
+    name: "Skeleton videos",
+    description:
+      "3D X-ray skeleton explainers trending on TikTok, Reels, and Shorts",
+    icon: "skeleton",
+    gradient: "from-cyan-700 to-slate-800",
+    badge: "Trending",
+  },
 ];
 
 // ── Page ──
@@ -54,6 +63,8 @@ export default function VideoStylesPage() {
     setSelected(style.id);
     if (style.id === "argument") {
       router.push("/create/argument");
+    } else if (style.id === "skeleton") {
+      router.push("/create/skeleton");
     } else {
       router.push(`/create/video-setup?style=${style.id}`);
     }
@@ -81,7 +92,7 @@ export default function VideoStylesPage() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {videoStyles.map((style) => {
           const isSelected = selected === style.id;
 
