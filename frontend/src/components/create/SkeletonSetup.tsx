@@ -767,11 +767,11 @@ export default function SkeletonSetup() {
         if (timingRes.ok) {
           const timingData = await timingRes.json();
           sceneTiming = Array.isArray(timingData) ? timingData : timingData.scene_timings ?? timingData.timings ?? timingData.segments ?? null;
-          console.log("[TTS Timing] sceneTiming:", sceneTiming);
+
         }
       }
     } catch (err) {
-      console.warn("[TTS Timing] Failed, falling back to word-count:", err);
+
     }
 
     // ── Build segments ──
@@ -799,7 +799,7 @@ export default function SkeletonSetup() {
     if (ctaImageUrl) segments.push({ index: -2, image_url: ctaImageUrl, motion_prompt: editCtaMotionPrompt || "gentle zoom out", duration: ctaDur });
 
     if (segments.length === 0) { setAnimating(false); return; }
-    console.log("[TTS Timing] Final segment durations:", segments.map((s) => ({ index: s.index, duration: s.duration })));
+
     startAnimationJob(segments, false);
   }, [editScenes, editHook, editCta, sceneImageUrls, hookImageUrl, ctaImageUrl, editHookMotionPrompt, editCtaMotionPrompt, startAnimationJob, scriptData, selectedVoice, speed, cachedTtsResult, cachedScriptHash]);
 

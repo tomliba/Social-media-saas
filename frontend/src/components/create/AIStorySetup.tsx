@@ -414,6 +414,10 @@ export default function AIStorySetup() {
   const [editHookMotionPrompt, setEditHookMotionPrompt] = useState("");
   const [editCtaMotionPrompt, setEditCtaMotionPrompt] = useState("");
 
+  // TTS-based duration cache
+  const [cachedTtsResult, setCachedTtsResult] = useState<{ audio_duration_ms: number; word_timestamps: unknown; audio_r2_url: string } | null>(null);
+  const [cachedScriptHash, setCachedScriptHash] = useState("");
+
   // Hook & CTA image state
   const [hookImageUrl, setHookImageUrl] = useState<string | null>(null);
   const [hookImageStatus, setHookImageStatus] = useState<"loading" | "done" | "error">("loading");
@@ -812,35 +816,84 @@ export default function AIStorySetup() {
   }, []);
 
   const handleAnimateScenes = useCallback(async () => {
-    const segments = editScenes
-      .map((s, i) => {
-        const words = (s.text || "").split(/\s+/).filter(Boolean).length;
-        const estimated = Math.ceil(words / 2.5) + 2;
-        const duration = Math.min(10, Math.max(5, estimated));
-        return {
-          index: i,
-          image_url: sceneImageUrls[i],
-          motion_prompt: s.motion_prompt || "",
-          duration,
-        };
-      })
-      .filter((seg) => seg.image_url);
-
-    // Add hook and CTA images if they exist
-    if (hookImageUrl) {
-      segments.unshift({ index: -1, image_url: hookImageUrl, motion_prompt: editHookMotionPrompt || "slow atmospheric zoom in", duration: 5 });
-    }
-    if (ctaImageUrl) {
-      segments.push({ index: -2, image_url: ctaImageUrl, motion_prompt: editCtaMotionPrompt || "gentle zoom out", duration: 5 });
-    }
-
-    if (segments.length === 0) return;
-
     setAnimating(true);
     setAnimationStatus({});
 
+    // ── Try TTS-based real durations ──
+    let sceneTiming: { startSec: number; endSec: number; type: string }[] | null = null;
+    try {
+      const scriptHash = [editHook, ...editScenes.map((s) => s.text), editCta].join("|");
+
+      let ttsResult = cachedTtsResult;
+      if (!ttsResult || scriptHash !== cachedScriptHash) {
+        const ttsRes = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            vg_job_id: scriptData?.vg_job_id,
+            voice_id: selectedVoice?.fishAudioId || defaultVoice.fishAudioId,
+            speed,
+          }),
+        });
+        if (ttsRes.ok) {
+          ttsResult = await ttsRes.json();
+          setCachedTtsResult(ttsResult);
+          setCachedScriptHash(scriptHash);
+        } else {
+          ttsResult = null;
+        }
+      }
+
+      if (ttsResult) {
+        const timingRes = await fetch("/api/scene-timing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scenes: editScenes.map((s) => ({ text: s.text })),
+            word_timestamps: ttsResult.word_timestamps,
+            audio_duration_ms: ttsResult.audio_duration_ms,
+            hook: editHook,
+            cta: editCta,
+          }),
+        });
+        if (timingRes.ok) {
+          const timingData = await timingRes.json();
+          sceneTiming = Array.isArray(timingData) ? timingData : timingData.scene_timings ?? timingData.timings ?? timingData.segments ?? null;
+
+        }
+      }
+    } catch (err) {
+
+    }
+
+    // ── Build segments ──
+    const segments = editScenes
+      .map((s, i) => {
+        let dur: number;
+        if (sceneTiming && sceneTiming[i + (editHook ? 1 : 0)]) {
+          const t = sceneTiming[i + (editHook ? 1 : 0)];
+          dur = Math.min(12, Math.max(2, Math.ceil(t.endSec - t.startSec)));
+        } else {
+          const words = (s.text || "").split(/\s+/).filter(Boolean).length;
+          const estimated = Math.ceil(words / 2.5) + 2;
+          dur = Math.min(10, Math.max(5, estimated));
+        }
+        return { index: i, image_url: sceneImageUrls[i], motion_prompt: s.motion_prompt || "", duration: dur };
+      })
+      .filter((seg) => seg.image_url);
+
+    const hookTiming = editHook && sceneTiming?.[0];
+    const hookDur = hookTiming ? Math.min(12, Math.max(2, Math.ceil(hookTiming.endSec - hookTiming.startSec))) : 5;
+    const ctaTiming = editCta && sceneTiming?.[sceneTiming.length - 1];
+    const ctaDur = ctaTiming ? Math.min(12, Math.max(2, Math.ceil(ctaTiming.endSec - ctaTiming.startSec))) : 5;
+
+    if (hookImageUrl) segments.unshift({ index: -1, image_url: hookImageUrl, motion_prompt: editHookMotionPrompt || "slow atmospheric zoom in", duration: hookDur });
+    if (ctaImageUrl) segments.push({ index: -2, image_url: ctaImageUrl, motion_prompt: editCtaMotionPrompt || "gentle zoom out", duration: ctaDur });
+
+    if (segments.length === 0) { setAnimating(false); return; }
+
     startAnimationJob(segments, false);
-  }, [editScenes, sceneImageUrls, hookImageUrl, ctaImageUrl, editHookMotionPrompt, editCtaMotionPrompt, startAnimationJob]);
+  }, [editScenes, editHook, editCta, sceneImageUrls, hookImageUrl, ctaImageUrl, editHookMotionPrompt, editCtaMotionPrompt, startAnimationJob, scriptData, selectedVoice, speed, cachedTtsResult, cachedScriptHash]);
 
   // ── Retry animation for a single failed scene ──
   const handleRetryAnimation = useCallback((sceneIndex: number) => {
@@ -941,6 +994,7 @@ export default function AIStorySetup() {
         script: fullScript,
         libraryItemId: libItem.id,
         ...(validImageUrls.length > 0 && { preGeneratedImageUrls: validImageUrls }),
+        ...(cachedTtsResult?.audio_r2_url && { preGeneratedAudioUrl: cachedTtsResult.audio_r2_url }),
         settings: {
           voice: selectedVoice?.fishAudioId || defaultVoice.fishAudioId,
           speed,
