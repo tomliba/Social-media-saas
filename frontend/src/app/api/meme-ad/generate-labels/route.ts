@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { geminiFlash } from "@/lib/gemini";
+import { generateText } from "@/lib/llm";
 import { auth } from "@/lib/auth";
 
 const templateStructures: Record<string, string> = {
@@ -74,13 +74,10 @@ Return ONLY a JSON object, no markdown, no code fences:
 
 Only include panel keys that the format uses (e.g. 2-panel formats only need panel1 and panel2).`;
 
-    const result = await geminiFlash.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json" },
-    });
+    const raw = (await generateText(prompt, { jsonMode: true })).trim();
     let data;
     try {
-      data = JSON.parse(result.response.text().trim());
+      data = JSON.parse(raw);
     } catch {
       return NextResponse.json(
         { error: "AI returned invalid JSON. Please retry" },

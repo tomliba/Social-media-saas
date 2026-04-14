@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { geminiFlash } from "@/lib/gemini";
+import { generateText } from "@/lib/llm";
 import { auth } from "@/lib/auth";
 
 const templateStructures: Record<string, string> = {
@@ -52,13 +52,7 @@ Return ONLY a JSON array, no markdown, no code fences. Example format:
 Make titles provocative, curiosity-driven, and optimized for clicks. Use power words. Each title should make someone stop scrolling.
 Include specific numbers or statistics in at least 3 of the 10 titles (e.g., "97% of people get this wrong", "This $2 trick saved me 10 hours").`;
 
-    const result = await geminiFlash.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
-    });
-    const text = result.response.text().trim();
+    const text = (await generateText(prompt, { jsonMode: true })).trim();
     const ideas = JSON.parse(text);
 
     return NextResponse.json({ ideas });

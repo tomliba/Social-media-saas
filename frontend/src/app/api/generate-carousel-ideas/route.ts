@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { geminiFlash } from "@/lib/gemini";
+import { generateText } from "@/lib/llm";
 import { auth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
@@ -31,11 +31,8 @@ Return ONLY a JSON array, no markdown, no code fences:
 
 Make titles curiosity-driven and optimized for saves/shares. Include numbers or stats in at least 3 titles.`;
 
-    const result = await geminiFlash.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json" },
-    });
-    const ideas = JSON.parse(result.response.text().trim());
+    const text = (await generateText(prompt, { jsonMode: true })).trim();
+    const ideas = JSON.parse(text);
     return NextResponse.json({ ideas });
   } catch (error) {
     console.error("generate-carousel-ideas error:", error);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { geminiFlash } from "@/lib/gemini";
+import { generateText } from "@/lib/llm";
 import { auth } from "@/lib/auth";
 
 const templatePrompts: Record<string, string> = {
@@ -119,13 +119,7 @@ Return ONLY a JSON array of objects, no markdown, no code fences. Format:
 [{"title": "Video Title", "script": "The full script text here..."}]`;
     }
 
-    const result = await geminiFlash.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
-    });
-    const text = result.response.text().trim();
+    const text = (await generateText(prompt, { jsonMode: true })).trim();
     const scripts = JSON.parse(text).map((s: { title: string; script: string }) => ({
       ...s,
       script: s.script.replace(/\*+/g, "").replace(/—/g, ","),

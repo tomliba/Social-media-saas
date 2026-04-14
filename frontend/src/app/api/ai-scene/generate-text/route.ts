@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { geminiFlash } from "@/lib/gemini";
+import { generateText } from "@/lib/llm";
 import { auth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
@@ -31,8 +31,7 @@ Requirements:
 - Do NOT use markdown formatting, hashtags, or emojis
 - Return ONLY the content text, nothing else`;
 
-    const result = await geminiFlash.generateContent(prompt);
-    const text = result.response.text().trim();
+    const text = (await generateText(prompt)).trim();
 
     return NextResponse.json({ text });
   } catch (error) {

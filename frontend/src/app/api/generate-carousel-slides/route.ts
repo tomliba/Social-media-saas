@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { geminiFlash } from "@/lib/gemini";
+import { generateText } from "@/lib/llm";
 import { getTemplateById } from "@/lib/carousel-templates";
 import { auth } from "@/lib/auth";
 
@@ -52,13 +52,10 @@ Example for one slide: { ${template.placeholders.filter((p) => !["slideNumber", 
 
 No markdown, no code fences. Return raw JSON only.${threadInstruction}`;
 
-    const result = await geminiFlash.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json" },
-    });
+    const raw = (await generateText(prompt, { jsonMode: true })).trim();
     let data;
     try {
-      data = JSON.parse(result.response.text().trim());
+      data = JSON.parse(raw);
     } catch {
       return NextResponse.json(
         { error: "AI returned invalid JSON. Please retry" },

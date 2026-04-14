@@ -26,6 +26,7 @@
     "next": "^16.2.1",
     "next-auth": "^5.0.0-beta.30",
     "node-html-to-image": "^5.0.0",
+    "openai": "^6.34.0",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.6.205",
     "react": "^19.2.4",
