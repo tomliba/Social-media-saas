@@ -15,6 +15,7 @@ export interface VideoRenderRequest {
     duration: string;
     layout: string;
     speed?: number;
+    animate?: boolean;
     /** AI Story mode — when set, skip script generation and use provided data */
     aiStory?: {
       vgJobId: string;

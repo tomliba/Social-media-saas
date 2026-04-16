@@ -108,7 +108,11 @@ Return ONLY a JSON array, no markdown, no code fences:
 Make titles curiosity-driven and optimized for saves/shares. Include numbers or stats in at least 3 titles.`;
 
     const text = (await generateText(prompt, { jsonMode: true })).trim();
-    const ideas = JSON.parse(text);
+    const parsed = JSON.parse(text);
+    const ideas = Array.isArray(parsed) ? parsed : (parsed.ideas || parsed.results || Object.values(parsed).find(Array.isArray) || []);
+    if (ideas.length === 0) {
+      throw new Error(`LLM returned no ideas array. Raw: ${text.slice(0, 500)}`);
+    }
     return NextResponse.json({ ideas });
   } catch (error) {
     console.error("generate-image-post-ideas error:", error);

@@ -11,3 +11,12 @@ node_modules
 # Database files
 dev.db
 *.db
+
+# Character sprite sheets (large binary assets)
+public/char_*.png
+public/mouth_*.png
+public/characters/*/config.json
+
+# Test / E2E
+playwright.config.ts
+tests/

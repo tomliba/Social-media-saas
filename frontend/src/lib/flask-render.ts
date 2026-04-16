@@ -12,16 +12,24 @@ import type { VisualSegment } from "./video-types";
 // ── Setting maps (duplicated from trigger tasks — they run in a separate runtime) ──
 
 const toneMap: Record<string, string> = {
+  Regular: "regular",
   Funny: "funny_clean",
   Serious: "educational",
   Cursing: "funny_profanity",
-  Edgy: "sarcastic",
+  Edgy: "roast",
+  Motivational: "motivational",
+  Storytelling: "storytime",
+  Sarcastic: "sarcastic",
+  Shocked: "shocked",
+  Conspiracy: "conspiracy",
+  Friendly: "friendly",
 };
 
 const durationMap: Record<string, number> = {
   "15s": 15,
   "30s": 30,
   "60s": 60,
+  "90s": 90,
   "AI picks": 60,
 };
 
@@ -53,6 +61,7 @@ const backgroundModeMap: Record<string, string> = {
   "Smart Mix": "smart_mix",
   "Stock Footage": "pexels",
   "AI Images": "ai_images",
+  "Animated AI": "ai_images",
   "Motion Graphics": "motion_graphics",
 };
 
@@ -112,6 +121,7 @@ export interface DirectVideoRequest {
     duration: string;
     layout: string;
     speed?: number;
+    animate?: boolean;
     /** AI Story mode — when set, skip script generation and use provided data */
     aiStory?: {
       vgJobId: string;
@@ -162,6 +172,7 @@ export async function renderVideoViaFlask(
     backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"] ?? "smart_mix";
   const layout = layoutMap[payload.settings.layout] ?? "standard";
   const speed = payload.settings.speed ?? 1.0;
+  const animate = payload.settings.animate === true;
 
   const aiStory = payload.settings.aiStory;
 
@@ -246,6 +257,7 @@ export async function renderVideoViaFlask(
     body: JSON.stringify({
       vg_job_id: jobId,
       segments: visualPlanData.segments,
+      ...(animate ? { animate: true } : {}),
       ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
     }),
   });
@@ -255,6 +267,26 @@ export async function renderVideoViaFlask(
   }
 
   const resolvedData = (await resolveRes.json()) as { segments: VisualSegment[] };
+
+  // Step 4b: Animate backgrounds (if enabled)
+  if (animate) {
+    console.log("Animating backgrounds...");
+    const animRes = await fetch(`${base}/vg/animate-segments`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        vg_job_id: jobId,
+        segments: resolvedData.segments,
+      }),
+    });
+
+    if (!animRes.ok) {
+      throw new Error(`Flask /vg/animate-segments failed (${animRes.status}): ${await animRes.text()}`);
+    }
+
+    const animData = (await animRes.json()) as { segments: VisualSegment[] };
+    resolvedData.segments = animData.segments;
+  }
 
   // Step 5: Render
   const renderBody: Record<string, unknown> = {

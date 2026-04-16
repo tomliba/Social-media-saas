@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       "15s": "30-45 words (about 15 seconds when spoken)",
       "30s": "60-90 words (about 30 seconds when spoken)",
       "60s": "120-170 words (about 60 seconds when spoken)",
+      "90s": "180-220 words (about 90 seconds when spoken)",
     };
     const wordCount = durationWords[duration] || durationWords["30s"];
 
@@ -120,7 +121,12 @@ Return ONLY a JSON array of objects, no markdown, no code fences. Format:
     }
 
     const text = (await generateText(prompt, { jsonMode: true })).trim();
-    const scripts = JSON.parse(text).map((s: { title: string; script: string }) => ({
+    const parsed = JSON.parse(text);
+    const raw = Array.isArray(parsed) ? parsed : (parsed.scripts || parsed.results || parsed.ideas || Object.values(parsed).find(Array.isArray) || []);
+    if (raw.length === 0) {
+      throw new Error(`LLM returned no scripts array. Raw: ${text.slice(0, 500)}`);
+    }
+    const scripts = raw.map((s: { title: string; script: string }) => ({
       ...s,
       script: s.script.replace(/\*+/g, "").replace(/—/g, ","),
     }));

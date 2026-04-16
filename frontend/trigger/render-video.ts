@@ -15,6 +15,7 @@ export interface RenderVideoPayload {
     duration: string;
     layout: string;
     speed?: number;
+    animate?: boolean;
     /** AI Story mode — when set, skip script generation and use provided data */
     aiStory?: {
       vgJobId: string;
@@ -52,16 +53,24 @@ export interface RenderVideoOutput {
 // ── Map frontend setting values to Flask API parameter values ──
 
 const toneMap: Record<string, string> = {
+  Regular: "regular",
   Funny: "funny_clean",
   Serious: "educational",
   Cursing: "funny_profanity",
-  Edgy: "sarcastic",
+  Edgy: "roast",
+  Motivational: "motivational",
+  Storytelling: "storytime",
+  Sarcastic: "sarcastic",
+  Shocked: "shocked",
+  Conspiracy: "conspiracy",
+  Friendly: "friendly",
 };
 
 const durationMap: Record<string, number> = {
   "15s": 15,
   "30s": 30,
   "60s": 60,
+  "90s": 90,
   "AI picks": 60,
 };
 
@@ -96,6 +105,7 @@ const backgroundModeMap: Record<string, string> = {
   "Smart Mix": "smart_mix",
   "Stock Footage": "pexels",
   "AI Images": "ai_images",
+  "Animated AI": "ai_images",
   "Motion Graphics": "motion_graphics",
 };
 
@@ -227,6 +237,7 @@ export const renderVideo = task({
     const backgroundMode = backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"] ?? "smart_mix";
     const layout = layoutMap[payload.settings.layout] ?? "standard";
     const speed = payload.settings.speed ?? 1.0;
+    const animate = payload.settings.animate === true;
 
     // Helper to record failure in metadata before re-throwing
     function failAtStage(stage: string, err: unknown): never {
@@ -399,6 +410,7 @@ export const renderVideo = task({
         body: JSON.stringify({
           vg_job_id: jobId,
           segments: visualPlanData.segments,
+          ...(animate ? { animate: true } : {}),
           ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
         }),
       });
@@ -416,6 +428,31 @@ export const renderVideo = task({
       });
     } catch (err) {
       failAtStage("resolve_assets", err);
+    }
+
+    // Step 4b: Animate backgrounds (if enabled)
+    if (animate) {
+      try {
+        logger.log("Animating backgrounds...");
+        const animRes = await fetch(`${flaskUrl}/vg/animate-segments`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            vg_job_id: jobId,
+            segments: resolvedData.segments,
+          }),
+        });
+
+        if (!animRes.ok) {
+          const errText = await animRes.text();
+          throw new Error(`Flask /vg/animate-segments failed (${animRes.status}): ${errText}`);
+        }
+
+        const animData = await animRes.json() as { segments: VisualSegment[] };
+        resolvedData.segments = animData.segments;
+      } catch (err) {
+        failAtStage("animate_segments", err);
+      }
     }
 
     // Store visual segments in metadata for the review page timeline

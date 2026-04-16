@@ -50,6 +50,7 @@ const videoTemplates = [
 // ── Tones ──
 
 const tones = [
+  { label: "Regular", emoji: "\u{1F642}" },
   { label: "Funny", emoji: "\u{1F604}" },
   { label: "Serious", emoji: "\u{1F3AF}" },
   { label: "Cursing", emoji: "\u{1F92C}" },
@@ -68,6 +69,7 @@ const backgroundModes = [
   { label: "Smart Mix", emoji: "\u2728", desc: "AI picks the best visuals for each moment" },
   { label: "Stock Footage", emoji: "\u{1F4F9}", desc: "Real video clips from Pexels" },
   { label: "AI Images", emoji: "\u{1F3A8}", desc: "Custom AI-generated images" },
+  { label: "Animated AI", emoji: "\u{1F3AC}", desc: "AI images with motion" },
   { label: "Motion Graphics", emoji: "\u2728", icon: "animation", desc: "Animated data visualizations and graphics" },
 ];
 
@@ -351,6 +353,7 @@ function VideoSetupContent() {
             duration,
             layout: "Standard",
             speed: selectedSpeed,
+            animate: backgroundMode === "Animated AI",
           },
         }))
       );
@@ -769,7 +772,7 @@ function VideoSetupContent() {
                   Duration
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {["15s", "30s", "60s"].map((d) => (
+                  {["15s", "30s", "60s", "90s"].map((d) => (
                     <button
                       key={d}
                       onClick={() => { setDuration(d); setDurationOpen(false); }}
@@ -786,6 +789,7 @@ function VideoSetupContent() {
               </div>
             )}
           </div>
+
         </div>
         <p className="mt-4 text-sm text-on-surface-variant">
           Using your defaults &middot; Tap any to change
