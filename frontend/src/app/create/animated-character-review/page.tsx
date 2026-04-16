@@ -42,6 +42,7 @@ interface SetupData {
   duration: string;
   speed: number;
   backgroundMode: string;
+  artStyle?: string;
 }
 
 interface Scene {
@@ -63,10 +64,65 @@ interface EditableScene {
   motion_prompt: string;
 }
 
+interface ArtStyle { id: string; label: string; gradient: string; }
+
+const artStyles: ArtStyle[] = [
+  { id: "anime", label: "Anime", gradient: "from-pink-500 to-violet-600" },
+  { id: "ghibli", label: "Ghibli", gradient: "from-green-400 to-cyan-500" },
+  { id: "pixel_art", label: "Pixel Art", gradient: "from-emerald-400 to-lime-500" },
+  { id: "comic", label: "Comic", gradient: "from-yellow-400 to-orange-500" },
+  { id: "lego", label: "Lego", gradient: "from-red-400 to-yellow-500" },
+  { id: "dark_fantasy", label: "Dark Fantasy", gradient: "from-slate-700 to-purple-900" },
+  { id: "watercolor", label: "Watercolor", gradient: "from-sky-300 to-rose-300" },
+  { id: "3d_toon", label: "3D Toon", gradient: "from-blue-400 to-indigo-500" },
+  { id: "film_noir", label: "Film Noir", gradient: "from-zinc-600 to-zinc-900" },
+  { id: "painting", label: "Painting", gradient: "from-amber-500 to-rose-600" },
+  { id: "minecraft", label: "Minecraft", gradient: "from-green-600 to-emerald-800" },
+  { id: "realism", label: "Realism", gradient: "from-amber-600 to-stone-700" },
+  { id: "charcoal", label: "Charcoal", gradient: "from-neutral-500 to-neutral-800" },
+  { id: "cinematic", label: "Cinematic", gradient: "from-slate-800 to-amber-700" },
+  { id: "creepy_comic", label: "Creepy Comic", gradient: "from-red-800 to-zinc-900" },
+  { id: "disney", label: "Disney", gradient: "from-sky-400 to-pink-400" },
+  { id: "mythology", label: "Mythology", gradient: "from-amber-500 to-stone-800" },
+  { id: "polaroid", label: "Polaroid", gradient: "from-amber-200 to-stone-400" },
+  { id: "gtav", label: "GTAV", gradient: "from-orange-500 to-sky-600" },
+  { id: "expressionism", label: "Expressionism", gradient: "from-fuchsia-500 to-yellow-500" },
+  { id: "childrens_book", label: "Children's Book", gradient: "from-yellow-300 to-pink-400" },
+  { id: "adult_cartoon", label: "Adult Cartoon", gradient: "from-rose-500 to-orange-400" },
+  { id: "bw_comic", label: "B&W Comic", gradient: "from-zinc-300 to-zinc-800" },
+  { id: "whiteboard", label: "Whiteboard", gradient: "from-gray-100 to-gray-300" },
+  { id: "low_poly", label: "Low Poly", gradient: "from-teal-400 to-blue-600" },
+  { id: "modern_cartoon", label: "Modern Cartoon", gradient: "from-red-400 to-teal-400" },
+  { id: "fantastic", label: "Fantastic", gradient: "from-cyan-500 to-blue-700" },
+  { id: "pixar", label: "Pixar", gradient: "from-orange-300 to-red-400" },
+  { id: "simpsons", label: "Simpsons", gradient: "from-yellow-400 to-orange-500" },
+  { id: "90s_disney", label: "90s Disney", gradient: "from-fuchsia-400 to-purple-600" },
+  { id: "historical_18th", label: "18th Century", gradient: "from-amber-300 to-amber-700" },
+  { id: "comic_realism", label: "Comic Realism", gradient: "from-red-500 to-slate-800" },
+  { id: "2d_hand_drawn", label: "2D Hand Drawn", gradient: "from-orange-200 to-amber-400" },
+  { id: "creepy_toon", label: "Creepy Toon", gradient: "from-purple-900 to-slate-900" },
+  { id: "dark_comic", label: "Dark Comic", gradient: "from-green-800 to-green-950" },
+  { id: "cute_anime", label: "Cute Anime", gradient: "from-pink-300 to-pink-500" },
+];
+
+const artPreviewFileOverrides: Record<string, string> = {
+  pixel_art: "pixel",
+  childrens_book: "childrens",
+};
+
+const artPreviewMissing = new Set<string>([]);
+
+function artPreviewSrc(id: string): string | null {
+  if (artPreviewMissing.has(id)) return null;
+  const filename = artPreviewFileOverrides[id] ?? id;
+  return `/art_style_previews/${filename}.png`;
+}
+
 export default function AnimatedCharacterReviewPage() {
   const router = useRouter();
   const [setup, setSetup] = useState<SetupData | null>(null);
   const [invalid, setInvalid] = useState(false);
+  const [artStyle, setArtStyle] = useState("");
   const [breakdowns, setBreakdowns] = useState<(ScriptBreakdown | null)[]>([]);
   const [sceneImages, setSceneImages] = useState<(string[] | null)[]>([]);
   const [editScenes, setEditScenes] = useState<EditableScene[][]>([]);
@@ -86,6 +142,7 @@ export default function AnimatedCharacterReviewPage() {
       if (!raw) { setInvalid(true); return; }
       const parsed = JSON.parse(raw) as SetupData;
       if (!parsed.scripts || parsed.scripts.length === 0) { setInvalid(true); return; }
+      if (parsed.artStyle) setArtStyle(parsed.artStyle);
       setSetup(parsed);
     } catch {
       setInvalid(true);
@@ -142,6 +199,7 @@ export default function AnimatedCharacterReviewPage() {
             scenes: breakdown.scenes,
             style: "character",
             scene_mode: "animated",
+            ...(setupData.artStyle ? { art_style: setupData.artStyle } : {}),
           }),
         });
 
@@ -181,7 +239,7 @@ export default function AnimatedCharacterReviewPage() {
           vg_job_id: breakdown.vg_job_id,
           scene_index: sceneIdx,
           image_prompt: scene.image_prompt,
-          art_style: "realism",
+          ...(artStyle ? { art_style: artStyle } : {}),
           style: "character",
         }),
       });
@@ -571,7 +629,7 @@ export default function AnimatedCharacterReviewPage() {
       <h1 className="text-3xl font-bold font-headline tracking-tight text-on-surface mb-2">
         Review Your Animated Video
       </h1>
-      <p className="text-on-surface-variant text-sm mb-10">
+      <p className="text-on-surface-variant text-sm mb-8">
         Edit scripts and images before rendering
       </p>
 

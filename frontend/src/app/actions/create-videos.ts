@@ -17,6 +17,7 @@ export interface VideoRenderRequest {
     layout: string;
     speed?: number;
     animate?: boolean;
+    artStyle?: string;
     vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];

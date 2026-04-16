@@ -122,6 +122,7 @@ export interface DirectVideoRequest {
     layout: string;
     speed?: number;
     animate?: boolean;
+    artStyle?: string;
     vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];
@@ -263,6 +264,7 @@ export async function renderVideoViaFlask(
           vg_job_id: jobId,
           background_mode: backgroundMode,
           ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
+          ...(!aiStory && payload.settings.artStyle ? { art_style: payload.settings.artStyle } : {}),
         }),
       }),
       fetch(`${base}/vg/tts`, {
@@ -295,6 +297,7 @@ export async function renderVideoViaFlask(
         segments: visualPlanData.segments,
         ...(animate ? { animate: true } : {}),
         ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
+        ...(!aiStory && payload.settings.artStyle ? { art_style: payload.settings.artStyle } : {}),
       }),
     });
 

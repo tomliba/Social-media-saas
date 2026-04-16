@@ -16,6 +16,7 @@ export interface RenderVideoPayload {
     layout: string;
     speed?: number;
     animate?: boolean;
+    artStyle?: string;
     vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];
@@ -399,6 +400,7 @@ export const renderVideo = task({
           audio_duration_ms: ttsData.audio_duration_ms,
           word_timestamps: ttsData.word_timestamps,
           ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
+          ...(!aiStory && payload.settings.artStyle ? { art_style: payload.settings.artStyle } : {}),
         }),
       });
 
@@ -430,6 +432,7 @@ export const renderVideo = task({
           segments: visualPlanData.segments,
           ...(animate ? { animate: true } : {}),
           ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
+          ...(!aiStory && payload.settings.artStyle ? { art_style: payload.settings.artStyle } : {}),
         }),
       });
 
