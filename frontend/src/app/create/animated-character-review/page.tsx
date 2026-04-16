@@ -477,6 +477,7 @@ export default function AnimatedCharacterReviewPage() {
               layout: "Standard",
               speed: setup.speed,
               animate: true,
+              vgJobId: breakdowns[i]?.vg_job_id,
               assetsReady: true,
               resolvedSegments,
             },

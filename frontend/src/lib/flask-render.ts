@@ -122,6 +122,7 @@ export interface DirectVideoRequest {
     layout: string;
     speed?: number;
     animate?: boolean;
+    vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];
     /** AI Story mode — when set, skip script generation and use provided data */
@@ -187,7 +188,17 @@ export async function renderVideoViaFlask(
   };
   let jobId: string;
 
-  if (aiStory) {
+  if (payload.settings.vgJobId) {
+    // Pre-existing job: script already generated, reuse Flask job
+    jobId = payload.settings.vgJobId;
+    scriptData = {
+      vg_job_id: payload.settings.vgJobId,
+      script: payload.script,
+      hook: "",
+      cta: "",
+      scenes: [],
+    };
+  } else if (aiStory) {
     // AI Story mode: script already generated, use provided data
     jobId = aiStory.vgJobId;
     scriptData = {

@@ -17,6 +17,7 @@ export interface VideoRenderRequest {
     layout: string;
     speed?: number;
     animate?: boolean;
+    vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];
     /** AI Story mode — when set, skip script generation and use provided data */

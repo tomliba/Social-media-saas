@@ -16,6 +16,7 @@ export interface RenderVideoPayload {
     layout: string;
     speed?: number;
     animate?: boolean;
+    vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];
     /** AI Story mode — when set, skip script generation and use provided data */
@@ -263,7 +264,21 @@ export const renderVideo = task({
 
     const aiStory = payload.settings.aiStory;
 
-    if (aiStory) {
+    if (payload.settings.vgJobId) {
+      // ── Pre-existing job: script already generated, reuse Flask job ──
+      jobId = payload.settings.vgJobId;
+      scriptData = {
+        vg_job_id: payload.settings.vgJobId,
+        script: payload.script,
+        hook: "",
+        cta: "",
+        scenes: [],
+      };
+      logger.log("Reusing existing vgJobId — skipping script generation", { jobId });
+      metadata.set("stage", "script_ready");
+      metadata.set("stageLabel", "Script ready — generating speech...");
+      metadata.set("progress", 15);
+    } else if (aiStory) {
       // ── AI Story mode: script already generated, use provided data ──
       jobId = aiStory.vgJobId;
       scriptData = {
