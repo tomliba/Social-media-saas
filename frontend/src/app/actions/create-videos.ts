@@ -1,6 +1,7 @@
 "use server";
 
 import { renderVideoViaFlask } from "@/lib/flask-render";
+import type { VisualSegment } from "@/lib/video-types";
 
 export interface VideoRenderRequest {
   title: string;
@@ -16,6 +17,8 @@ export interface VideoRenderRequest {
     layout: string;
     speed?: number;
     animate?: boolean;
+    assetsReady?: boolean;
+    resolvedSegments?: VisualSegment[];
     /** AI Story mode — when set, skip script generation and use provided data */
     aiStory?: {
       vgJobId: string;

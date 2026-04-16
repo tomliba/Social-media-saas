@@ -16,6 +16,8 @@ export interface RenderVideoPayload {
     layout: string;
     speed?: number;
     animate?: boolean;
+    assetsReady?: boolean;
+    resolvedSegments?: VisualSegment[];
     /** AI Story mode — when set, skip script generation and use provided data */
     aiStory?: {
       vgJobId: string;
@@ -352,12 +354,13 @@ export const renderVideo = task({
     metadata.set("stageLabel", "Speech ready — planning visuals...");
     metadata.set("progress", 22);
 
-    if (aiStory?.assetsReady && aiStory.resolvedSegments) {
+    const preResolved = aiStory?.resolvedSegments || payload.settings.resolvedSegments;
+    if ((aiStory?.assetsReady || payload.settings.assetsReady) && preResolved) {
       // ── Assets-ready shortcut: skip visual-plan + resolve-assets, use stored segments ──
-      logger.log("Assets already prepared (preview→export) — skipping visual-plan + resolve-assets", {
-        segmentCount: aiStory.resolvedSegments.length,
+      logger.log("Assets already prepared — skipping visual-plan + resolve-assets", {
+        segmentCount: preResolved.length,
       });
-      resolvedData = { segments: aiStory.resolvedSegments };
+      resolvedData = { segments: preResolved };
       metadata.set("stage", "pipeline_starting");
       metadata.set("stageLabel", "Starting video render...");
       metadata.set("progress", 40);

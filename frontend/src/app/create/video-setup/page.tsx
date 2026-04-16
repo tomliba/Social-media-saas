@@ -335,6 +335,23 @@ function VideoSetupContent() {
 
   const handleAcceptAndCreate = async () => {
     if (scripts.length === 0) return;
+
+    // Animated AI: redirect to animated character review page
+    if (backgroundMode === "Animated AI") {
+      sessionStorage.setItem("animated-character-setup", JSON.stringify({
+        scripts,
+        template: selectedTemplate || "Custom",
+        tone,
+        character: selectedCharacter.name,
+        voice: selectedVoice?.fishAudioId || defaultVoice.fishAudioId,
+        duration,
+        speed: selectedSpeed,
+        backgroundMode,
+      }));
+      router.push("/create/animated-character-review");
+      return;
+    }
+
     setCreating(true);
     setStep(2);
 

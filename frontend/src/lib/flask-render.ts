@@ -122,6 +122,8 @@ export interface DirectVideoRequest {
     layout: string;
     speed?: number;
     animate?: boolean;
+    assetsReady?: boolean;
+    resolvedSegments?: VisualSegment[];
     /** AI Story mode — when set, skip script generation and use provided data */
     aiStory?: {
       vgJobId: string;
@@ -218,18 +220,13 @@ export async function renderVideoViaFlask(
     jobId = scriptData.vg_job_id;
   }
 
-  // Steps 2 & 3: Visual plan + TTS in parallel
-  const [visualPlanRes, ttsRes] = await Promise.all([
-    fetch(`${base}/vg/visual-plan`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        vg_job_id: jobId,
-        background_mode: backgroundMode,
-        ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
-      }),
-    }),
-    fetch(`${base}/vg/tts`, {
+  // ── Assets-ready shortcut: skip visual-plan + resolve-assets + animate, just run TTS ──
+  const preResolved = aiStory?.resolvedSegments || payload.settings.resolvedSegments;
+  let resolvedData: { segments: VisualSegment[] };
+
+  if ((aiStory?.assetsReady || payload.settings.assetsReady) && preResolved) {
+    // TTS still needed (creates job in Flask memory + generates voiceover.mp3)
+    const ttsRes = await fetch(`${base}/vg/tts`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -238,54 +235,83 @@ export async function renderVideoViaFlask(
         speed,
         ...(aiStory ? { language: aiStory.language } : {}),
       }),
-    }),
-  ]);
+    });
 
-  if (!visualPlanRes.ok) {
-    throw new Error(`Flask /vg/visual-plan failed (${visualPlanRes.status}): ${await visualPlanRes.text()}`);
-  }
-  if (!ttsRes.ok) {
-    throw new Error(`Flask /vg/tts failed (${ttsRes.status}): ${await ttsRes.text()}`);
-  }
+    if (!ttsRes.ok) {
+      throw new Error(`Flask /vg/tts failed (${ttsRes.status}): ${await ttsRes.text()}`);
+    }
 
-  const visualPlanData = (await visualPlanRes.json()) as { segments: VisualSegment[] };
+    resolvedData = { segments: preResolved };
+  } else {
+    // Steps 2 & 3: Visual plan + TTS in parallel
+    const [visualPlanRes, ttsRes] = await Promise.all([
+      fetch(`${base}/vg/visual-plan`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          vg_job_id: jobId,
+          background_mode: backgroundMode,
+          ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
+        }),
+      }),
+      fetch(`${base}/vg/tts`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          vg_job_id: jobId,
+          voice_id: voiceId,
+          speed,
+          ...(aiStory ? { language: aiStory.language } : {}),
+        }),
+      }),
+    ]);
 
-  // Step 4: Resolve assets
-  const resolveRes = await fetch(`${base}/vg/resolve-assets`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      vg_job_id: jobId,
-      segments: visualPlanData.segments,
-      ...(animate ? { animate: true } : {}),
-      ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
-    }),
-  });
+    if (!visualPlanRes.ok) {
+      throw new Error(`Flask /vg/visual-plan failed (${visualPlanRes.status}): ${await visualPlanRes.text()}`);
+    }
+    if (!ttsRes.ok) {
+      throw new Error(`Flask /vg/tts failed (${ttsRes.status}): ${await ttsRes.text()}`);
+    }
 
-  if (!resolveRes.ok) {
-    throw new Error(`Flask /vg/resolve-assets failed (${resolveRes.status}): ${await resolveRes.text()}`);
-  }
+    const visualPlanData = (await visualPlanRes.json()) as { segments: VisualSegment[] };
 
-  const resolvedData = (await resolveRes.json()) as { segments: VisualSegment[] };
-
-  // Step 4b: Animate backgrounds (if enabled)
-  if (animate) {
-    console.log("Animating backgrounds...");
-    const animRes = await fetch(`${base}/vg/animate-segments`, {
+    // Step 4: Resolve assets
+    const resolveRes = await fetch(`${base}/vg/resolve-assets`, {
       method: "POST",
       headers,
       body: JSON.stringify({
         vg_job_id: jobId,
-        segments: resolvedData.segments,
+        segments: visualPlanData.segments,
+        ...(animate ? { animate: true } : {}),
+        ...(aiStory ? { art_style: aiStory.artStyle, style: "ai-story", scene_mode: aiStory.sceneMode } : {}),
       }),
     });
 
-    if (!animRes.ok) {
-      throw new Error(`Flask /vg/animate-segments failed (${animRes.status}): ${await animRes.text()}`);
+    if (!resolveRes.ok) {
+      throw new Error(`Flask /vg/resolve-assets failed (${resolveRes.status}): ${await resolveRes.text()}`);
     }
 
-    const animData = (await animRes.json()) as { segments: VisualSegment[] };
-    resolvedData.segments = animData.segments;
+    resolvedData = (await resolveRes.json()) as { segments: VisualSegment[] };
+
+    // Step 4b: Animate backgrounds (if enabled)
+    if (animate) {
+      console.log("Animating backgrounds...");
+      const animRes = await fetch(`${base}/vg/animate-segments`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          vg_job_id: jobId,
+          segments: resolvedData.segments,
+        }),
+      });
+
+      if (!animRes.ok) {
+        throw new Error(`Flask /vg/animate-segments failed (${animRes.status}): ${await animRes.text()}`);
+      }
+
+      const animData = (await animRes.json()) as { segments: VisualSegment[] };
+      resolvedData.segments = animData.segments;
+    }
   }
 
   // Step 5: Render
