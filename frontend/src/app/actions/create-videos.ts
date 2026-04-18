@@ -18,6 +18,9 @@ export interface VideoRenderRequest {
     speed?: number;
     animate?: boolean;
     artStyle?: string;
+    revoiceMode?: boolean;
+    revoiceVideoUrl?: string;
+    revoiceBlurSubtitles?: boolean;
     vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];

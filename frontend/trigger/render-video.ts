@@ -17,6 +17,9 @@ export interface RenderVideoPayload {
     speed?: number;
     animate?: boolean;
     artStyle?: string;
+    revoiceMode?: boolean;
+    revoiceVideoUrl?: string;
+    revoiceBlurSubtitles?: boolean;
     vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];
@@ -335,10 +338,14 @@ export const renderVideo = task({
     metadata.set("stageLabel", "Script ready — generating speech...");
     metadata.set("progress", 15);
 
-    // ── Step 2: TTS (ALWAYS runs — creates the job in Flask's memory + generates voiceover.mp3) ──
-    let resolvedData: { segments: VisualSegment[] };
-    let ttsData: { audio_duration_ms: number; word_timestamps: unknown[] };
+    // ── Revoice flag (needed before TTS to skip it) ──
+    const isRevoice = payload.settings.revoiceMode === true;
 
+    // ── Step 2: TTS (skipped for Revoice — /vg/start handles TTS internally) ──
+    let resolvedData: { segments: VisualSegment[] };
+    let ttsData: { audio_duration_ms: number; word_timestamps: unknown[] } = { audio_duration_ms: 0, word_timestamps: [] };
+
+    if (!isRevoice) {
     try {
       console.log(`[render-video] ▶ STAGE: tts | jobId="${jobId}"`);
       metadata.set("stage", "tts");
@@ -370,12 +377,15 @@ export const renderVideo = task({
     metadata.set("stage", "tts_ready");
     metadata.set("stageLabel", "Speech ready — planning visuals...");
     metadata.set("progress", 22);
+    } else {
+      logger.log("Revoice mode — skipping TTS (handled by /vg/start)");
+    }
 
     const preResolved = aiStory?.resolvedSegments || payload.settings.resolvedSegments;
     const isGreenScreen = backgroundMode === "green_screen";
-    if (isGreenScreen) {
-      // ── Green screen mode: no backgrounds needed, skip visual-plan + resolve-assets ──
-      logger.log("Green screen mode — skipping visual-plan + resolve-assets");
+    if (isGreenScreen || isRevoice) {
+      // ── Green screen / Revoice mode: no backgrounds needed, skip visual-plan + resolve-assets ──
+      logger.log(isRevoice ? "Revoice mode — skipping visual-plan + resolve-assets" : "Green screen mode — skipping visual-plan + resolve-assets");
       resolvedData = { segments: [] };
       metadata.set("stage", "pipeline_starting");
       metadata.set("stageLabel", "Starting video render...");
@@ -501,11 +511,15 @@ export const renderVideo = task({
           vg_job_id: jobId,
           script: scriptData.script,
           voice_id: voiceId,
-          bg_mode: isGreenScreen ? "green_screen" : bgMode,
+          bg_mode: isRevoice ? "revoice" : (isGreenScreen ? "green_screen" : bgMode),
           background_mode: backgroundMode,
           layout,
           speed,
-          visual_segments: isGreenScreen ? [] : resolvedData.segments,
+          visual_segments: (isGreenScreen || isRevoice) ? [] : resolvedData.segments,
+          ...(isRevoice ? {
+            revoice_video_url: payload.settings.revoiceVideoUrl,
+            revoice_blur_subtitles: payload.settings.revoiceBlurSubtitles ?? true,
+          } : {}),
         };
 
       // Pass AI Story-specific fields to Flask

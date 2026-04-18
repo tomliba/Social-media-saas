@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "25mb",
     },
-    proxyClientMaxBodySize: "100mb",
+    proxyClientMaxBodySize: "300mb",
   },
 };
 

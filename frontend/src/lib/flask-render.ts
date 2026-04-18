@@ -124,6 +124,9 @@ export interface DirectVideoRequest {
     speed?: number;
     animate?: boolean;
     artStyle?: string;
+    revoiceMode?: boolean;
+    revoiceVideoUrl?: string;
+    revoiceBlurSubtitles?: boolean;
     vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];
@@ -160,7 +163,104 @@ export interface DirectVideoResult {
 export async function renderVideoViaFlask(
   payload: DirectVideoRequest
 ): Promise<DirectVideoResult> {
+  console.log("[flask-render] payload.settings.revoiceMode:", payload.settings.revoiceMode, "activeMode check, full settings keys:", Object.keys(payload.settings));
   const base = flaskUrl();
+
+  // ── Revoice mode: calls /vg/start directly (not /vg/render) ──
+  if (payload.settings.revoiceMode === true) {
+    if (!base) {
+      return { videoUrl: "", caption: `${payload.title} — Created with The Fluid Curator.` };
+    }
+    const headers = flaskHeaders();
+    const tone = toneMap[payload.settings.tone] ?? "funny_clean";
+    const duration = durationMap[payload.settings.duration] ?? 60;
+    const character = characterMap[payload.settings.presenter] ?? "doctor";
+    const voiceId = payload.settings.voice || defaultVoice.fishAudioId;
+    const speed = payload.settings.speed ?? 1.0;
+
+    // Step 1: /vg/generate_script to get jobId
+    const scriptRes = await fetch(`${base}/vg/generate_script`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        topic: payload.script,
+        tone,
+        language: "English",
+        duration,
+        character,
+        mode: "script",
+      }),
+    });
+    if (!scriptRes.ok) throw new Error(`Flask /vg/generate_script failed (${scriptRes.status}): ${await scriptRes.text()}`);
+    const scriptData = await scriptRes.json();
+    const jobId = scriptData.vg_job_id;
+
+    // Step 2: /vg/start with bg_mode=revoice, revoice_video_url, revoice_blur_subtitles
+    const startRes = await fetch(`${base}/vg/start`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        vg_job_id: jobId,
+        script: payload.script,
+        voice_id: voiceId,
+        bg_mode: "revoice",
+        revoice_video_url: payload.settings.revoiceVideoUrl,
+        revoice_blur_subtitles: payload.settings.revoiceBlurSubtitles ?? true,
+        speed,
+      }),
+    });
+    if (!startRes.ok) throw new Error(`Flask /vg/start failed (${startRes.status}): ${await startRes.text()}`);
+
+    // Step 3: Stream SSE from /vg/events/<jobId>
+    const apiKey = process.env.FLASK_API_KEY;
+    const eventsRes = await fetch(`${base}/vg/events/${jobId}`, {
+      headers: {
+        Accept: "text/event-stream",
+        ...(apiKey ? { "X-API-Key": apiKey } : {}),
+      },
+    });
+    if (!eventsRes.ok || !eventsRes.body) throw new Error(`Flask /vg/events/${jobId} failed (${eventsRes.status})`);
+
+    const reader = eventsRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let videoFilename = "";
+    let outputDir = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          const evt = parseSSELine(trimmed);
+          if (!evt) continue;
+          if (evt.event === "complete") {
+            videoFilename = (evt.data.video_filename as string) || "final_video.mp4";
+            outputDir = (evt.data.output_dir as string) || "";
+            break;
+          } else if (evt.event === "error") {
+            throw new Error(`Flask render error: ${evt.data.message || "Unknown error"}`);
+          }
+        }
+        if (videoFilename) break;
+      }
+    } finally {
+      reader.cancel();
+    }
+
+    if (!videoFilename || !outputDir) throw new Error("SSE stream ended without a complete event");
+
+    const flaskPath = `/vg/preview/${outputDir}/${videoFilename}`;
+    const videoUrl = `/api/video-proxy?path=${encodeURIComponent(flaskPath)}`;
+    return { videoUrl, caption: `${payload.title} — Created with The Fluid Curator.` };
+  }
+  // ── End Revoice branch. Fall through to existing code path for all other modes. ──
+
   console.log("[flask-render] ENTRY backgroundMode =", payload.settings.backgroundMode, "mapped =", backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"]);
   if (!base) {
     // No Flask either — return empty (simulation)

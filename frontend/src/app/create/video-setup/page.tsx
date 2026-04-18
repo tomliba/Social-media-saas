@@ -202,6 +202,8 @@ function VideoSetupContent() {
   const [revoiceKeepOriginal, setRevoiceKeepOriginal] = useState(false);
   const [revoiceError, setRevoiceError] = useState<string | null>(null);
   const [revoiceIsDragging, setRevoiceIsDragging] = useState(false);
+  const [revoiceVideoUrl, setRevoiceVideoUrl] = useState<string>("");
+  const [revoiceBlurSubtitles, setRevoiceBlurSubtitles] = useState<boolean>(true);
 
   const validateAndSetRevoiceFile = async (file: File | null) => {
     if (!file) { setRevoiceFile(null); return; }
@@ -211,8 +213,8 @@ function VideoSetupContent() {
       setRevoiceFile(null);
       return;
     }
-    if (file.size > 100 * 1024 * 1024) {
-      setRevoiceError("File is too large. Max 100MB.");
+    if (file.size > 300 * 1024 * 1024) {
+      setRevoiceError("File is too large. Max 300MB.");
       setRevoiceFile(null);
       return;
     }
@@ -232,6 +234,7 @@ function VideoSetupContent() {
       const data = await res.json();
       if (data.transcript) {
         setRevoiceTranscript(data.transcript);
+        setRevoiceVideoUrl(data.video_url || "");
       } else {
         setRevoiceError("No speech detected in video");
       }
@@ -455,6 +458,7 @@ function VideoSetupContent() {
     setCreating(true);
     setStep(2);
 
+    console.log("[video-setup] activeMode:", activeMode, "revoiceMode:", activeMode === "revoice", "revoiceVideoUrl:", revoiceVideoUrl);
     try {
       const handles = await triggerVideoRenders(
         scripts.map((s) => ({
@@ -472,6 +476,9 @@ function VideoSetupContent() {
             speed: selectedSpeed,
             animate: backgroundMode === "Animated AI",
             ...(backgroundMode === "AI Images" && { artStyle }),
+            revoiceMode: activeMode === "revoice",
+            revoiceVideoUrl: activeMode === "revoice" ? revoiceVideoUrl : undefined,
+            revoiceBlurSubtitles: activeMode === "revoice" ? revoiceBlurSubtitles : undefined,
           },
         }))
       );
@@ -1216,7 +1223,7 @@ function VideoSetupContent() {
                             <span className="text-sm text-on-surface-variant font-medium">
                               {revoiceFile ? revoiceFile.name : "Click to upload or drag and drop"}
                             </span>
-                            <span className="text-xs text-on-surface-variant/60">MP4, MOV, or WEBM · max 100MB · 90 seconds max</span>
+                            <span className="text-xs text-on-surface-variant/60">MP4, MOV, or WEBM · max 300MB · 3 minutes max</span>
                             <input
                               type="file"
                               accept=".mp4,.mov,.webm"
@@ -1252,6 +1259,15 @@ function VideoSetupContent() {
                                 className="w-4 h-4 rounded border-outline-variant accent-primary"
                               />
                               <span className="text-sm text-on-surface-variant">Keep my exact words (don&apos;t rewrite with selected tone)</span>
+                            </label>
+                            <label className="mt-2 flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={revoiceBlurSubtitles}
+                                onChange={(e) => setRevoiceBlurSubtitles(e.target.checked)}
+                                className="w-4 h-4 rounded border-outline-variant accent-primary"
+                              />
+                              <span className="text-sm text-on-surface-variant">Blur original subtitles</span>
                             </label>
                           </>
                         )}
