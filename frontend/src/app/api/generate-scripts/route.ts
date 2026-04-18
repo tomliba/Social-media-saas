@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateText } from "@/lib/llm";
+import { generateText, parseJsonArray } from "@/lib/llm";
 import { auth } from "@/lib/auth";
 
 const templatePrompts: Record<string, string> = {
@@ -88,6 +88,7 @@ Guidelines:
 - Don't include stage directions, just the spoken words
 - Make the opening line a scroll-stopper
 - NEVER start with these banned phrases: "Did you know", "What if I told you", "Here's the thing", "So", "Okay so", "Let me tell you". Instead, open with a bold claim, shocking stat, or direct statement
+- NO FILLER WORDS. If a word or sentence can be removed without losing meaning, cut it. Banned patterns across the ENTIRE script: (1) reaction commentary on your own lines like "seriously", "crazy right?", "mind blowing", "guess what", "get this". (2) fake-authenticity tags after facts like "no joke", "trust me", "for real", "I swear", "I kid you not". (3) doubled intensifiers like "actually fucking", "really really", "literally just". (4) redundant urgency after commands like adding "Right now!" after a command that already implies now. (5) empty emphasis adverbs like "literally", "actually", "basically", "honestly" unless they carry real meaning. Every sentence must deliver information, emotion, or a punchline.
 - NEVER use asterisks, em dashes (—), markdown formatting, bold markers, or any special characters like * or ** or — in the script. This text will be read aloud by text-to-speech. Write plain text only. Use CAPS for emphasis. Use ... for pauses.
 
 Return ONLY a JSON array with exactly 1 object, no markdown, no code fences. Format:
@@ -114,6 +115,7 @@ Guidelines:
 - Don't include stage directions, just the spoken words
 - Make the opening line a scroll-stopper
 - NEVER start with these banned phrases: "Did you know", "What if I told you", "Here's the thing", "So", "Okay so", "Let me tell you". Instead, open with a bold claim, shocking stat, or direct statement
+- NO FILLER WORDS. If a word or sentence can be removed without losing meaning, cut it. Banned patterns across the ENTIRE script: (1) reaction commentary on your own lines like "seriously", "crazy right?", "mind blowing", "guess what", "get this". (2) fake-authenticity tags after facts like "no joke", "trust me", "for real", "I swear", "I kid you not". (3) doubled intensifiers like "actually fucking", "really really", "literally just". (4) redundant urgency after commands like adding "Right now!" after a command that already implies now. (5) empty emphasis adverbs like "literally", "actually", "basically", "honestly" unless they carry real meaning. Every sentence must deliver information, emotion, or a punchline.
 - NEVER use asterisks, em dashes (—), markdown formatting, bold markers, or any special characters like * or ** or — in the script. This text will be read aloud by text-to-speech. Write plain text only. Use CAPS for emphasis. Use ... for pauses.
 
 Return ONLY a JSON array of objects, no markdown, no code fences. Format:
@@ -121,10 +123,9 @@ Return ONLY a JSON array of objects, no markdown, no code fences. Format:
     }
 
     const text = (await generateText(prompt, { jsonMode: true })).trim();
-    const parsed = JSON.parse(text);
-    const raw = Array.isArray(parsed) ? parsed : (parsed.scripts || parsed.results || parsed.ideas || Object.values(parsed).find(Array.isArray) || []);
+    const raw = parseJsonArray<{ title: string; script: string }>(text);
     if (raw.length === 0) {
-      throw new Error(`LLM returned no scripts array. Raw: ${text.slice(0, 500)}`);
+      throw new Error(`LLM returned empty scripts array. Raw: ${text.slice(0, 500)}`);
     }
     const scripts = raw.map((s: { title: string; script: string }) => ({
       ...s,

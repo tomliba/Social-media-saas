@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateText } from "@/lib/llm";
+import { generateText, parseJsonArray } from "@/lib/llm";
 import { auth } from "@/lib/auth";
 
 const templateStructures: Record<string, string> = {
@@ -53,10 +53,9 @@ Make titles provocative, curiosity-driven, and optimized for clicks. Use power w
 Include specific numbers or statistics in at least 3 of the 10 titles (e.g., "97% of people get this wrong", "This $2 trick saved me 10 hours").`;
 
     const text = (await generateText(prompt, { jsonMode: true })).trim();
-    const parsed = JSON.parse(text);
-    const ideas = Array.isArray(parsed) ? parsed : (parsed.ideas || parsed.results || Object.values(parsed).find(Array.isArray) || []);
+    const ideas = parseJsonArray(text);
     if (ideas.length === 0) {
-      throw new Error(`LLM returned no ideas array. Raw: ${text.slice(0, 500)}`);
+      throw new Error(`LLM returned empty ideas array. Raw: ${text.slice(0, 500)}`);
     }
 
     return NextResponse.json({ ideas });

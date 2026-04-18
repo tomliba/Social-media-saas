@@ -143,3 +143,74 @@ export async function generateText(
 
   throw new Error("All AI providers unavailable");
 }
+
+/* ------------------------------------------------------------------ */
+/*  JSON array parsing helper                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Parse LLM output expected to be a JSON array.
+ * Handles multiple response shapes:
+ * - Bare arrays: [...]
+ * - Wrapped objects: {"scripts":[...]}, {"ideas":[...]}, {"results":[...]}, {"data":[...]}, {"items":[...]}
+ * - Objects with an unknown array key (via Object.values)
+ * - Code fences: ```json\n[...]\n```
+ * - Malformed comma-separated objects without brackets: {"a":1},{"a":2},{"a":3}
+ *   (OpenAI sometimes returns this under load despite json_object mode)
+ */
+export function parseJsonArray<T = unknown>(raw: string): T[] {
+  if (!raw || typeof raw !== "string") {
+    throw new Error("parseJsonArray: empty input");
+  }
+
+  // Strip code fences
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+
+  // Attempt 1: direct parse
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    // Attempt 2: wrap comma-separated objects in brackets
+    try {
+      parsed = JSON.parse(`[${cleaned}]`);
+    } catch {
+      // Attempt 3: find the first valid JSON array substring
+      const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+      if (arrayMatch) {
+        try {
+          parsed = JSON.parse(arrayMatch[0]);
+        } catch {
+          throw new Error(
+            `parseJsonArray: could not parse. First 300 chars: ${raw.slice(0, 300)}`
+          );
+        }
+      } else {
+        throw new Error(
+          `parseJsonArray: could not parse. First 300 chars: ${raw.slice(0, 300)}`
+        );
+      }
+    }
+  }
+
+  // If already an array, done
+  if (Array.isArray(parsed)) {
+    return parsed as T[];
+  }
+
+  // If object, look for array inside
+  if (parsed && typeof parsed === "object") {
+    const obj = parsed as Record<string, unknown>;
+    const commonKeys = ["scripts", "ideas", "results", "data", "items", "entries", "list", "array"];
+    for (const key of commonKeys) {
+      if (Array.isArray(obj[key])) return obj[key] as T[];
+    }
+    const found = Object.values(obj).find(Array.isArray);
+    if (found) return found as T[];
+  }
+
+  throw new Error(
+    `parseJsonArray: no array found. Parsed type: ${typeof parsed}. First 300 chars: ${raw.slice(0, 300)}`
+  );
+}
