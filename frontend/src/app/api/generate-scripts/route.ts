@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
 
     // Map tone setting to prompt instructions
     const toneGuide: Record<string, string> = {
+      Regular: "Write naturally and conversationally, like a knowledgeable person sharing information with a friend. No special comedic or dramatic emphasis. Clear, direct, engaging but neutral.",
       Funny: "Be genuinely funny — unexpected comparisons, absurd specificity, deadpan delivery. Think stand-up comedy, not morning TV host.",
       Serious: "Be direct, authoritative, confident. State facts like a trusted expert. No filler words. Think documentary narrator.",
       Cursing: "Use strong profanity naturally for emphasis. Be raw and unfiltered, like your funniest friend who swears constantly.",

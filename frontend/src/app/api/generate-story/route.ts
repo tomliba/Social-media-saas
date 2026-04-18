@@ -42,7 +42,6 @@ export async function POST(req: NextRequest) {
         scene_mode: body.scene_mode || "static",
         ...(body.niche && { niche: body.niche }),
         ...(body.pastedScript && { pasted_script: body.pastedScript }),
-        ...(body.remixUrl && { remix_url: body.remixUrl }),
       }),
     });
 

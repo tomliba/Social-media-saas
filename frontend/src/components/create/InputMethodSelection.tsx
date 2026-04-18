@@ -68,13 +68,6 @@ const inputMethods = [
     formats: ["Video"],
   },
   {
-    id: "remix",
-    icon: "link",
-    title: "Remix a viral video",
-    description: "Paste a link and AI analyzes and creates your version",
-    formats: ["Video"],
-  },
-  {
     id: "upload",
     icon: "upload_file",
     title: "Upload content",
@@ -147,8 +140,6 @@ export default function InputMethodSelection({
                   const format = formatMap[selectedFormat ?? ""] || "video";
                   if (method.id === "paste-script") {
                     router.push("/create/paste-script");
-                  } else if (method.id === "remix") {
-                    router.push("/create/remix");
                   } else if (method.id === "upload") {
                     router.push("/create/upload-content");
                   } else {

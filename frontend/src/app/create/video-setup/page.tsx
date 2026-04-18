@@ -83,6 +83,7 @@ const scriptModes = [
   { id: "template", name: "Pick a template", icon: "dashboard", desc: "Choose from proven viral formats" },
   { id: "paste", name: "Paste your own script", icon: "content_paste", desc: "Already have a script ready" },
   { id: "upload", name: "Upload content", icon: "upload_file", desc: "Upload a file as source material" },
+  { id: "revoice", name: "Revoice a video", icon: "graphic_eq", desc: "Upload a video, character reads it in their voice" },
   { id: "prompt", name: "Write your own prompt", icon: "draw", desc: "Tell AI exactly what to make" },
 ] as const;
 
@@ -193,6 +194,54 @@ function VideoSetupContent() {
     setUploadError(null);
     setUploadFile(file);
   };
+
+  // ── Revoice mode state ──
+  const [revoiceFile, setRevoiceFile] = useState<File | null>(null);
+  const [revoiceTranscribing, setRevoiceTranscribing] = useState(false);
+  const [revoiceTranscript, setRevoiceTranscript] = useState("");
+  const [revoiceKeepOriginal, setRevoiceKeepOriginal] = useState(false);
+  const [revoiceError, setRevoiceError] = useState<string | null>(null);
+  const [revoiceIsDragging, setRevoiceIsDragging] = useState(false);
+
+  const validateAndSetRevoiceFile = async (file: File | null) => {
+    if (!file) { setRevoiceFile(null); return; }
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!ext || !["mp4", "mov", "webm"].includes(ext)) {
+      setRevoiceError("Unsupported file type. Use MP4, MOV, or WEBM.");
+      setRevoiceFile(null);
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      setRevoiceError("File is too large. Max 100MB.");
+      setRevoiceFile(null);
+      return;
+    }
+    setRevoiceError(null);
+    setRevoiceFile(file);
+    setRevoiceTranscript("");
+    setRevoiceTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append("video", file);
+      const res = await fetch("/api/revoice/transcribe", { method: "POST", body: formData });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setRevoiceError(errData.error || "Failed to transcribe video");
+        return;
+      }
+      const data = await res.json();
+      if (data.transcript) {
+        setRevoiceTranscript(data.transcript);
+      } else {
+        setRevoiceError("No speech detected in video");
+      }
+    } catch {
+      setRevoiceError("Something went wrong. Try again.");
+    } finally {
+      setRevoiceTranscribing(false);
+    }
+  };
+
   const [customPrompt, setCustomPrompt] = useState("");
 
   // ── Script review state ──
@@ -286,7 +335,7 @@ function VideoSetupContent() {
     });
   };
 
-  const fetchScripts = useCallback(async (ideaTitles: string[], template: string, prompt?: string) => {
+  const fetchScripts = useCallback(async (ideaTitles: string[], template: string, prompt?: string, overrideDuration?: string) => {
     setScriptsLoading(true);
     setScripts([]);
     setStep(1);
@@ -299,7 +348,7 @@ function VideoSetupContent() {
           template,
           ideas: prompt ? [] : ideaTitles,
           tone,
-          duration,
+          duration: overrideDuration ?? duration,
           ...(prompt ? { customPrompt: prompt } : {}),
         }),
       });
@@ -369,6 +418,14 @@ function VideoSetupContent() {
         setUploadError("Something went wrong. Try again.");
       } finally {
         setUploadExtracting(false);
+      }
+    } else if (activeMode === "revoice" && revoiceTranscript.trim()) {
+      if (revoiceKeepOriginal) {
+        setScripts([{ title: "Revoice", script: revoiceTranscript }]);
+        setStep(1);
+      } else {
+        const prompt = `Rewrite the following transcript in the selected tone. CRITICAL: the rewritten script must match the original transcript's length — roughly the same word count, so it takes the same time to speak. Do NOT shorten. Do NOT summarize. Keep every key point from the original.\n\nOriginal transcript:\n${revoiceTranscript}`;
+        fetchScripts([], "Revoice", prompt, "90s");
       }
     } else if (activeMode === "prompt") {
       fetchScripts([], "Custom", customPrompt);
@@ -457,12 +514,15 @@ function VideoSetupContent() {
     (activeMode === "template" && selectedIdeas.size > 0) ||
     (activeMode === "paste" && pastedScript.trim().length > 0) ||
     (activeMode === "upload" && uploadFile !== null) ||
+    (activeMode === "revoice" && revoiceTranscript.trim().length > 0) ||
     (activeMode === "prompt" && customPrompt.trim().length > 0);
 
   const actionLabel =
-    uploadExtracting
-      ? "Extracting content..."
-      : activeMode === "template" && !showIdeas
+    revoiceTranscribing
+      ? "Transcribing audio..."
+      : uploadExtracting
+        ? "Extracting content..."
+        : activeMode === "template" && !showIdeas
         ? "Generate viral ideas"
         : activeMode === "template" && showIdeas && selectedIdeas.size > 0
           ? `Continue with ${selectedIdeas.size} idea${selectedIdeas.size !== 1 ? "s" : ""}`
@@ -478,6 +538,7 @@ function VideoSetupContent() {
 
   const bottomDisabled =
     uploadExtracting ||
+    revoiceTranscribing ||
     (activeMode === "template" && !showIdeas
       ? ideasLoading
       : !canProceed);
@@ -1133,6 +1194,70 @@ function VideoSetupContent() {
                         </label>
                         {uploadError && (
                           <p className="mt-3 text-sm text-red-500 font-medium">{uploadError}</p>
+                        )}
+                      </>
+                    )}
+
+                    {/* Revoice mode */}
+                    {mode.id === "revoice" && (
+                      <>
+                        {!revoiceTranscript && !revoiceTranscribing && (
+                          <label
+                            className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                              revoiceIsDragging
+                                ? "border-primary bg-primary/10"
+                                : "border-outline-variant/40 hover:border-primary/40 hover:bg-primary/5"
+                            }`}
+                            onDragOver={(e) => { e.preventDefault(); setRevoiceIsDragging(true); }}
+                            onDragLeave={() => setRevoiceIsDragging(false)}
+                            onDrop={(e) => { e.preventDefault(); setRevoiceIsDragging(false); validateAndSetRevoiceFile(e.dataTransfer.files?.[0] || null); }}
+                          >
+                            <span className="material-symbols-outlined text-4xl text-on-surface-variant">cloud_upload</span>
+                            <span className="text-sm text-on-surface-variant font-medium">
+                              {revoiceFile ? revoiceFile.name : "Click to upload or drag and drop"}
+                            </span>
+                            <span className="text-xs text-on-surface-variant/60">MP4, MOV, or WEBM · max 100MB · 90 seconds max</span>
+                            <input
+                              type="file"
+                              accept=".mp4,.mov,.webm"
+                              className="hidden"
+                              onChange={(e) => validateAndSetRevoiceFile(e.target.files?.[0] || null)}
+                            />
+                          </label>
+                        )}
+
+                        {revoiceTranscribing && (
+                          <div className="flex items-center justify-center gap-3 p-8 border-2 border-dashed border-outline-variant/40 rounded-2xl">
+                            <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+                            <span className="text-sm text-on-surface-variant font-medium">Transcribing audio...</span>
+                          </div>
+                        )}
+
+                        {revoiceTranscript && !revoiceTranscribing && (
+                          <>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="material-symbols-outlined text-primary text-sm">check_circle</span>
+                              <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Transcript from {revoiceFile?.name}</span>
+                            </div>
+                            <textarea
+                              value={revoiceTranscript}
+                              onChange={(e) => setRevoiceTranscript(e.target.value)}
+                              className="w-full min-h-[160px] bg-surface border border-outline-variant/20 rounded-xl p-4 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface placeholder:text-on-surface-variant/50 transition-all font-body text-sm resize-none"
+                            />
+                            <label className="mt-3 flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={revoiceKeepOriginal}
+                                onChange={(e) => setRevoiceKeepOriginal(e.target.checked)}
+                                className="w-4 h-4 rounded border-outline-variant accent-primary"
+                              />
+                              <span className="text-sm text-on-surface-variant">Keep my exact words (don&apos;t rewrite with selected tone)</span>
+                            </label>
+                          </>
+                        )}
+
+                        {revoiceError && (
+                          <p className="mt-3 text-sm text-red-500 font-medium">{revoiceError}</p>
                         )}
                       </>
                     )}

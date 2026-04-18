@@ -162,7 +162,7 @@ const durations = [
 const scriptModes = [
   { id: "topic" as const, label: "Viral ideas", icon: "local_fire_department", description: "AI generates 10 viral debate ideas for your niche" },
   { id: "script" as const, label: "Paste your own script", icon: "content_paste", description: "Use A: and B: to mark speakers" },
-  { id: "remix" as const, label: "Remix a viral video", icon: "recycling", description: "Paste a URL to extract and remix" },
+  { id: "upload" as const, label: "Upload content", icon: "upload_file", description: "Upload a file as source material" },
   { id: "prompt" as const, label: "Write your own prompt", icon: "edit_note", description: "Freeform instructions to AI" },
 ];
 
@@ -235,15 +235,17 @@ export default function ArgumentSetup() {
   const [niche, setNiche] = useState("");
   const [formats, setFormats] = useState<{ id: string; label: string; icon: string; description: string }[]>([]);
   const [selectedFormat, setSelectedFormat] = useState("debate");
-  const [scriptMode, setScriptMode] = useState<"topic" | "script" | "prompt" | "remix" | null>(null);
+  const [scriptMode, setScriptMode] = useState<"topic" | "script" | "prompt" | "upload" | null>(null);
   const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
   const [loadingTopics, setLoadingTopics] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState("");
   const [customTopic, setCustomTopic] = useState("");
   const [pastedScript, setPastedScript] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
-  const [remixUrl, setRemixUrl] = useState("");
-  const [fetchingTranscript, setFetchingTranscript] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadExtracting, setUploadExtracting] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Background
   const [backgrounds, setBackgrounds] = useState<BackgroundVideo[]>([]);
@@ -412,29 +414,23 @@ export default function ArgumentSetup() {
     setSelectedTopic("");
   }, [selectedFormat, characterA, characterB, niche]);
 
-  // ── Fetch transcript for remix ──
-  const handleFetchTranscript = useCallback(async () => {
-    if (!remixUrl.trim()) return;
-    setFetchingTranscript(true);
-    setGenerateError(null);
-    try {
-      const res = await fetch("/api/extract-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: remixUrl }),
-      });
-      if (!res.ok) throw new Error("Failed to fetch transcript");
-      const data = await res.json();
-      if (data.transcript) {
-        setPastedScript(data.transcript);
-        setScriptMode("script");
-      }
-    } catch (err) {
-      setGenerateError(err instanceof Error ? err.message : "Failed to fetch transcript");
-    } finally {
-      setFetchingTranscript(false);
+  // ── Validate and set upload file ──
+  const validateAndSetFile = (file: File | null) => {
+    if (!file) { setUploadFile(null); return; }
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!ext || !["pdf", "docx", "txt", "md"].includes(ext)) {
+      setUploadError("Unsupported file type. Use PDF, DOCX, TXT, or MD.");
+      setUploadFile(null);
+      return;
     }
-  }, [remixUrl]);
+    if (file.size > 25 * 1024 * 1024) {
+      setUploadError("File is too large. Max 25MB.");
+      setUploadFile(null);
+      return;
+    }
+    setUploadError(null);
+    setUploadFile(file);
+  };
 
   // ── Determine if line is speaker A ──
   const isSpeakerA = useCallback((speaker: string) => {
@@ -467,9 +463,30 @@ export default function ArgumentSetup() {
       } else if (scriptMode === "prompt") {
         body.mode = "prompt";
         body.custom_prompt = customPrompt;
-      } else if (scriptMode === "remix") {
-        body.mode = "remix";
-        body.transcript = remixUrl;
+      } else if (scriptMode === "upload") {
+        if (!uploadFile) {
+          throw new Error("Upload a file first");
+        }
+        setUploadError(null);
+        setUploadExtracting(true);
+        try {
+          const formData = new FormData();
+          formData.append("file", uploadFile);
+          const extractRes = await fetch("/api/extract-content", { method: "POST", body: formData });
+          if (!extractRes.ok) {
+            const errData = await extractRes.json().catch(() => ({}));
+            setUploadError(errData.error || "Failed to extract content from file");
+            return;
+          }
+          const extractData = await extractRes.json();
+          body.mode = "prompt";
+          body.custom_prompt = `Write a video script based on this source material:\n\n${extractData.text}`;
+        } catch {
+          setUploadError("Something went wrong. Try again.");
+          return;
+        } finally {
+          setUploadExtracting(false);
+        }
       }
 
       const res = await fetch("/api/argument/generate-script", {
@@ -497,7 +514,7 @@ export default function ArgumentSetup() {
     } finally {
       setGenerating(false);
     }
-  }, [characterA, characterB, tone, duration, scriptMode, customTopic, selectedTopic, pastedScript, customPrompt, remixUrl]);
+  }, [characterA, characterB, tone, duration, scriptMode, customTopic, selectedTopic, pastedScript, customPrompt, uploadFile]);
 
   // ── Add line ──
   const handleAddLine = useCallback(() => {
@@ -814,29 +831,32 @@ export default function ArgumentSetup() {
                       </div>
                     )}
 
-                    {isActive && mode.id === "remix" && (
+                    {isActive && mode.id === "upload" && (
                       <div className="mt-2 p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/10">
-                        <div className="flex gap-2">
+                        <label
+                          className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                            isDragging
+                              ? "border-primary bg-primary/10"
+                              : "border-outline-variant/40 hover:border-primary/40 hover:bg-primary/5"
+                          }`}
+                          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                          onDragLeave={() => setIsDragging(false)}
+                          onDrop={(e) => { e.preventDefault(); setIsDragging(false); validateAndSetFile(e.dataTransfer.files?.[0] || null); }}
+                        >
+                          <span className="material-symbols-outlined text-4xl text-on-surface-variant">cloud_upload</span>
+                          <span className="text-sm text-on-surface-variant font-medium">
+                            {uploadFile ? uploadFile.name : "Click to upload or drag and drop"}
+                          </span>
+                          <span className="text-xs text-on-surface-variant/60">PDF, DOCX, TXT, or MD · max 25MB</span>
                           <input
-                            type="text"
-                            value={remixUrl}
-                            onChange={(e) => setRemixUrl(e.target.value)}
-                            placeholder="Paste a YouTube or TikTok URL..."
-                            className="flex-1 bg-surface border border-outline-variant/15 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/40"
+                            type="file"
+                            className="hidden"
+                            onChange={(e) => validateAndSetFile(e.target.files?.[0] || null)}
                           />
-                          <button
-                            onClick={handleFetchTranscript}
-                            disabled={!remixUrl.trim() || fetchingTranscript}
-                            className="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 flex-shrink-0"
-                          >
-                            {fetchingTranscript ? (
-                              <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
-                            ) : (
-                              <span className="material-symbols-outlined text-sm">download</span>
-                            )}
-                            Fetch
-                          </button>
-                        </div>
+                        </label>
+                        {uploadError && (
+                          <p className="mt-3 text-sm text-red-500 font-medium">{uploadError}</p>
+                        )}
                       </div>
                     )}
 

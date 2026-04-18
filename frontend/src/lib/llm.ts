@@ -206,6 +206,11 @@ export function parseJsonArray<T = unknown>(raw: string): T[] {
     for (const key of commonKeys) {
       if (Array.isArray(obj[key])) return obj[key] as T[];
     }
+    // Single bare item — wrap in array. Handles OpenAI json_object mode returning
+    // {title, script} directly instead of [{title, script}] for single-item requests.
+    if ("title" in obj || "script" in obj || "text" in obj || "content" in obj) {
+      return [parsed as T];
+    }
     const found = Object.values(obj).find(Array.isArray);
     if (found) return found as T[];
   }

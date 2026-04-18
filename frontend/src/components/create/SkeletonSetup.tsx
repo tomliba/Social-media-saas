@@ -13,7 +13,7 @@ import type { Voice } from "@/lib/voices";
 const scriptModes = [
   { id: "topic" as const, label: "Viral ideas", icon: "local_fire_department", description: "AI generates 10 viral skeleton video ideas" },
   { id: "script" as const, label: "Paste your own script", icon: "content_paste", description: "Paste narration text directly" },
-  { id: "remix" as const, label: "Remix a viral video", icon: "recycling", description: "Paste a URL to extract and remix" },
+  { id: "upload" as const, label: "Upload content", icon: "upload_file", description: "Upload a file as source material" },
   { id: "prompt" as const, label: "Write your own prompt", icon: "edit_note", description: "Freeform instructions to AI" },
 ];
 
@@ -257,7 +257,7 @@ export default function SkeletonSetup() {
 
   // Skeleton-specific state
   const [niche, setNiche] = useState("");
-  const [scriptMode, setScriptMode] = useState<"topic" | "script" | "remix" | "prompt">("topic");
+  const [scriptMode, setScriptMode] = useState<"topic" | "script" | "upload" | "prompt">("topic");
   const [selectedTopic, setSelectedTopic] = useState("");
   const [customTopic, setCustomTopic] = useState("");
   const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
@@ -265,8 +265,10 @@ export default function SkeletonSetup() {
   const [topicTab, setTopicTab] = useState<"viral" | "proven">("viral");
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const [pastedScript, setPastedScript] = useState("");
-  const [remixUrl, setRemixUrl] = useState("");
-  const [fetchingTranscript, setFetchingTranscript] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadExtracting, setUploadExtracting] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [customPrompt, setCustomPrompt] = useState("");
 
   // Settings state (identical to AIStorySetup)
@@ -399,29 +401,23 @@ export default function SkeletonSetup() {
     }
   }, [niche]);
 
-  // ── Fetch transcript for remix ──
-  const handleFetchTranscript = useCallback(async () => {
-    if (!remixUrl.trim()) return;
-    setFetchingTranscript(true);
-    setGenerateError(null);
-    try {
-      const res = await fetch("/api/extract-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: remixUrl }),
-      });
-      if (!res.ok) throw new Error("Failed to fetch transcript");
-      const data = await res.json();
-      if (data.transcript) {
-        setPastedScript(data.transcript);
-        setScriptMode("script");
-      }
-    } catch {
-      setGenerateError("Failed to fetch transcript from URL");
-    } finally {
-      setFetchingTranscript(false);
+  // ── Validate and set upload file ──
+  const validateAndSetFile = (file: File | null) => {
+    if (!file) { setUploadFile(null); return; }
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!ext || !["pdf", "docx", "txt", "md"].includes(ext)) {
+      setUploadError("Unsupported file type. Use PDF, DOCX, TXT, or MD.");
+      setUploadFile(null);
+      return;
     }
-  }, [remixUrl]);
+    if (file.size > 25 * 1024 * 1024) {
+      setUploadError("File is too large. Max 25MB.");
+      setUploadFile(null);
+      return;
+    }
+    setUploadError(null);
+    setUploadFile(file);
+  };
 
   // ── Generate scene images ──
   const generateSceneImages = useCallback(async (sd: ScriptData) => {
@@ -572,12 +568,30 @@ export default function SkeletonSetup() {
         if (!topicValue.trim()) {
           throw new Error("Paste your script first");
         }
-      } else if (scriptMode === "remix") {
-        topicValue = pastedScript || remixUrl;
-        if (!topicValue.trim()) {
-          throw new Error("Fetch a transcript first");
+      } else if (scriptMode === "upload") {
+        if (!uploadFile) {
+          throw new Error("Upload a file first");
         }
-        mode = "script";
+        setUploadError(null);
+        setUploadExtracting(true);
+        try {
+          const formData = new FormData();
+          formData.append("file", uploadFile);
+          const extractRes = await fetch("/api/extract-content", { method: "POST", body: formData });
+          if (!extractRes.ok) {
+            const errData = await extractRes.json().catch(() => ({}));
+            setUploadError(errData.error || "Failed to extract content from file");
+            return;
+          }
+          const extractData = await extractRes.json();
+          topicValue = `Write a video script based on this source material:\n\n${extractData.text}`;
+        } catch (err) {
+          setUploadError("Something went wrong. Try again.");
+          return;
+        } finally {
+          setUploadExtracting(false);
+        }
+        mode = "prompt";
       } else if (scriptMode === "prompt") {
         topicValue = customPrompt;
         if (!topicValue.trim()) {
@@ -590,7 +604,7 @@ export default function SkeletonSetup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           topic: topicValue,
-          customPrompt: scriptMode === "prompt" ? customPrompt : "",
+          customPrompt: mode === "prompt" ? (scriptMode === "upload" ? topicValue : customPrompt) : "",
           tone,
           artStyle: "skeleton",
           duration,
@@ -601,7 +615,6 @@ export default function SkeletonSetup() {
           mode,
           niche,
           ...(scriptMode === "script" && { pastedScript }),
-          ...(scriptMode === "remix" && { remixUrl }),
         }),
       });
 
@@ -633,7 +646,7 @@ export default function SkeletonSetup() {
     } finally {
       setGenerating(false);
     }
-  }, [scriptMode, customTopic, selectedTopic, pastedScript, remixUrl, customPrompt, tone, duration, videoLanguage, selectedVoice, endScreenCta, generateSceneImages, sceneMode, niche]);
+  }, [scriptMode, customTopic, selectedTopic, pastedScript, uploadFile, customPrompt, tone, duration, videoLanguage, selectedVoice, endScreenCta, generateSceneImages, sceneMode, niche]);
 
   // ── Build the common aiStory settings object ──
   const buildAiStorySettings = () => ({
@@ -1445,29 +1458,32 @@ export default function SkeletonSetup() {
                   </div>
                 )}
 
-                {isActive && mode.id === "remix" && (
+                {isActive && mode.id === "upload" && (
                   <div className="mt-2 p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/10">
-                    <div className="flex gap-2">
+                    <label
+                      className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                        isDragging
+                          ? "border-primary bg-primary/10"
+                          : "border-outline-variant/40 hover:border-primary/40 hover:bg-primary/5"
+                      }`}
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={(e) => { e.preventDefault(); setIsDragging(false); validateAndSetFile(e.dataTransfer.files?.[0] || null); }}
+                    >
+                      <span className="material-symbols-outlined text-4xl text-on-surface-variant">cloud_upload</span>
+                      <span className="text-sm text-on-surface-variant font-medium">
+                        {uploadFile ? uploadFile.name : "Click to upload or drag and drop"}
+                      </span>
+                      <span className="text-xs text-on-surface-variant/60">PDF, DOCX, TXT, or MD · max 25MB</span>
                       <input
-                        type="text"
-                        value={remixUrl}
-                        onChange={(e) => setRemixUrl(e.target.value)}
-                        placeholder="Paste a YouTube or TikTok URL..."
-                        className="flex-1 bg-surface border border-outline-variant/15 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/40"
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => validateAndSetFile(e.target.files?.[0] || null)}
                       />
-                      <button
-                        onClick={handleFetchTranscript}
-                        disabled={!remixUrl.trim() || fetchingTranscript}
-                        className="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 flex-shrink-0"
-                      >
-                        {fetchingTranscript ? (
-                          <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
-                        ) : (
-                          <span className="material-symbols-outlined text-sm">download</span>
-                        )}
-                        Fetch
-                      </button>
-                    </div>
+                    </label>
+                    {uploadError && (
+                      <p className="mt-3 text-sm text-red-500 font-medium">{uploadError}</p>
+                    )}
                   </div>
                 )}
 
