@@ -21,6 +21,14 @@ export interface VideoRenderRequest {
     revoiceMode?: boolean;
     revoiceVideoUrl?: string;
     revoiceBlurSubtitles?: boolean;
+    captionStyle?: string | null;
+    captionFontSize?: string | null;
+    captionTransform?: string | null;
+    captionPosition?: string | null;
+    music?: string | null;
+    language?: string;
+    filmGrain?: boolean;
+    shakeEffect?: boolean;
     vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];

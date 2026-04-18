@@ -77,6 +77,140 @@ const backgroundModes = [
 
 // ── Art styles ──
 
+// ── Caption styles ──
+
+interface CaptionStyleDef {
+  id: string;
+  label: string;
+  baseStyle: React.CSSProperties;
+  activeStyle: React.CSSProperties;
+  containerStyle?: React.CSSProperties;
+}
+
+const captionStyles: CaptionStyleDef[] = [
+  {
+    id: "regular",
+    label: "Regular",
+    baseStyle: {
+      color: "#fff", fontWeight: 800, fontSize: 15, fontFamily: "'Arial Black', Arial, sans-serif",
+      textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 -2px 0 #000, 0 2px 0 #000, -2px 0 0 #000, 2px 0 0 #000",
+    },
+    activeStyle: { color: "#FFD700" },
+  },
+  {
+    id: "bold_stroke",
+    label: "Bold Stroke",
+    baseStyle: {
+      color: "#fff", fontWeight: 900, fontSize: 16, fontFamily: "Impact, sans-serif",
+      WebkitTextStroke: "2px #000", paintOrder: "stroke fill" as const,
+    },
+    activeStyle: { transform: "scale(1.1)", display: "inline-block" },
+  },
+  {
+    id: "red_highlight",
+    label: "Red Highlight",
+    baseStyle: {
+      color: "#fff", fontWeight: 900, fontSize: 16, fontFamily: "Impact, sans-serif",
+      textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
+    },
+    activeStyle: { color: "#FF3333" },
+  },
+  {
+    id: "sleek",
+    label: "Sleek",
+    baseStyle: {
+      color: "#fff", fontWeight: 300, fontSize: 15, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      textShadow: "0 0 10px rgba(255,255,255,0.5)",
+    },
+    activeStyle: { textShadow: "0 0 16px rgba(255,255,255,0.9), 0 0 6px rgba(255,255,255,0.6)" },
+  },
+  {
+    id: "karaoke",
+    label: "Karaoke",
+    baseStyle: {
+      color: "#fff", fontWeight: 800, fontSize: 15, fontFamily: "'Arial Black', Arial, sans-serif",
+      textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+    },
+    activeStyle: { background: "#7C3AED", borderRadius: 6, padding: "2px 6px" },
+  },
+  {
+    id: "majestic",
+    label: "Majestic",
+    baseStyle: {
+      color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "Georgia, serif", fontStyle: "italic",
+      textShadow: "0 2px 8px rgba(180,140,60,0.5)",
+    },
+    activeStyle: { textShadow: "0 2px 12px rgba(180,140,60,0.8)" },
+  },
+  {
+    id: "beast",
+    label: "Beast",
+    baseStyle: {
+      color: "#fff", fontWeight: 900, fontSize: 19, fontFamily: "Impact, sans-serif",
+      WebkitTextStroke: "3.5px #000", paintOrder: "stroke fill" as const,
+    },
+    activeStyle: { transform: "scale(1.1)", display: "inline-block" },
+    containerStyle: { transform: "rotate(-2deg)" },
+  },
+  {
+    id: "elegant",
+    label: "Elegant",
+    baseStyle: {
+      color: "#CCCCCC", fontWeight: 400, fontSize: 15, fontFamily: "Georgia, serif",
+      letterSpacing: 3,
+    },
+    activeStyle: { color: "#fff" },
+  },
+  {
+    id: "pixel",
+    label: "Pixel",
+    baseStyle: {
+      color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "'Courier New', Courier, monospace",
+      textShadow: "2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000",
+    },
+    activeStyle: { color: "#fff" },
+  },
+  {
+    id: "clarity",
+    label: "Clarity",
+    baseStyle: {
+      color: "#fff", fontWeight: 400, fontSize: 15, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      textTransform: "lowercase" as const, textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+    },
+    activeStyle: {},
+  },
+];
+
+// ── Music tracks ──
+
+interface MusicTrack {
+  id: string;
+  name: string;
+  description: string;
+  file: string;
+  backendFile: string;
+  gradient: string;
+}
+
+const musicTracks: MusicTrack[] = [
+  { id: "happy", name: "Happy rhythm", description: "Upbeat and energetic, perfect for positive content", file: "Happy_rhythm.mp3", backendFile: "Happy rhythm.mp3", gradient: "from-orange-400 to-yellow-400" },
+  { id: "tension", name: "Quiet before storm", description: "Building tension and anticipation", file: "Quiet_before_storm.mp3", backendFile: "Quiet before storm.mp3", gradient: "from-blue-500 to-purple-500" },
+  { id: "symphony", name: "Brilliant symphony", description: "Orchestral and majestic for epic storytelling", file: "Brilliant_symphony.mp3", backendFile: "Brilliant symphony.mp3", gradient: "from-blue-400 to-blue-600" },
+  { id: "shadows", name: "Breathing shadows", description: "Mysterious and eerie ambiance", file: "Breathing_shadows.mp3", backendFile: "Breathing shadows.mp3", gradient: "from-purple-800 to-violet-900" },
+  { id: "bass", name: "Deep bass", description: "Dark interstellar atmosphere", file: "Deep_bass.mp3", backendFile: "Deep bass.mp3", gradient: "from-zinc-700 to-zinc-900" },
+  { id: "drums", name: "Cinematic drums", description: "Intense percussion for dramatic content", file: "Cinematic_drums.mp3", backendFile: "Cinematic drums.mp3", gradient: "from-red-500 to-orange-600" },
+  { id: "lofi", name: "Lo-fi chill", description: "Relaxed beats for casual content", file: "Lo-fi_chill.mp3", backendFile: "Lo-fi chill.mp3", gradient: "from-teal-400 to-cyan-500" },
+  { id: "piano", name: "Suspense piano", description: "Sparse eerie piano for true crime and mystery", file: "piano.mp3", backendFile: "piano.mp3", gradient: "from-slate-500 to-slate-700" },
+  { id: "motivational", name: "Motivational rise", description: "Inspiring buildup with strings", file: "Motivational_rise.mp3", backendFile: "Motivational rise.mp3", gradient: "from-amber-400 to-rose-500" },
+];
+
+// ── Video languages ──
+
+const videoLanguages = [
+  "Auto Detect", "English", "Chinese", "Japanese", "German", "French",
+  "Spanish", "Korean", "Portuguese",
+];
+
 // ── Script creation modes ──
 
 const scriptModes = [
@@ -255,6 +389,22 @@ function VideoSetupContent() {
   // ── Creating state ──
   const [creating, setCreating] = useState(false);
 
+  // ── Creative settings (captions, music, effects) ──
+  const [captionsEnabled, setCaptionsEnabled] = useState(true);
+  const [captionStyle, setCaptionStyle] = useState("regular");
+  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">("medium");
+  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">("uppercase");
+  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">("bottom");
+  const [music, setMusic] = useState<string | null>(null);
+  const [videoLanguage, setVideoLanguage] = useState("Auto Detect");
+  const [filmGrain, setFilmGrain] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const langRef = useRef<HTMLDivElement>(null);
+
   // Close popovers on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -270,10 +420,45 @@ function VideoSetupContent() {
       if (durationRef.current && !durationRef.current.contains(e.target as Node)) {
         setDurationOpen(false);
       }
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  // ── Music preview ──
+  const stopPreview = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
+    setPlayingTrackId(null);
+  }, []);
+
+  const playPreview = useCallback((track: MusicTrack) => {
+    stopPreview();
+    const audio = new Audio(`/music-previews/${track.file}`);
+    audioRef.current = audio;
+    setPlayingTrackId(track.id);
+    audio.play();
+    previewTimerRef.current = setTimeout(() => {
+      stopPreview();
+    }, 10000);
+    audio.addEventListener("ended", stopPreview);
+  }, [stopPreview]);
+
+  useEffect(() => {
+    return () => {
+      stopPreview();
+    };
+  }, [stopPreview]);
 
   // ── Handlers ──
 
@@ -479,6 +664,14 @@ function VideoSetupContent() {
             revoiceMode: activeMode === "revoice",
             revoiceVideoUrl: activeMode === "revoice" ? revoiceVideoUrl : undefined,
             revoiceBlurSubtitles: activeMode === "revoice" ? revoiceBlurSubtitles : undefined,
+            captionStyle: captionsEnabled ? captionStyle : null,
+            captionFontSize: captionsEnabled ? captionFontSize : null,
+            captionTransform: captionsEnabled ? captionTransform : null,
+            captionPosition: captionsEnabled ? captionPosition : null,
+            music: music ? (musicTracks.find((t) => t.id === music)?.backendFile ?? music) : null,
+            language: videoLanguage,
+            filmGrain,
+            shakeEffect: shake,
           },
         }))
       );
@@ -1294,6 +1487,303 @@ function VideoSetupContent() {
           })}
         </div>
       </section>
+
+      {/* ── Caption Style ── */}
+      <div className="max-w-4xl mx-auto px-8 pb-24">
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-headline">
+            Caption style
+          </label>
+          <button
+            onClick={() => setCaptionsEnabled((prev) => !prev)}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+              captionsEnabled ? "bg-primary" : "bg-outline-variant/40"
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                captionsEnabled ? "translate-x-[22px]" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+        </div>
+
+        {!captionsEnabled ? (
+          <p className="text-xs text-on-surface-variant/60 italic">
+            Captions are disabled. Your video will have no text overlay.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              {captionStyles.map((cs) => {
+                const isSelected = captionStyle === cs.id;
+                return (
+                  <button
+                    key={cs.id}
+                    onClick={() => setCaptionStyle(cs.id)}
+                    className={`rounded-xl overflow-hidden transition-all border ${
+                      isSelected
+                        ? "border-2 border-primary"
+                        : "border-outline-variant/30 hover:border-outline-variant"
+                    }`}
+                  >
+                    <div className="h-20 bg-[#1a1a1a] flex items-center justify-center px-3" style={cs.containerStyle}>
+                      <span style={cs.baseStyle}>
+                        Sample{" "}
+                        <span style={{ ...cs.baseStyle, ...cs.activeStyle }}>text</span>
+                      </span>
+                    </div>
+                    <div className={`py-2 text-center text-[11px] font-bold font-headline ${
+                      isSelected ? "text-primary" : "text-on-surface-variant"
+                    }`}>
+                      {cs.label}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Caption settings */}
+            <div className="mt-4 space-y-4">
+                {/* Font size */}
+                <div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block font-headline">
+                    Font size
+                  </label>
+                  <div className="flex gap-2">
+                    {(["small", "medium", "large"] as const).map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => setCaptionFontSize(size)}
+                        className={`px-4 py-1.5 rounded-full text-sm font-bold capitalize transition-all ${
+                          captionFontSize === size
+                            ? "bg-primary text-on-primary"
+                            : "bg-surface-container text-on-surface hover:bg-surface-container-highest"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Text transform */}
+                <div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block font-headline">
+                    Text transform
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { id: "normal", label: "Normal" },
+                      { id: "uppercase", label: "UPPERCASE" },
+                      { id: "capitalize", label: "Capitalize" },
+                      { id: "lowercase", label: "lowercase" },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setCaptionTransform(opt.id)}
+                        className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
+                          captionTransform === opt.id
+                            ? "bg-primary text-on-primary"
+                            : "bg-surface-container text-on-surface hover:bg-surface-container-highest"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Caption position */}
+                <div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block font-headline">
+                    Position
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { id: "top", label: "Top" },
+                      { id: "middle", label: "Middle" },
+                      { id: "bottom", label: "Bottom" },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setCaptionPosition(opt.id)}
+                        className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
+                          captionPosition === opt.id
+                            ? "bg-primary text-on-primary"
+                            : "bg-surface-container text-on-surface hover:bg-surface-container-highest"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* ── Background Music ── */}
+      <section className="mb-10">
+        <div className="flex items-center gap-2 mb-3">
+          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-headline">
+            Background music
+          </label>
+          <span className="text-[10px] text-on-surface-variant/50 uppercase tracking-wider font-bold">
+            Optional
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {musicTracks.map((track) => {
+            const isSelected = music === track.id;
+            const isPlaying = playingTrackId === track.id;
+            return (
+              <div
+                key={track.id}
+                onClick={() => setMusic(track.id)}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left cursor-pointer ${
+                  isSelected
+                    ? "bg-primary/5 border-2 border-primary"
+                    : "bg-surface-container-lowest border border-outline-variant/20 hover:border-outline-variant"
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${track.gradient} flex-shrink-0`} />
+                <div className="flex-grow min-w-0">
+                  <span className="text-sm font-bold font-headline text-on-surface block">{track.name}</span>
+                  <span className="text-xs text-on-surface-variant">{track.description}</span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isPlaying) {
+                      stopPreview();
+                    } else {
+                      playPreview(track);
+                    }
+                  }}
+                  className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
+                >
+                  <span className="material-symbols-outlined text-on-surface-variant text-xl">
+                    {isPlaying ? "pause_circle" : "play_circle"}
+                  </span>
+                </button>
+              </div>
+            );
+          })}
+
+          {/* No music */}
+          <button
+            onClick={() => setMusic(null)}
+            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
+              music === null
+                ? "bg-primary/5 border-2 border-primary"
+                : "bg-surface-container-lowest border border-outline-variant/20 hover:border-outline-variant"
+            }`}
+          >
+            <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
+              <span className="material-symbols-outlined text-on-surface-variant text-lg">music_off</span>
+            </div>
+            <span className="text-sm font-bold font-headline text-on-surface">No music</span>
+          </button>
+        </div>
+      </section>
+
+      {/* ── Video Language ── */}
+      <section className="mb-10">
+        <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block font-headline">
+          Video language
+        </label>
+        <div className="relative" ref={langRef}>
+          <button
+            onClick={() => setLangOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-3.5 text-sm font-body text-on-surface hover:border-outline-variant transition-all"
+          >
+            <span>{videoLanguage}</span>
+            <span className="material-symbols-outlined text-on-surface-variant text-base">
+              {langOpen ? "expand_less" : "expand_more"}
+            </span>
+          </button>
+
+          {langOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-surface-container-lowest rounded-xl shadow-[0px_30px_60px_rgba(0,0,0,0.12)] border border-outline-variant/15 z-50 max-h-60 overflow-y-auto">
+              {videoLanguages.map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => { setVideoLanguage(lang); setLangOpen(false); }}
+                  className={`w-full flex items-center justify-between px-4 py-3 text-left text-sm transition-colors ${
+                    videoLanguage === lang ? "bg-primary/5 text-primary font-semibold" : "text-on-surface hover:bg-surface-container-low"
+                  }`}
+                >
+                  <span>{lang}</span>
+                  {videoLanguage === lang && (
+                    <span className="material-symbols-outlined text-primary text-sm">check</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Effects ── */}
+      <section className="mb-10">
+        <div className="flex items-center gap-2 mb-3">
+          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-headline">
+            Effects
+          </label>
+          <span className="text-[10px] text-on-surface-variant/50 uppercase tracking-wider font-bold">
+            Optional
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          {/* Film grain */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold font-headline text-on-surface">Film grain</span>
+                <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">New</span>
+              </div>
+              <p className="text-xs text-on-surface-variant mt-0.5">Old film look with scanlines and noise</p>
+            </div>
+            <button
+              onClick={() => setFilmGrain((prev) => !prev)}
+              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                filmGrain ? "bg-primary" : "bg-outline-variant/40"
+              }`}
+            >
+              <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                filmGrain ? "translate-x-[22px]" : "translate-x-0.5"
+              }`} />
+            </button>
+          </div>
+
+          {/* Shake effect */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold font-headline text-on-surface">Shake effect</span>
+                <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">New</span>
+              </div>
+              <p className="text-xs text-on-surface-variant mt-0.5">Eerie motion for horror and thriller</p>
+            </div>
+            <button
+              onClick={() => setShake((prev) => !prev)}
+              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                shake ? "bg-primary" : "bg-outline-variant/40"
+              }`}
+            >
+              <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                shake ? "translate-x-[22px]" : "translate-x-0.5"
+              }`} />
+            </button>
+          </div>
+        </div>
+      </section>
+      </div>
 
       {/* ── Modals ── */}
       <CharacterPickerModal

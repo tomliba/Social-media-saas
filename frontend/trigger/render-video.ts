@@ -20,6 +20,14 @@ export interface RenderVideoPayload {
     revoiceMode?: boolean;
     revoiceVideoUrl?: string;
     revoiceBlurSubtitles?: boolean;
+    captionStyle?: string | null;
+    captionFontSize?: string | null;
+    captionTransform?: string | null;
+    captionPosition?: string | null;
+    music?: string | null;
+    language?: string;
+    filmGrain?: boolean;
+    shakeEffect?: boolean;
     vgJobId?: string;
     assetsReady?: boolean;
     resolvedSegments?: VisualSegment[];
@@ -540,6 +548,16 @@ export const renderVideo = task({
         startBody.tone = aiStory.tone;
         startBody.duration = aiStory.duration;
         startBody.transition_style = aiStory.transitionStyle;
+      } else {
+        // Character video: pass creative settings directly from top-level settings
+        if (payload.settings.captionStyle !== undefined) startBody.caption_style = payload.settings.captionStyle;
+        if (payload.settings.captionFontSize !== undefined) startBody.caption_font_size = payload.settings.captionFontSize;
+        if (payload.settings.captionTransform !== undefined) startBody.caption_text_transform = payload.settings.captionTransform;
+        if (payload.settings.captionPosition !== undefined) startBody.caption_position = payload.settings.captionPosition;
+        if (payload.settings.music !== undefined) startBody.music = payload.settings.music;
+        if (payload.settings.language !== undefined) startBody.language = payload.settings.language;
+        if (payload.settings.filmGrain !== undefined) startBody.film_grain = payload.settings.filmGrain;
+        if (payload.settings.shakeEffect !== undefined) startBody.shake_effect = payload.settings.shakeEffect;
       }
 
       const startRes = await fetch(`${flaskUrl}/vg/start`, {
