@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
+import { extractText, getDocumentProxy } from "unpdf";
 import mammoth from "mammoth";
 import { auth } from "@/lib/auth";
 
-const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+export const maxDuration = 60;
+export const runtime = "nodejs";
+
+const MAX_SIZE = 25 * 1024 * 1024; // 25 MB
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -21,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: "File exceeds 5 MB limit" },
+        { error: "File exceeds 25 MB limit" },
         { status: 400 }
       );
     }
@@ -31,10 +34,9 @@ export async function POST(req: NextRequest) {
     let text = "";
 
     if (name.endsWith(".pdf")) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const parser: any = new PDFParse({ data: buffer });
-      await parser.load();
-      text = await parser.getText();
+      const pdf = await getDocumentProxy(new Uint8Array(buffer));
+      const { text: pdfText } = await extractText(pdf, { mergePages: true });
+      text = pdfText;
     } else if (name.endsWith(".docx")) {
       const result = await mammoth.extractRawText({ buffer });
       text = result.value;

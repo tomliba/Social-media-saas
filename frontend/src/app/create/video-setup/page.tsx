@@ -82,7 +82,6 @@ const backgroundModes = [
 const scriptModes = [
   { id: "template", name: "Pick a template", icon: "dashboard", desc: "Choose from proven viral formats" },
   { id: "paste", name: "Paste your own script", icon: "content_paste", desc: "Already have a script ready" },
-  { id: "remix", name: "Remix a viral video", icon: "replay", desc: "Paste a URL to remix" },
   { id: "upload", name: "Upload content", icon: "upload_file", desc: "Upload a file as source material" },
   { id: "prompt", name: "Write your own prompt", icon: "draw", desc: "Tell AI exactly what to make" },
 ] as const;
@@ -173,8 +172,27 @@ function VideoSetupContent() {
 
   // ── Other mode inputs ──
   const [pastedScript, setPastedScript] = useState("");
-  const [remixUrl, setRemixUrl] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadExtracting, setUploadExtracting] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const validateAndSetFile = (file: File | null) => {
+    if (!file) { setUploadFile(null); return; }
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!ext || !["pdf", "docx", "txt", "md"].includes(ext)) {
+      setUploadError("Unsupported file type. Use PDF, DOCX, TXT, or MD.");
+      setUploadFile(null);
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      setUploadError("File is too large. Max 25MB.");
+      setUploadFile(null);
+      return;
+    }
+    setUploadError(null);
+    setUploadFile(file);
+  };
   const [customPrompt, setCustomPrompt] = useState("");
 
   // ── Script review state ──
@@ -324,17 +342,36 @@ function VideoSetupContent() {
     }
   };
 
-  const handleContinueToScripts = () => {
+  const handleContinueToScripts = async () => {
     if (activeMode === "template") {
       const selected = Array.from(selectedIdeas).map((i) => ideas[i].title);
       fetchScripts(selected, selectedTemplate || "Did You Know");
     } else if (activeMode === "paste") {
       setScripts([{ title: "My Script", script: pastedScript }]);
       setStep(1);
+    } else if (activeMode === "upload" && uploadFile) {
+      setUploadError(null);
+      setUploadExtracting(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", uploadFile);
+        const res = await fetch("/api/extract-content", { method: "POST", body: formData });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          setUploadError(errData.error || "Failed to extract content from file");
+          return;
+        }
+        const data = await res.json();
+        const prompt = `Write a video script based on this source material:\n\n${data.text}`;
+        fetchScripts([], "Upload", prompt);
+      } catch (err) {
+        console.error("Upload extraction failed:", err);
+        setUploadError("Something went wrong. Try again.");
+      } finally {
+        setUploadExtracting(false);
+      }
     } else if (activeMode === "prompt") {
       fetchScripts([], "Custom", customPrompt);
-    } else if (activeMode === "remix") {
-      fetchScripts([], "Remix", remixUrl);
     }
   };
 
@@ -419,16 +456,17 @@ function VideoSetupContent() {
   const canProceed =
     (activeMode === "template" && selectedIdeas.size > 0) ||
     (activeMode === "paste" && pastedScript.trim().length > 0) ||
-    (activeMode === "remix" && remixUrl.trim().length > 0) ||
     (activeMode === "upload" && uploadFile !== null) ||
     (activeMode === "prompt" && customPrompt.trim().length > 0);
 
   const actionLabel =
-    activeMode === "template" && !showIdeas
-      ? "Generate viral ideas"
-      : activeMode === "template" && showIdeas && selectedIdeas.size > 0
-        ? `Continue with ${selectedIdeas.size} idea${selectedIdeas.size !== 1 ? "s" : ""}`
-        : "Create video";
+    uploadExtracting
+      ? "Extracting content..."
+      : activeMode === "template" && !showIdeas
+        ? "Generate viral ideas"
+        : activeMode === "template" && showIdeas && selectedIdeas.size > 0
+          ? `Continue with ${selectedIdeas.size} idea${selectedIdeas.size !== 1 ? "s" : ""}`
+          : "Create video";
 
   const handleBottomAction = () => {
     if (activeMode === "template" && !showIdeas) {
@@ -439,9 +477,10 @@ function VideoSetupContent() {
   };
 
   const bottomDisabled =
-    activeMode === "template" && !showIdeas
+    uploadExtracting ||
+    (activeMode === "template" && !showIdeas
       ? ideasLoading
-      : !canProceed;
+      : !canProceed);
 
   // ── STEP 1: Script review ──
   if (step >= 1) {
@@ -1068,36 +1107,34 @@ function VideoSetupContent() {
                       />
                     )}
 
-                    {/* Remix mode */}
-                    {mode.id === "remix" && (
-                      <div>
-                        <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">
-                          Video URL
-                        </label>
-                        <input
-                          type="url"
-                          value={remixUrl}
-                          onChange={(e) => setRemixUrl(e.target.value)}
-                          placeholder="https://www.tiktok.com/... or https://youtube.com/shorts/..."
-                          className="w-full bg-surface border border-outline-variant/20 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface placeholder:text-on-surface-variant/50 transition-all font-body text-sm"
-                        />
-                      </div>
-                    )}
-
                     {/* Upload mode */}
                     {mode.id === "upload" && (
-                      <label className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-outline-variant/40 rounded-2xl cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all">
-                        <span className="material-symbols-outlined text-4xl text-on-surface-variant">cloud_upload</span>
-                        <span className="text-sm text-on-surface-variant font-medium">
-                          {uploadFile ? uploadFile.name : "Click to upload or drag and drop"}
-                        </span>
-                        <span className="text-xs text-on-surface-variant/60">PDF, TXT, DOCX, or media files</span>
-                        <input
-                          type="file"
-                          className="hidden"
-                          onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                        />
-                      </label>
+                      <>
+                        <label
+                          className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                            isDragging
+                              ? "border-primary bg-primary/10"
+                              : "border-outline-variant/40 hover:border-primary/40 hover:bg-primary/5"
+                          }`}
+                          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                          onDragLeave={() => setIsDragging(false)}
+                          onDrop={(e) => { e.preventDefault(); setIsDragging(false); validateAndSetFile(e.dataTransfer.files?.[0] || null); }}
+                        >
+                          <span className="material-symbols-outlined text-4xl text-on-surface-variant">cloud_upload</span>
+                          <span className="text-sm text-on-surface-variant font-medium">
+                            {uploadFile ? uploadFile.name : "Click to upload or drag and drop"}
+                          </span>
+                          <span className="text-xs text-on-surface-variant/60">PDF, DOCX, TXT, or MD · max 25MB</span>
+                          <input
+                            type="file"
+                            className="hidden"
+                            onChange={(e) => validateAndSetFile(e.target.files?.[0] || null)}
+                          />
+                        </label>
+                        {uploadError && (
+                          <p className="mt-3 text-sm text-red-500 font-medium">{uploadError}</p>
+                        )}
+                      </>
                     )}
 
                     {/* Prompt mode */}
