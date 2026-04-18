@@ -75,6 +75,7 @@ const backgroundModeMap: Record<string, string> = {
   "Stock Footage": "pexels",
   "AI Images": "ai_images",
   "Motion Graphics": "motion_graphics",
+  "Green Screen": "green_screen",
 };
 
 // ── The Trigger.dev task ──

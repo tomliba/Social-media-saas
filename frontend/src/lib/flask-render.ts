@@ -63,6 +63,7 @@ const backgroundModeMap: Record<string, string> = {
   "AI Images": "ai_images",
   "Animated AI": "ai_images",
   "Motion Graphics": "motion_graphics",
+  "Green Screen": "green_screen",
 };
 
 const layoutMap: Record<string, string> = {
@@ -160,6 +161,7 @@ export async function renderVideoViaFlask(
   payload: DirectVideoRequest
 ): Promise<DirectVideoResult> {
   const base = flaskUrl();
+  console.log("[flask-render] ENTRY backgroundMode =", payload.settings.backgroundMode, "mapped =", backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"]);
   if (!base) {
     // No Flask either — return empty (simulation)
     return { videoUrl: "", caption: `${payload.title} — Created with The Fluid Curator.` };
@@ -232,11 +234,31 @@ export async function renderVideoViaFlask(
     jobId = scriptData.vg_job_id;
   }
 
+  // ── Green screen shortcut: no backgrounds needed, just run TTS ──
+  console.log("[flask-render] isGreenScreen =", backgroundMode === "green_screen", "backgroundMode =", backgroundMode);
+  const isGreenScreen = backgroundMode === "green_screen";
+
   // ── Assets-ready shortcut: skip visual-plan + resolve-assets + animate, just run TTS ──
   const preResolved = aiStory?.resolvedSegments || payload.settings.resolvedSegments;
   let resolvedData: { segments: VisualSegment[] };
 
-  if ((aiStory?.assetsReady || payload.settings.assetsReady) && preResolved) {
+  if (isGreenScreen) {
+    // Green screen mode — just TTS, no asset fetching, empty segments
+    const ttsRes = await fetch(`${base}/vg/tts`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        vg_job_id: jobId,
+        voice_id: voiceId,
+        speed,
+        ...(aiStory ? { language: aiStory.language } : {}),
+      }),
+    });
+    if (!ttsRes.ok) {
+      throw new Error(`Flask /vg/tts failed (${ttsRes.status}): ${await ttsRes.text()}`);
+    }
+    resolvedData = { segments: [] };
+  } else if ((aiStory?.assetsReady || payload.settings.assetsReady) && preResolved) {
     // TTS still needed (creates job in Flask memory + generates voiceover.mp3)
     const ttsRes = await fetch(`${base}/vg/tts`, {
       method: "POST",
@@ -332,7 +354,7 @@ export async function renderVideoViaFlask(
   const renderBody: Record<string, unknown> = {
     vg_job_id: jobId,
     voice_id: voiceId,
-    bg_mode: bgMode,
+    bg_mode: isGreenScreen ? "green_screen" : bgMode,
     layout,
     speed,
     visualSegments: resolvedData.segments,

@@ -111,6 +111,7 @@ const backgroundModeMap: Record<string, string> = {
   "AI Images": "ai_images",
   "Animated AI": "ai_images",
   "Motion Graphics": "motion_graphics",
+  "Green Screen": "green_screen",
 };
 
 // Frontend layout options → Flask layout values (passed through for Remotion)
@@ -371,7 +372,15 @@ export const renderVideo = task({
     metadata.set("progress", 22);
 
     const preResolved = aiStory?.resolvedSegments || payload.settings.resolvedSegments;
-    if ((aiStory?.assetsReady || payload.settings.assetsReady) && preResolved) {
+    const isGreenScreen = backgroundMode === "green_screen";
+    if (isGreenScreen) {
+      // ── Green screen mode: no backgrounds needed, skip visual-plan + resolve-assets ──
+      logger.log("Green screen mode — skipping visual-plan + resolve-assets");
+      resolvedData = { segments: [] };
+      metadata.set("stage", "pipeline_starting");
+      metadata.set("stageLabel", "Starting video render...");
+      metadata.set("progress", 40);
+    } else if ((aiStory?.assetsReady || payload.settings.assetsReady) && preResolved) {
       // ── Assets-ready shortcut: skip visual-plan + resolve-assets, use stored segments ──
       logger.log("Assets already prepared — skipping visual-plan + resolve-assets", {
         segmentCount: preResolved.length,
@@ -492,11 +501,11 @@ export const renderVideo = task({
           vg_job_id: jobId,
           script: scriptData.script,
           voice_id: voiceId,
-          bg_mode: bgMode,
+          bg_mode: isGreenScreen ? "green_screen" : bgMode,
           background_mode: backgroundMode,
           layout,
           speed,
-          visual_segments: resolvedData.segments,
+          visual_segments: isGreenScreen ? [] : resolvedData.segments,
         };
 
       // Pass AI Story-specific fields to Flask

@@ -72,6 +72,7 @@ const backgroundModes = [
   { label: "AI Images", emoji: "\u{1F3A8}", desc: "Custom AI-generated images" },
   { label: "Animated AI", emoji: "\u{1F3AC}", desc: "AI images with motion" },
   { label: "Motion Graphics", emoji: "\u2728", icon: "animation", desc: "Animated data visualizations and graphics" },
+  { label: "Green Screen", emoji: "🟢", desc: "Solid green background for chroma key removal in your own editor" },
 ];
 
 // ── Art styles ──
