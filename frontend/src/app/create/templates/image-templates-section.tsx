@@ -344,6 +344,36 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
         <h2 className="text-2xl font-bold font-headline mb-2">Choose a design</h2>
         <p className="text-on-surface-variant text-sm mb-6">Pick the visual style for your image post</p>
 
+        {/* ── POST CLONER ── */}
+        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/50 mb-3">Clone a Post</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
+          <button
+            onClick={() => router.push("/create/post-cloner")}
+            className="group flex flex-col rounded-xl bg-surface-container-lowest hover:shadow-lg transition-all active:scale-[0.97] overflow-hidden"
+          >
+            <div className="w-full aspect-square overflow-hidden bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-700 flex items-center justify-center">
+              <div className="flex items-center gap-2">
+                <div className="w-14 h-20 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-white/60 text-xl">image</span>
+                </div>
+                <span className="material-symbols-outlined text-white text-2xl">arrow_forward</span>
+                <div className="w-14 h-20 rounded-lg bg-white/90 shadow-xl flex items-center justify-center">
+                  <span
+                    className="material-symbols-outlined text-primary text-xl"
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    auto_awesome
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="px-3 py-2.5">
+              <h3 className="font-bold text-sm font-headline">Post Cloner</h3>
+              <p className="text-xs text-on-surface-variant leading-snug">Clone any Instagram post from a URL or screenshot</p>
+            </div>
+          </button>
+        </div>
+
         {/* ── AD CREATIVES ── */}
         <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/50 mb-3">Ad Creatives</p>
 

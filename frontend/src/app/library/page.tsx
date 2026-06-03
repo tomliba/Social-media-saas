@@ -296,7 +296,7 @@ function VideoPreviewModal({
           </div>
           {item.videoUrl && (
             <a
-              href={item.videoUrl}
+              href={`/api/library/${item.id}/download`}
               download
               className="flex items-center gap-2 px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-on-surface rounded-xl font-bold text-sm transition-colors"
             >
