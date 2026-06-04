@@ -13,6 +13,8 @@ interface VideoStyle {
   icon: string;
   gradient: string;
   badge?: string;
+  preview?: string;
+  previewPosition?: "top" | "bottom" | "center";
 }
 
 const videoStyles: VideoStyle[] = [
@@ -23,6 +25,8 @@ const videoStyles: VideoStyle[] = [
       "AI animated character with voice, lip sync, and custom backgrounds",
     icon: "person_play",
     gradient: "from-violet-600 to-indigo-500",
+    preview: "/previews/cards/character-video.png",
+    previewPosition: "bottom",
   },
   {
     id: "ai-story",
@@ -32,6 +36,7 @@ const videoStyles: VideoStyle[] = [
     icon: "auto_stories",
     gradient: "from-fuchsia-600 to-purple-500",
     badge: "New",
+    preview: "/previews/cards/ai-story.png",
   },
   {
     id: "argument",
@@ -41,6 +46,8 @@ const videoStyles: VideoStyle[] = [
     icon: "forum",
     gradient: "from-orange-400 to-blue-500",
     badge: "New",
+    preview: "/previews/cards/argument-video.png",
+    previewPosition: "bottom",
   },
   {
     id: "skeleton",
@@ -50,6 +57,7 @@ const videoStyles: VideoStyle[] = [
     icon: "skeleton",
     gradient: "from-cyan-700 to-slate-800",
     badge: "Trending",
+    preview: "/previews/cards/skeleton-video.png",
   },
 ];
 
@@ -108,13 +116,19 @@ export default function VideoStylesPage() {
                     : "border-outline-variant/30 hover:border-outline-variant"
                 }`}
             >
-              {/* Gradient preview area */}
-              <div
-                className={`w-full h-36 bg-gradient-to-br ${style.gradient} flex items-center justify-center`}
-              >
-                <span className="material-symbols-outlined text-5xl text-white/90">
-                  {style.icon}
-                </span>
+              {/* Preview area */}
+              <div className="relative w-full aspect-[3/4] overflow-hidden">
+                {style.preview ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={style.preview} alt="" className={`w-full h-full object-cover ${style.previewPosition === "bottom" ? "object-bottom" : "object-top"}`} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                  </>
+                ) : (
+                  <div className={`w-full h-full bg-gradient-to-br ${style.gradient} flex items-center justify-center`}>
+                    <span className="material-symbols-outlined text-5xl text-white/90">{style.icon}</span>
+                  </div>
+                )}
               </div>
 
               {/* Badge */}

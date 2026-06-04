@@ -2,77 +2,51 @@
 
 import { useRouter } from "next/navigation";
 
+function PreviewCard({ src, badge, children, position = "top" }: { src: string; badge?: string; children?: React.ReactNode; position?: "top" | "bottom" | "center" }) {
+  return (
+    <div className="relative w-full aspect-[4/5] overflow-hidden">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" className={`w-full h-full object-cover ${position === "bottom" ? "object-bottom" : position === "center" ? "object-center" : "object-top"}`} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+      {badge && (
+        <div className="absolute top-4 right-4 bg-primary text-on-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+          {badge}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
 const formats = [
   {
     name: "Video",
     description: "AI explainers, tutorials, stories, myth busters",
     badge: "Most popular",
     visual: (
-      <div className="relative w-full h-64 overflow-hidden bg-gradient-to-br from-violet-900 via-indigo-800 to-purple-700">
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
-        {/* Most popular badge */}
-        <div className="absolute top-4 right-4 bg-primary text-on-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-          Most popular
-        </div>
-        {/* Play button */}
+      <PreviewCard src="/previews/cards/character-video.png" badge="Most popular" position="bottom">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-xl">
-            <span
-              className="material-symbols-outlined text-primary text-4xl"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              play_arrow
-            </span>
+            <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
           </div>
         </div>
-      </div>
+      </PreviewCard>
     ),
   },
   {
     name: "Image Post",
     description: "AI-generated images with captions",
-    visual: (
-      <div className="relative w-full h-64 overflow-hidden bg-surface-container-low flex items-center justify-center">
-        <div className="w-48 h-48 rounded-2xl bg-gradient-to-br from-amber-200 via-rose-200 to-violet-300 shadow-lg flex items-center justify-center">
-          <span className="material-symbols-outlined text-white text-5xl">
-            image
-          </span>
-        </div>
-      </div>
-    ),
+    visual: <PreviewCard src="/previews/cards/image-post.png" />,
   },
   {
     name: "Carousel",
     description: "Educational slides for Instagram",
-    visual: (
-      <div className="relative w-full h-64 overflow-hidden flex items-center justify-center bg-surface-container-low px-12">
-        <div className="relative flex">
-          <div className="w-32 h-44 bg-white rounded-lg shadow-lg rotate-[-12deg] flex-shrink-0 border border-outline-variant/10" />
-          <div className="w-32 h-44 bg-white rounded-lg shadow-lg rotate-[-6deg] absolute left-6 border border-outline-variant/10" />
-          <div className="w-32 h-44 bg-primary rounded-lg shadow-xl absolute left-12 flex items-center justify-center">
-            <span className="material-symbols-outlined text-on-primary text-3xl">
-              view_carousel
-            </span>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: <PreviewCard src="/previews/cards/carousel.png" />,
   },
   {
     name: "Text",
     description: "Captions, threads, hooks for any platform",
-    visual: (
-      <div className="relative w-full h-64 overflow-hidden bg-surface-container-low flex flex-col justify-center gap-4 px-12">
-        <div className="h-4 w-3/4 bg-surface-container-highest rounded-full" />
-        <div className="h-4 w-full bg-surface-container-highest rounded-full" />
-        <div className="h-4 w-2/3 bg-primary/20 rounded-full" />
-        <div className="flex gap-4 mt-2">
-          <div className="w-8 h-8 rounded-full bg-surface-container-highest" />
-          <div className="w-8 h-8 rounded-full bg-surface-container-highest" />
-        </div>
-      </div>
-    ),
+    visual: <PreviewCard src="/previews/cards/text-format.png" />,
   },
 ];
 

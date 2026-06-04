@@ -71,6 +71,72 @@ function formatLabel(format: string): string {
   return format.charAt(0).toUpperCase() + format.slice(1);
 }
 
+// ── Text Post Viewer ──
+
+function TextPostView({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="px-6 pb-4">
+      <div className="relative bg-zinc-50 rounded-xl p-5 max-h-[50vh] overflow-y-auto">
+        <button
+          onClick={handleCopy}
+          className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-zinc-100 text-sm font-bold rounded-lg shadow-sm transition-colors"
+        >
+          <span className="material-symbols-outlined text-base">
+            {copied ? "check" : "content_copy"}
+          </span>
+          {copied ? "Copied!" : "Copy"}
+        </button>
+        <p className="text-on-surface whitespace-pre-wrap leading-relaxed pr-20">
+          {text}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Carousel Viewer ──
+
+function CarouselViewer({ images, title }: { images: string[]; title: string }) {
+  const [activeSlide, setActiveSlide] = useState(0);
+  return (
+    <div className="relative w-full h-full">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={images[activeSlide]}
+        alt={`${title} - Slide ${activeSlide + 1}`}
+        className="w-full h-full object-contain"
+      />
+      <div className="absolute top-3 right-3 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold">
+        {activeSlide + 1} / {images.length}
+      </div>
+      {activeSlide > 0 && (
+        <button
+          onClick={() => setActiveSlide((p) => p - 1)}
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white transition-colors"
+        >
+          <span className="material-symbols-outlined text-on-surface">chevron_left</span>
+        </button>
+      )}
+      {activeSlide < images.length - 1 && (
+        <button
+          onClick={() => setActiveSlide((p) => p + 1)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white transition-colors"
+        >
+          <span className="material-symbols-outlined text-on-surface">chevron_right</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Video Preview Modal ──
 
 function VideoPreviewModal({
@@ -226,6 +292,12 @@ function VideoPreviewModal({
     );
   }
 
+  // Parse carousel images from previewData
+  const carouselImages: string[] = (() => {
+    if (item.format !== "carousel" || !item.previewData) return [];
+    try { return JSON.parse(item.previewData).images || []; } catch { return []; }
+  })();
+
   // Default: existing modal for ready/rendering/failed items
   return (
     <div
@@ -257,31 +329,37 @@ function VideoPreviewModal({
         </div>
 
         {/* Preview */}
-        <div className={`bg-black ${item.format === "image" || item.format === "carousel" ? "aspect-[4/5] max-h-[70vh]" : "aspect-video"}`}>
-          {item.videoUrl ? (
-            item.format === "image" || item.format === "carousel" ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={item.videoUrl}
-                alt={item.title}
-                className="w-full h-full object-contain"
-              />
+        {item.format === "text" && item.script ? (
+          <TextPostView text={item.script} />
+        ) : (
+          <div className={`bg-black ${item.format === "image" || item.format === "carousel" ? "aspect-[4/5] max-h-[70vh]" : "aspect-video"}`}>
+            {item.format === "carousel" && carouselImages.length > 0 ? (
+              <CarouselViewer images={carouselImages} title={item.title} />
+            ) : item.videoUrl ? (
+              item.format === "image" ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={item.videoUrl}
+                  alt={item.title}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <video
+                  src={item.videoUrl}
+                  controls
+                  autoPlay
+                  className="w-full h-full object-contain"
+                />
+              )
             ) : (
-              <video
-                src={item.videoUrl}
-                controls
-                autoPlay
-                className="w-full h-full object-contain"
-              />
-            )
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-zinc-400">
-              <span className="material-symbols-outlined text-5xl">
-                {item.format === "video" ? "videocam_off" : "image_not_supported"}
-              </span>
-            </div>
-          )}
-        </div>
+              <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                <span className="material-symbols-outlined text-5xl">
+                  {item.format === "video" ? "videocam_off" : "image_not_supported"}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-3 px-6 py-4">
@@ -294,7 +372,7 @@ function VideoPreviewModal({
               Coming soon
             </div>
           </div>
-          {item.videoUrl && (
+          {(item.videoUrl || carouselImages.length > 0) && (
             <a
               href={`/api/library/${item.id}/download`}
               download
@@ -303,7 +381,7 @@ function VideoPreviewModal({
               <span className="material-symbols-outlined text-lg">
                 download
               </span>
-              Download
+              {item.format === "carousel" ? "Download All Slides" : "Download"}
             </a>
           )}
         </div>
@@ -445,7 +523,17 @@ function ContentCard({
 
         {isReady && (
           <>
-            {(item.thumbnailUrl || (item.format === "image" && item.videoUrl)) ? (
+            {item.format === "text" && item.script ? (
+              <div className="w-full h-full bg-gradient-to-br from-violet-50 via-white to-purple-50 p-4 overflow-hidden">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>article</span>
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Text Post</span>
+                </div>
+                <p className="text-xs text-on-surface leading-relaxed line-clamp-5">
+                  {item.script}
+                </p>
+              </div>
+            ) : (item.thumbnailUrl || (item.format === "image" && item.videoUrl)) ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={item.thumbnailUrl || item.videoUrl!}

@@ -572,7 +572,9 @@ function EditorContent() {
             format: "carousel",
             templateId: templateId ?? null,
             status: "ready",
+            videoUrl: r.images[0] || null,
             thumbnailUrl: r.images[0] || null,
+            previewData: JSON.stringify({ images: r.images }),
           }),
         });
       }

@@ -26,7 +26,7 @@ const openaiClient = process.env.OPENAI_API_KEY
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
 
-const TIMEOUT_MS = 15_000;
+const TIMEOUT_MS = 60_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
