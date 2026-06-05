@@ -32,3 +32,12 @@ Thumbs.db
 
 # Debug
 npm-debug.log*
+
+# Build artifacts
+*.tsbuildinfo
+
+# Test artifacts
+test-results/
+
+# Secrets / scratch (never commit)
+cookie.txt
