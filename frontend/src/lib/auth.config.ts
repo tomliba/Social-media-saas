@@ -42,6 +42,8 @@ export const authConfig: NextAuthConfig = {
       const isPublic =
         publicPaths.some((p) => pathname === p) ||
         pathname.startsWith("/api/auth") ||
+        pathname.startsWith("/api/webhooks") || // external webhooks (Lemon Squeezy) — verified by signature
+        pathname.startsWith("/api/cron") || // scheduled jobs — verified by secret
         pathname.startsWith("/_next") ||
         pathname.endsWith("/complete") || // Trigger.dev server-to-server callback
         pathname.endsWith("/preview-ready") || // prepare-assets server-to-server callback

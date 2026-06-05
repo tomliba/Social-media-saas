@@ -1,4 +1,5 @@
 import { task, metadata, logger } from "@trigger.dev/sdk";
+import { callbackHeaders } from "../src/lib/callback-auth";
 
 export interface RenderPreviewPayload {
   /** Library item ID — used to update status on completion */
@@ -73,7 +74,7 @@ export const renderPreview = task({
     try {
       await fetch(`${appUrl}/api/library/${libraryItemId}/complete`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: callbackHeaders(),
         body: JSON.stringify({ status: "failed", error: errMsg }),
       });
     } catch (err) {
@@ -238,7 +239,7 @@ export const renderPreview = task({
     try {
       await fetch(`${appUrl}/api/library/${payload.libraryItemId}/complete`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: callbackHeaders(),
         body: JSON.stringify({
           status: "ready",
           videoUrl,

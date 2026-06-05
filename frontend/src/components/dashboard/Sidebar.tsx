@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import CreditBalance from "@/components/credits/CreditBalance";
 
 const navItems = [
   { icon: "home", label: "Home", href: "/dashboard", match: "/dashboard" },
@@ -86,25 +87,8 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Usage / Upgrade */}
-      <div className="px-4 mt-auto">
-        <div className="bg-surface-container-highest p-4 rounded-xl mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-              Usage: 80%
-            </span>
-            <span className="material-symbols-outlined text-sm text-primary">
-              bar_chart
-            </span>
-          </div>
-          <div className="w-full bg-outline-variant/20 h-1.5 rounded-full overflow-hidden">
-            <div className="bg-primary h-full w-[80%]" />
-          </div>
-          <button className="w-full mt-4 py-2 text-sm font-bold text-primary bg-white rounded-lg shadow-sm">
-            Upgrade Plan
-          </button>
-        </div>
-      </div>
+      {/* Credit balance / Upgrade */}
+      <CreditBalance />
     </aside>
   );
 }

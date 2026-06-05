@@ -3,8 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooled connection (Neon "-pooler" host) — used by the app at runtime
+  url       = env("DATABASE_URL")
+  // Direct connection (no "-pooler") — used by Prisma Migrate
+  directUrl = env("DIRECT_URL")
 }
 
 // NextAuth.js models
@@ -56,6 +59,9 @@ model User {
   plan          String    @default("free") // free, starter, creator, pro
   lemonSqueezyCustomerId String?
   lemonSqueezySubscriptionId String?
+  creditBalance Int       @default(0)
+  subscriptionStatus String?  // active, past_due, cancelled, expired (from Lemon Squeezy)
+  currentPeriodEnd   DateTime? // end of current paid billing period
 
   // User defaults / preferences
   niche         String?
@@ -67,16 +73,6 @@ model User {
   layout        String    @default("Standard")
   language      String    @default("English")
 
-  // Usage counters (reset monthly)
-  videosUsed    Int       @default(0)
-  videosLimit   Int       @default(3)
-  postsUsed     Int       @default(0)
-  postsLimit    Int       @default(10)
-  usageResetAt  DateTime  @default(now())
-
-  // Autopilot settings
-  autopilotEnabled Boolean @default(false)
-
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -84,6 +80,26 @@ model User {
   accounts      Account[]
   sessions      Session[]
   contentItems  ContentItem[]
+  creditTransactions CreditTransaction[]
+}
+
+// Append-only credit ledger. Balance is mirrored on User.creditBalance;
+// every change to that balance MUST go through one of these rows.
+model CreditTransaction {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  delta           Int      // signed: negative = spend, positive = grant/refund
+  balanceAfter    Int
+  type            String   // signup_grant, subscription_grant, topup, render_spend, post_spend, refund, adjustment
+  reason          String?
+  jobId           String?  // ContentItem.jobId / Trigger run id for charge↔refund pairing
+  externalEventId String?  // Lemon Squeezy webhook event id for grant idempotency
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@unique([jobId, type])        // idempotency: one charge + one refund per job
+  @@unique([externalEventId])    // idempotency: one grant per webhook event
 }
 
 model ContentItem {

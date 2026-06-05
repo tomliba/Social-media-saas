@@ -1,4 +1,5 @@
 import { task, metadata, logger } from "@trigger.dev/sdk";
+import { callbackHeaders } from "../src/lib/callback-auth";
 
 export interface RenderPostPayload {
   /** pg_job_id from Flask /pg/generate_ideas */
@@ -92,7 +93,7 @@ export const renderPost = task({
     try {
       await fetch(`${appUrl}/api/library/${runId}/complete`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: callbackHeaders(),
         body: JSON.stringify({ status: "failed", error: errMsg }),
       });
     } catch (err) {
@@ -121,7 +122,7 @@ export const renderPost = task({
       try {
         await fetch(`${appUrl}/api/library/${runId}/complete`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: callbackHeaders(),
           body: JSON.stringify({ status: "ready" }),
         });
       } catch (err) {
@@ -276,7 +277,7 @@ export const renderPost = task({
     try {
       await fetch(`${appUrl}/api/library/${runId}/complete`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: callbackHeaders(),
         body: JSON.stringify({ status: "ready", thumbnailUrl: thumbnailUrl ?? firstImage }),
       });
     } catch (err) {

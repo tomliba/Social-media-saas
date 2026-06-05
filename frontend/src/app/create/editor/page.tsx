@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
 import { triggerPostRenders } from "@/app/actions/create-posts";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import VoicePickerModal from "@/components/create/VoicePickerModal";
@@ -366,6 +367,7 @@ function EditorContent() {
   const speedRef = useRef<HTMLDivElement>(null);
 
   const [creating, setCreating] = useState(false);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [characterModalOpen, setCharacterModalOpen] = useState(false);
@@ -392,7 +394,7 @@ function EditorContent() {
     if (scripts.length === 0) return;
     setCreating(true);
     try {
-      const handles = await triggerVideoRenders(
+      const result = await triggerVideoRenders(
         scripts.map((s) => ({
           title: s.title,
           script: s.script,
@@ -400,6 +402,15 @@ function EditorContent() {
           settings: { ...settings, speed: selectedSpeed },
         }))
       );
+
+      if (!result.ok) {
+        setCreating(false);
+        if (result.error === "insufficient_credits") {
+          setCreditError({ needed: result.needed, balance: result.balance });
+        }
+        return;
+      }
+      const handles = result.handles;
 
       // Create library items for each render
       await Promise.all(
@@ -449,7 +460,7 @@ function EditorContent() {
         throw new Error("pg_job_id not found. Go back and generate ideas first");
       }
 
-      const handle = await triggerPostRenders({
+      const postResult = await triggerPostRenders({
         pgJobId,
         selectedIdeas: postIdeas.map((idea) => idea.number),
         ideaTopics: postIdeas.map((idea) => idea.topic),
@@ -458,6 +469,15 @@ function EditorContent() {
           platform: settings.platform,
         },
       });
+
+      if (!postResult.ok) {
+        setCreating(false);
+        if (postResult.error === "insufficient_credits") {
+          setCreditError({ needed: postResult.needed, balance: postResult.balance });
+        }
+        return;
+      }
+      const handle = postResult.handle;
 
       // Create library item for the render
       await fetch("/api/library", {
@@ -637,6 +657,13 @@ function EditorContent() {
 
   return (
     <main className="pt-24 pb-72 px-6 max-w-4xl mx-auto">
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
+      )}
       {/* Breadcrumb */}
       <div className="flex items-center gap-3 mb-10 text-on-surface-variant font-headline">
         <Link

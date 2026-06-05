@@ -1,6 +1,7 @@
 import { task, metadata, logger } from "@trigger.dev/sdk";
 import { defaultVoice } from "../src/lib/voices";
 import type { VisualSegment } from "../src/lib/video-types";
+import { callbackHeaders } from "../src/lib/callback-auth";
 
 export interface RenderVideoPayload {
   title: string;
@@ -194,7 +195,7 @@ export const renderVideo = task({
     try {
       await fetch(`${appUrl}/api/library/${runId}/complete`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: callbackHeaders(),
         body: JSON.stringify({ status: "failed", error: errMsg }),
       });
     } catch (err) {
@@ -223,7 +224,7 @@ export const renderVideo = task({
       try {
         await fetch(`${appUrl}/api/library/${runId}/complete`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: callbackHeaders(),
           body: JSON.stringify({ status: "ready", videoUrl: result.videoUrl, thumbnailUrl: result.previewUrl }),
         });
       } catch (err) {
@@ -699,7 +700,7 @@ export const renderVideo = task({
     try {
       await fetch(`${appUrl}/api/library/${runId}/complete`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: callbackHeaders(),
         body: JSON.stringify({
           status: "ready",
           videoUrl,

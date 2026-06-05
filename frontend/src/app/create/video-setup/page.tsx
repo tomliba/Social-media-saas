@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import VoicePickerModal from "@/components/create/VoicePickerModal";
@@ -388,6 +389,7 @@ function VideoSetupContent() {
 
   // ── Creating state ──
   const [creating, setCreating] = useState(false);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
 
   // ── Creative settings (captions, music, effects) ──
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
@@ -645,7 +647,7 @@ function VideoSetupContent() {
 
     console.log("[video-setup] activeMode:", activeMode, "revoiceMode:", activeMode === "revoice", "revoiceVideoUrl:", revoiceVideoUrl);
     try {
-      const handles = await triggerVideoRenders(
+      const result = await triggerVideoRenders(
         scripts.map((s) => ({
           title: s.title,
           script: s.script,
@@ -675,6 +677,16 @@ function VideoSetupContent() {
           },
         }))
       );
+
+      if (!result.ok) {
+        setCreating(false);
+        setStep(1);
+        if (result.error === "insufficient_credits") {
+          setCreditError({ needed: result.needed, balance: result.balance });
+        }
+        return;
+      }
+      const handles = result.handles;
 
       await Promise.all(
         handles.map(async (h) => {
@@ -875,6 +887,13 @@ function VideoSetupContent() {
   // ── STEP 0: Setup ──
   return (
     <main className="min-h-screen bg-surface pt-24 pb-48 px-6 max-w-4xl mx-auto">
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
+      )}
       <StepDots current={0} />
 
       {/* Back */}

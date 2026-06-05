@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import type { VisualSegment } from "@/lib/video-types";
 import { ART_STYLES as artStyles, type ArtStyle, artPreviewSrc } from "@/lib/artStyles";
 
@@ -80,6 +81,7 @@ export default function AnimatedCharacterReviewPage() {
   const [animating, setAnimating] = useState(false);
   const [cachedTimings, setCachedTimings] = useState<({ startSec: number; endSec: number }[] | null)[]>([]);
   const [rendering, setRendering] = useState(false);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
   const animPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -435,7 +437,7 @@ export default function AnimatedCharacterReviewPage() {
     setRenderError(null);
 
     try {
-      const handles = await triggerVideoRenders(
+      const result = await triggerVideoRenders(
         setup.scripts.map((s, i) => {
           const scenes = editScenes[i] || [];
           const timing = cachedTimings[i];
@@ -489,6 +491,17 @@ export default function AnimatedCharacterReviewPage() {
           };
         })
       );
+
+      if (!result.ok) {
+        setRendering(false);
+        if (result.error === "insufficient_credits") {
+          setCreditError({ needed: result.needed, balance: result.balance });
+        } else {
+          setRenderError("You must be signed in to render.");
+        }
+        return;
+      }
+      const handles = result.handles;
 
       await Promise.all(
         handles.map(async (h) => {
@@ -564,6 +577,13 @@ export default function AnimatedCharacterReviewPage() {
 
   return (
     <main className="min-h-screen bg-surface pt-8 pb-48 px-6 max-w-4xl mx-auto">
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
+      )}
       {/* Back to setup */}
       <Link
         href="/create/video-setup"
