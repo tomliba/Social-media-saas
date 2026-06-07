@@ -368,6 +368,7 @@ function EditorContent() {
 
   const [creating, setCreating] = useState(false);
   const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [characterModalOpen, setCharacterModalOpen] = useState(false);
@@ -393,6 +394,7 @@ function EditorContent() {
   const handleCreateVideos = async () => {
     if (scripts.length === 0) return;
     setCreating(true);
+    setSubmitError(null);
     try {
       const result = await triggerVideoRenders(
         scripts.map((s) => ({
@@ -407,6 +409,8 @@ function EditorContent() {
         setCreating(false);
         if (result.error === "insufficient_credits") {
           setCreditError({ needed: result.needed, balance: result.balance });
+        } else {
+          setSubmitError("You must be signed in to create. Please sign in and try again.");
         }
         return;
       }
@@ -446,6 +450,7 @@ function EditorContent() {
       router.push("/library");
     } catch (err) {
       console.error("Failed to trigger video renders:", err);
+      setSubmitError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setCreating(false);
     }
   };
@@ -454,6 +459,7 @@ function EditorContent() {
   const handleCreatePosts = async () => {
     if (postIdeas.length === 0) return;
     setCreating(true);
+    setSubmitError(null);
     try {
       const pgJobId = sessionStorage.getItem("pg_job_id");
       if (!pgJobId) {
@@ -474,6 +480,8 @@ function EditorContent() {
         setCreating(false);
         if (postResult.error === "insufficient_credits") {
           setCreditError({ needed: postResult.needed, balance: postResult.balance });
+        } else {
+          setSubmitError("You must be signed in to create. Please sign in and try again.");
         }
         return;
       }
@@ -499,6 +507,7 @@ function EditorContent() {
       router.push("/library");
     } catch (err) {
       console.error("Failed to trigger post renders:", err);
+      setSubmitError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setCreating(false);
     }
   };
@@ -663,6 +672,11 @@ function EditorContent() {
           balance={creditError.balance}
           onClose={() => setCreditError(null)}
         />
+      )}
+      {submitError && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white shadow-lg">
+          {submitError}
+        </div>
       )}
       {/* Breadcrumb */}
       <div className="flex items-center gap-3 mb-10 text-on-surface-variant font-headline">

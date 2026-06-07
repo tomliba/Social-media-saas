@@ -24,10 +24,10 @@ export default function InsufficientCreditsDialog({
         className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-gray-900">Not enough credits</h2>
+        <h2 className="text-lg font-semibold text-gray-900">You&apos;re out of credits</h2>
         <p className="mt-2 text-sm text-gray-600">
-          This needs <span className="font-semibold">{needed}</span> credits, but you
-          have <span className="font-semibold">{balance}</span>.
+          You need <span className="font-semibold">{needed}</span> credits but have{" "}
+          <span className="font-semibold">{balance}</span>.
         </p>
         <div className="mt-5 flex gap-3">
           <button

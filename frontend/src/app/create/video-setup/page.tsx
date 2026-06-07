@@ -390,6 +390,7 @@ function VideoSetupContent() {
   // ── Creating state ──
   const [creating, setCreating] = useState(false);
   const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // ── Creative settings (captions, music, effects) ──
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
@@ -644,6 +645,7 @@ function VideoSetupContent() {
 
     setCreating(true);
     setStep(2);
+    setSubmitError(null);
 
     console.log("[video-setup] activeMode:", activeMode, "revoiceMode:", activeMode === "revoice", "revoiceVideoUrl:", revoiceVideoUrl);
     try {
@@ -683,6 +685,8 @@ function VideoSetupContent() {
         setStep(1);
         if (result.error === "insufficient_credits") {
           setCreditError({ needed: result.needed, balance: result.balance });
+        } else {
+          setSubmitError("You must be signed in to create. Please sign in and try again.");
         }
         return;
       }
@@ -716,6 +720,7 @@ function VideoSetupContent() {
       router.push("/library");
     } catch (err) {
       console.error("Failed to trigger video renders:", err);
+      setSubmitError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setCreating(false);
       setStep(1);
     }
@@ -759,6 +764,13 @@ function VideoSetupContent() {
   if (step >= 1) {
     return (
       <main className="min-h-screen bg-surface pt-24 pb-48 px-6 max-w-4xl mx-auto">
+        {creditError && (
+          <InsufficientCreditsDialog
+            needed={creditError.needed}
+            balance={creditError.balance}
+            onClose={() => setCreditError(null)}
+          />
+        )}
         <StepDots current={step >= 2 ? 2 : 1} />
 
         {/* Back to setup */}
@@ -854,7 +866,10 @@ function VideoSetupContent() {
 
         {/* Bottom bar */}
         {!scriptsLoading && scripts.length > 0 && (
-          <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex justify-center">
+          <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center gap-3">
+            {submitError && (
+              <p className="text-red-500 text-sm font-medium">{submitError}</p>
+            )}
             <button
               onClick={handleAcceptAndCreate}
               disabled={creating}
