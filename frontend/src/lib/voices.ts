@@ -22,8 +22,8 @@ export interface Voice {
 
 /** Default Fish Audio voice ID used when none is selected */
 export const defaultVoice: Voice = {
-  name: "Deep Male Voice",
-  fishAudioId: "728f6ff2240d49308e8137ffe66008e2",
+  name: "Ethan",
+  fishAudioId: "536d3a5e000945adb7038665781a4aca",
   gender: "male",
-  tags: ["Deep"],
+  tags: ["Educational", "Narration", "Professional"],
 };
