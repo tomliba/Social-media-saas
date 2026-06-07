@@ -62,6 +62,7 @@ model User {
   creditBalance Int       @default(0)
   subscriptionStatus String?  // active, past_due, cancelled, expired (from Lemon Squeezy)
   currentPeriodEnd   DateTime? // end of current paid billing period
+  customerPortalUrl  String?   // Lemon Squeezy customer portal URL (from subscription webhook urls.customer_portal)
 
   // User defaults / preferences
   niche         String?
