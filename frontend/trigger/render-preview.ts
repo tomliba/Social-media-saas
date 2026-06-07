@@ -1,5 +1,5 @@
 import { task, metadata, logger } from "@trigger.dev/sdk";
-import { callbackHeaders } from "../src/lib/callback-auth";
+import { postCompletionCallback } from "../src/lib/callback-auth";
 
 export interface RenderPreviewPayload {
   /** Library item ID — used to update status on completion */
@@ -71,15 +71,7 @@ export const renderPreview = task({
     const errMsg = params.error instanceof Error ? params.error.message : "Render failed";
     const libraryItemId = params.payload?.libraryItemId;
     if (!libraryItemId) return;
-    try {
-      await fetch(`${appUrl}/api/library/${libraryItemId}/complete`, {
-        method: "POST",
-        headers: callbackHeaders(),
-        body: JSON.stringify({ status: "failed", error: errMsg }),
-      });
-    } catch (err) {
-      logger.warn("Failed to update library item on failure", { error: String(err) });
-    }
+    await postCompletionCallback(appUrl, libraryItemId, { status: "failed", error: errMsg });
   },
   run: async (payload: RenderPreviewPayload): Promise<{ videoUrl: string; thumbnailUrl: string }> => {
     logger.log("Starting render-from-preview", { title: payload.title, libraryItemId: payload.libraryItemId });
@@ -236,20 +228,14 @@ export const renderPreview = task({
     metadata.set("stageLabel", "Finalizing...");
     metadata.set("progress", 95);
 
-    try {
-      await fetch(`${appUrl}/api/library/${payload.libraryItemId}/complete`, {
-        method: "POST",
-        headers: callbackHeaders(),
-        body: JSON.stringify({
-          status: "ready",
-          videoUrl,
-          thumbnailUrl: thumbnailUrl || videoUrl,
-        }),
-      });
-      logger.log("Library item updated to ready", { libraryItemId: payload.libraryItemId });
-    } catch (err) {
-      logger.warn("Failed to update library item", { error: String(err) });
-    }
+    // A failed callback throws here so the run fails and Trigger retries it,
+    // rather than leaving the item stuck in "rendering".
+    await postCompletionCallback(appUrl, payload.libraryItemId, {
+      status: "ready",
+      videoUrl,
+      thumbnailUrl: thumbnailUrl || videoUrl,
+    });
+    logger.log("Library item updated to ready", { libraryItemId: payload.libraryItemId });
 
     metadata.set("stage", "complete");
     metadata.set("stageLabel", "Complete!");
