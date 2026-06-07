@@ -5,33 +5,63 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import CreditBalance from "@/components/credits/CreditBalance";
 
-const navItems = [
+interface NavItem {
+  icon: string;
+  label: string;
+  href: string;
+  match: string;
+  /** Feature not yet available — rendered greyed-out and non-clickable. */
+  comingSoon?: boolean;
+}
+
+const navItems: NavItem[] = [
   { icon: "home", label: "Home", href: "/dashboard", match: "/dashboard" },
   { icon: "add_circle", label: "Create", href: "/create", match: "/create" },
   { icon: "video_library", label: "Library", href: "/library", match: "/library" },
-  { icon: "auto_awesome", label: "Autopilot", href: "/autopilot", match: "/autopilot" },
+  { icon: "auto_awesome", label: "Autopilot", href: "/autopilot", match: "/autopilot", comingSoon: true },
   { icon: "manage_accounts", label: "Accounts", href: "/accounts", match: "/accounts" },
   { icon: "settings", label: "Preferences", href: "/preferences", match: "/preferences" },
 ];
+
+// Map the stored plan value to a clean display label.
+const PLAN_LABELS: Record<string, string> = {
+  free: "Free",
+  starter: "Starter",
+  creator: "Creator",
+  pro: "Pro",
+};
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [readyCount, setReadyCount] = useState(0);
   const [renderingCount, setRenderingCount] = useState(0);
+  const [plan, setPlan] = useState<string>("free");
+  const [balance, setBalance] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const fetchCounts = async () => {
+    // Single poll covers library counts + balance/plan (no duplicate fetches).
+    const poll = async () => {
       try {
-        const res = await fetch("/api/library");
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        setReadyCount(data.readyCount ?? 0);
-        setRenderingCount(data.renderingCount ?? 0);
+        const [libRes, balRes] = await Promise.all([
+          fetch("/api/library"),
+          fetch("/api/credits/balance"),
+        ]);
+        if (cancelled) return;
+        if (libRes.ok) {
+          const lib = await libRes.json();
+          setReadyCount(lib.readyCount ?? 0);
+          setRenderingCount(lib.renderingCount ?? 0);
+        }
+        if (balRes.ok) {
+          const bal = await balRes.json();
+          setPlan(bal.plan ?? "free");
+          setBalance(bal.balance ?? 0);
+        }
       } catch {}
     };
-    fetchCounts();
-    const interval = setInterval(fetchCounts, 15000);
+    poll();
+    const interval = setInterval(poll, 15000);
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
@@ -50,7 +80,7 @@ export default function Sidebar() {
           </div>
           <div>
             <p className="font-headline font-bold text-sm">Creator Hub</p>
-            <p className="text-xs text-on-surface-variant">Pro Plan</p>
+            <p className="text-xs text-on-surface-variant">{PLAN_LABELS[plan] ?? "Free"} Plan</p>
           </div>
         </div>
       </div>
@@ -60,6 +90,25 @@ export default function Sidebar() {
         {navItems.map((item) => {
           const isActive = pathname === item.match || pathname.startsWith(item.match + "/");
           const isLibrary = item.label === "Library";
+
+          // Not-yet-available feature: render greyed-out, non-clickable, with a badge.
+          if (item.comingSoon) {
+            return (
+              <div
+                key={item.label}
+                aria-disabled="true"
+                title="Coming soon"
+                className="mx-2 flex items-center gap-3 px-4 py-3 font-medium rounded-xl text-zinc-400 cursor-not-allowed select-none"
+              >
+                <span className="material-symbols-outlined">{item.icon}</span>
+                <span>{item.label}</span>
+                <span className="ml-auto bg-zinc-200 text-zinc-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
+                  Coming Soon
+                </span>
+              </div>
+            );
+          }
+
           return (
           <Link
             key={item.label}
@@ -88,7 +137,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Credit balance / Upgrade */}
-      <CreditBalance />
+      <CreditBalance balance={balance} />
     </aside>
   );
 }

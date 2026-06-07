@@ -1,35 +1,14 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
 
 // TODO: tune low-balance threshold (placeholder)
 const LOW_CREDIT_THRESHOLD = 20;
 
-/** Sidebar credit balance with a subtle low-balance / upgrade prompt. */
-export default function CreditBalance() {
-  const [balance, setBalance] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const fetchBalance = async () => {
-      try {
-        const res = await fetch("/api/credits/balance");
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        setBalance(data.balance ?? 0);
-      } catch {
-        /* ignore — keep last known value */
-      }
-    };
-    fetchBalance();
-    const interval = setInterval(fetchBalance, 15000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
-
+/**
+ * Sidebar credit balance with a subtle low-balance / upgrade prompt.
+ * Presentational — the balance is polled once by the parent Sidebar
+ * (via /api/credits/balance) and passed in, avoiding a duplicate fetch.
+ */
+export default function CreditBalance({ balance }: { balance: number | null }) {
   const low = balance !== null && balance < LOW_CREDIT_THRESHOLD;
 
   return (
