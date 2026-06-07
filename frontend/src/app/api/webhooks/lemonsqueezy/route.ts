@@ -82,6 +82,9 @@ export async function POST(req: NextRequest) {
         const variantId = attrs.variant_id != null ? String(attrs.variant_id) : "";
         const plan: PlanName = planForSubscriptionVariant(variantId) ?? "free";
         const renewsAt = attrs.renews_at ? new Date(String(attrs.renews_at)) : null;
+        // LS subscription objects carry a customer portal URL under attributes.urls.
+        const urls = (attrs.urls ?? {}) as Record<string, unknown>;
+        const portalUrl = urls.customer_portal ? String(urls.customer_portal) : null;
 
         await prisma.user.update({
           where: { id: user.id },
@@ -94,6 +97,8 @@ export async function POST(req: NextRequest) {
                 ? String(attrs.customer_id)
                 : user.lemonSqueezyCustomerId,
             currentPeriodEnd: renewsAt,
+            // Keep the previous URL if this payload doesn't include one.
+            customerPortalUrl: portalUrl ?? user.customerPortalUrl,
           },
         });
         // NOTE: no credit grant here — grants happen on payment_success only.
@@ -116,6 +121,15 @@ export async function POST(req: NextRequest) {
             type: "subscription_grant",
             externalEventId,
             reason: `${plan} monthly credits`,
+          });
+        }
+        // Backstop: capture the portal URL if the invoice payload includes one
+        // and we don't have it yet (normally set by subscription_created/updated).
+        const invoiceUrls = (attrs.urls ?? {}) as Record<string, unknown>;
+        if (invoiceUrls.customer_portal && !user.customerPortalUrl) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { customerPortalUrl: String(invoiceUrls.customer_portal) },
           });
         }
         break;
