@@ -351,21 +351,10 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
             onClick={() => router.push("/create/post-cloner")}
             className="group flex flex-col rounded-xl bg-surface-container-lowest hover:shadow-lg transition-all active:scale-[0.97] overflow-hidden"
           >
-            <div className="w-full aspect-square overflow-hidden bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-700 flex items-center justify-center">
-              <div className="flex items-center gap-2">
-                <div className="w-14 h-20 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-white/60 text-xl">image</span>
-                </div>
-                <span className="material-symbols-outlined text-white text-2xl">arrow_forward</span>
-                <div className="w-14 h-20 rounded-lg bg-white/90 shadow-xl flex items-center justify-center">
-                  <span
-                    className="material-symbols-outlined text-primary text-xl"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    auto_awesome
-                  </span>
-                </div>
-              </div>
+            <div className="w-full aspect-square overflow-hidden relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/previews/cards/post-cloner.png" alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
             </div>
             <div className="px-3 py-2.5">
               <h3 className="font-bold text-sm font-headline">Post Cloner</h3>
