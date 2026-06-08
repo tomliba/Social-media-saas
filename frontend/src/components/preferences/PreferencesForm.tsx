@@ -181,8 +181,19 @@ export default function PreferencesForm({ initial }: { initial: UserPrefs | null
       setVoiceNames(map);
     }).catch(() => {});
     fetch("/api/argument/characters").then((r) => r.ok ? r.json() : null).then((d) => {
-      const list = d?.characters ?? d ?? [];
-      if (Array.isArray(list)) setArgChars(list.map((c: { id?: string; name?: string }) => ({ id: c.id ?? c.name ?? "", name: c.name ?? c.id ?? "" })));
+      // The API returns { characters: { id: {...} } } (a keyed object), but can
+      // also be a plain array — normalize both to a list for the dropdowns.
+      const raw = d?.characters ?? d;
+      const list: { id?: string; name?: string }[] = Array.isArray(raw)
+        ? raw
+        : raw && typeof raw === "object"
+          ? Object.values(raw)
+          : [];
+      setArgChars(
+        list
+          .map((c) => ({ id: c.id ?? c.name ?? "", name: c.name ?? c.id ?? "" }))
+          .filter((c) => c.id)
+      );
     }).catch(() => {});
   }, []);
 
