@@ -626,8 +626,9 @@ function VideoSetupContent() {
   const handleAcceptAndCreate = async () => {
     if (scripts.length === 0) return;
 
-    // Animated AI: redirect to animated character review page
-    if (backgroundMode === "Animated AI") {
+    // Animated AI: redirect to animated character review page.
+    // Revoice takes priority — never redirect a revoice job, regardless of bg mode.
+    if (backgroundMode === "Animated AI" && activeMode !== "revoice") {
       sessionStorage.setItem("animated-character-setup", JSON.stringify({
         scripts,
         template: selectedTemplate || "Custom",
@@ -930,7 +931,8 @@ function VideoSetupContent() {
         </p>
       </div>
 
-      {/* ── Your Niche (always visible) ── */}
+      {/* ── Your Niche (hidden in Revoice — the script comes from the transcript) ── */}
+      {activeMode !== "revoice" && (
       <div className="mb-8">
         <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block font-headline">
           Your niche
@@ -943,6 +945,7 @@ function VideoSetupContent() {
           className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface placeholder:text-on-surface-variant/50 transition-all font-body text-sm"
         />
       </div>
+      )}
 
       {/* ── Creative Settings ── */}
       <section className="mb-12">
@@ -1016,7 +1019,8 @@ function VideoSetupContent() {
             )}
           </div>
 
-          {/* Background mode pill */}
+          {/* Background mode pill — hidden in Revoice (the uploaded video is the background) */}
+          {activeMode !== "revoice" && (
           <div className="relative" ref={bgModeRef}>
             <button
               onClick={() => setBgModeOpen((prev) => !prev)}
@@ -1065,6 +1069,7 @@ function VideoSetupContent() {
               </div>
             )}
           </div>
+          )}
 
           {/* Tone pill */}
           <div className="relative" ref={toneRef}>
@@ -1107,7 +1112,8 @@ function VideoSetupContent() {
             )}
           </div>
 
-          {/* Duration pill */}
+          {/* Duration pill — hidden in Revoice (duration comes from the audio) */}
+          {activeMode !== "revoice" && (
           <div className="relative" ref={durationRef}>
             <button
               onClick={() => setDurationOpen((prev) => !prev)}
@@ -1147,14 +1153,15 @@ function VideoSetupContent() {
               </div>
             )}
           </div>
+          )}
 
         </div>
         <p className="mt-4 text-sm text-on-surface-variant">
           Using your defaults &middot; Tap any to change
         </p>
 
-        {/* Art style picker (AI Images / Animated AI only) */}
-        {(backgroundMode === "Animated AI" || backgroundMode === "AI Images") && (
+        {/* Art style picker (AI Images / Animated AI only; not in Revoice) */}
+        {activeMode !== "revoice" && (backgroundMode === "Animated AI" || backgroundMode === "AI Images") && (
           <div className="mt-6">
             <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3 font-headline">
               Art Style
