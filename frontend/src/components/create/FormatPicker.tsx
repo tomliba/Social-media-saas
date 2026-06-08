@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 function PreviewCard({ src, badge, children, position = "top" }: { src: string; badge?: string; children?: React.ReactNode; position?: "top" | "bottom" | "center" }) {
   return (
-    <div className="relative w-full aspect-[4/5] overflow-hidden">
+    <div className="relative w-full aspect-[4/3] overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="" className={`w-full h-full object-cover ${position === "bottom" ? "object-bottom" : position === "center" ? "object-center" : "object-top"}`} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -26,8 +26,8 @@ const formats = [
     visual: (
       <PreviewCard src="/previews/cards/character-video.png" badge="Most popular" position="bottom">
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-xl">
-            <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
+          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
           </div>
         </div>
       </PreviewCard>
@@ -60,7 +60,7 @@ export default function FormatPicker({
   const router = useRouter();
 
   return (
-    <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+    <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
       {formats.map((format) => {
         const isSelected = selectedFormat === format.name;
         return (
@@ -80,11 +80,11 @@ export default function FormatPicker({
             }`}
           >
             {format.visual}
-            <div className="p-6">
-              <h3 className="font-headline text-2xl font-bold mb-1">
+            <div className="p-4">
+              <h3 className="font-headline text-base font-bold mb-0.5">
                 {format.name}
               </h3>
-              <p className="text-on-surface-variant">{format.description}</p>
+              <p className="text-on-surface-variant text-xs leading-snug">{format.description}</p>
             </div>
           </button>
         );
