@@ -11,6 +11,8 @@ import VoicePickerModal from "@/components/create/VoicePickerModal";
 import CharacterPickerModal from "@/components/create/CharacterPickerModal";
 import AIStorySetup from "@/components/create/AIStorySetup";
 import { ART_STYLES as artStyles, type ArtStyle, artPreviewSrc } from "@/lib/artStyles";
+import { usePreferenceDefaults } from "@/lib/usePreferenceDefaults";
+import type { UserPrefs } from "@/lib/createOptions";
 
 // ── Characters ──
 
@@ -259,25 +261,31 @@ function StepDots({ current }: { current: number }) {
 
 // ── Main content ──
 
-function VideoSetupContent() {
+function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const style = searchParams.get("style") || "character";
 
   // ── Route to AI Story setup if style=ai-story ──
   if (style === "ai-story") {
-    return <AIStorySetup />;
+    return <AIStorySetup prefs={prefs} />;
   }
 
   // ── Step: 0 = setup, 1 = review scripts, 2 = creating ──
   const [step, setStep] = useState(0);
 
-  // ── Creative settings ──
-  const [selectedCharacter, setSelectedCharacter] = useState(characters[0]);
-  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
-  const [selectedSpeed, setSelectedSpeed] = useState(1.0);
-  const [backgroundMode, setBackgroundMode] = useState("Smart Mix");
-  const [artStyle, setArtStyle] = useState("realism");
+  // ── Creative settings (prefs?.x ?? hardcoded default — null prefs ⇒ unchanged) ──
+  const [selectedCharacter, setSelectedCharacter] = useState(
+    (prefs?.characterName && characters.find((c) => c.name === prefs.characterName)) || characters[0]
+  );
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(
+    prefs?.characterVoiceId
+      ? { name: "Your default voice", fishAudioId: prefs.characterVoiceId, gender: "male", tags: [] }
+      : null
+  );
+  const [selectedSpeed, setSelectedSpeed] = useState(prefs?.characterSpeed ?? 1.0);
+  const [backgroundMode, setBackgroundMode] = useState(prefs?.characterBackgroundMode ?? "Smart Mix");
+  const [artStyle, setArtStyle] = useState(prefs?.characterArtStyle ?? "realism");
   const [characterModalOpen, setCharacterModalOpen] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -294,9 +302,9 @@ function VideoSetupContent() {
   const [activeMode, setActiveMode] = useState<ScriptMode | null>(null);
 
   // ── Template mode state ──
-  const [niche, setNiche] = useState("health and wellness");
-  const [tone, setTone] = useState("Funny");
-  const [duration, setDuration] = useState("30s");
+  const [niche, setNiche] = useState(prefs?.characterNiche ?? "health and wellness");
+  const [tone, setTone] = useState(prefs?.characterTone ?? "Funny");
+  const [duration, setDuration] = useState(prefs?.characterDuration ?? "30s");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   // ── Idea generation ──
@@ -394,14 +402,14 @@ function VideoSetupContent() {
 
   // ── Creative settings (captions, music, effects) ──
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
-  const [captionStyle, setCaptionStyle] = useState("regular");
-  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">("medium");
-  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">("uppercase");
-  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">("bottom");
-  const [music, setMusic] = useState<string | null>(null);
-  const [videoLanguage, setVideoLanguage] = useState("Auto Detect");
-  const [filmGrain, setFilmGrain] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [captionStyle, setCaptionStyle] = useState(prefs?.captionStyle ?? "regular");
+  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">((prefs?.captionFontSize as "small" | "medium" | "large") ?? "medium");
+  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">((prefs?.captionTransform as "normal" | "uppercase" | "capitalize" | "lowercase") ?? "uppercase");
+  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">((prefs?.captionPosition as "top" | "middle" | "bottom") ?? "bottom");
+  const [music, setMusic] = useState<string | null>(prefs?.music && prefs.music !== "none" ? prefs.music : null);
+  const [videoLanguage, setVideoLanguage] = useState(prefs?.language ?? "Auto Detect");
+  const [filmGrain, setFilmGrain] = useState(prefs?.filmGrain ?? false);
+  const [shake, setShake] = useState(prefs?.shakeEffect ?? false);
   const [langOpen, setLangOpen] = useState(false);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -1871,9 +1879,17 @@ function VideoSetupContent() {
 }
 
 export default function VideoSetupPage() {
+  const { prefs, loaded } = usePreferenceDefaults();
+  if (!loaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="material-symbols-outlined animate-spin text-primary text-3xl">progressactivity</span>
+      </div>
+    );
+  }
   return (
     <Suspense>
-      <VideoSetupContent />
+      <VideoSetupContent prefs={prefs} />
     </Suspense>
   );
 }

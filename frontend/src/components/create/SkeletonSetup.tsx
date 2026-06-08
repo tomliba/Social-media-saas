@@ -7,6 +7,7 @@ import VoicePickerModal from "@/components/create/VoicePickerModal";
 import { triggerPrepareAssets } from "@/app/actions/prepare-assets";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
+import type { UserPrefs } from "@/lib/createOptions";
 
 // ── Script source modes (same accordion pattern as Argument) ──
 
@@ -249,7 +250,7 @@ interface ScriptData {
 
 // ── Main Component ──
 
-export default function SkeletonSetup() {
+export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
   const router = useRouter();
 
   // Step: 0 = setup, 1 = script review
@@ -272,23 +273,27 @@ export default function SkeletonSetup() {
   const [customPrompt, setCustomPrompt] = useState("");
 
   // Settings state (identical to AIStorySetup)
-  const [tone, setTone] = useState("Regular");
-  const [skeletonStyle, setSkeletonStyle] = useState("red");
+  const [tone, setTone] = useState(prefs?.skeletonTone ?? "Regular");
+  const [skeletonStyle, setSkeletonStyle] = useState(prefs?.skeletonColor ?? "red");
   const [sceneMode, setSceneMode] = useState<"static" | "animated">("static");
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
-  const [captionStyle, setCaptionStyle] = useState("regular");
-  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">("medium");
-  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">("uppercase");
-  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">("bottom");
-  const [music, setMusic] = useState<string | null>("tension");
-  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
+  const [captionStyle, setCaptionStyle] = useState(prefs?.captionStyle ?? "regular");
+  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">((prefs?.captionFontSize as "small" | "medium" | "large") ?? "medium");
+  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">((prefs?.captionTransform as "normal" | "uppercase" | "capitalize" | "lowercase") ?? "uppercase");
+  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">((prefs?.captionPosition as "top" | "middle" | "bottom") ?? "bottom");
+  const [music, setMusic] = useState<string | null>(prefs?.music ? (prefs.music === "none" ? null : prefs.music) : "tension");
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(
+    prefs?.skeletonVoiceId
+      ? { name: "Your default voice", fishAudioId: prefs.skeletonVoiceId, gender: "male", tags: [] }
+      : null
+  );
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [speed, setSpeed] = useState(1.0);
-  const [duration, setDuration] = useState(30);
-  const [videoLanguage, setVideoLanguage] = useState("Auto Detect");
+  const [duration, setDuration] = useState(prefs?.skeletonDuration ?? 30);
+  const [videoLanguage, setVideoLanguage] = useState(prefs?.language ?? "Auto Detect");
   const [langOpen, setLangOpen] = useState(false);
-  const [filmGrain, setFilmGrain] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [filmGrain, setFilmGrain] = useState(prefs?.filmGrain ?? false);
+  const [shake, setShake] = useState(prefs?.shakeEffect ?? false);
   const [endScreenCta, setEndScreenCta] = useState("Follow for more!");
 
   // Music preview

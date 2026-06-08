@@ -8,6 +8,7 @@ import { triggerPrepareAssets } from "@/app/actions/prepare-assets";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import { ART_STYLES as artStyles, type ArtStyle, artPreviewSrc } from "@/lib/artStyles";
+import type { UserPrefs } from "@/lib/createOptions";
 
 // ── Topic presets (29 topics) ──
 
@@ -264,27 +265,31 @@ interface ScriptData {
   cta_image_prompt?: string;
 }
 
-export default function AIStorySetup() {
+export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
   const router = useRouter();
 
   // ── Step: 0 = setup, 1 = script review, 2 = preparing assets ──
   const [step, setStep] = useState(0);
 
-  // Setup state
-  const [topic, setTopic] = useState("scary_stories");
+  // Setup state (prefs?.x ?? hardcoded default — null prefs ⇒ unchanged)
+  const [topic, setTopic] = useState(prefs?.storyTopicPreset ?? "scary_stories");
   const [customPrompt, setCustomPrompt] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
-  const [tone, setTone] = useState("Regular");
-  const [artStyle, setArtStyle] = useState("anime");
+  const [tone, setTone] = useState(prefs?.storyTone ?? "Regular");
+  const [artStyle, setArtStyle] = useState(prefs?.storyArtStyle ?? "anime");
   const [artModalOpen, setArtModalOpen] = useState(false);
-  const [sceneMode, setSceneMode] = useState<"static" | "animated">("static");
+  const [sceneMode, setSceneMode] = useState<"static" | "animated">((prefs?.storySceneMode as "static" | "animated") ?? "static");
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
-  const [captionStyle, setCaptionStyle] = useState("regular");
-  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">("medium");
-  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">("uppercase");
-  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">("bottom");
-  const [music, setMusic] = useState<string | null>("shadows");
-  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
+  const [captionStyle, setCaptionStyle] = useState(prefs?.captionStyle ?? "regular");
+  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">((prefs?.captionFontSize as "small" | "medium" | "large") ?? "medium");
+  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">((prefs?.captionTransform as "normal" | "uppercase" | "capitalize" | "lowercase") ?? "uppercase");
+  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">((prefs?.captionPosition as "top" | "middle" | "bottom") ?? "bottom");
+  const [music, setMusic] = useState<string | null>(prefs?.music ? (prefs.music === "none" ? null : prefs.music) : "shadows");
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(
+    prefs?.storyVoiceId
+      ? { name: "Your default voice", fishAudioId: prefs.storyVoiceId, gender: "male", tags: [] }
+      : null
+  );
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [speed, setSpeed] = useState(1.0);
 
@@ -324,11 +329,11 @@ export default function AIStorySetup() {
       stopPreview();
     };
   }, [stopPreview]);
-  const [duration, setDuration] = useState(30);
-  const [videoLanguage, setVideoLanguage] = useState("Auto Detect");
+  const [duration, setDuration] = useState(prefs?.storyDuration ?? 30);
+  const [videoLanguage, setVideoLanguage] = useState(prefs?.language ?? "Auto Detect");
   const [langOpen, setLangOpen] = useState(false);
-  const [filmGrain, setFilmGrain] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [filmGrain, setFilmGrain] = useState(prefs?.filmGrain ?? false);
+  const [shake, setShake] = useState(prefs?.shakeEffect ?? false);
   const [endScreenCta, setEndScreenCta] = useState("Follow for more!");
 
   // Script generation state

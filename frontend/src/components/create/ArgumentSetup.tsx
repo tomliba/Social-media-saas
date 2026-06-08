@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import type { UserPrefs } from "@/lib/createOptions";
 
 // ── Tone options (shared with AIStorySetup) ──
 
@@ -220,16 +221,16 @@ interface Line {
 
 // ── Main Component ──
 
-export default function ArgumentSetup() {
+export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
   const router = useRouter();
 
   // Step: 0=setup, 1=script, 2=settings
   const [step, setStep] = useState(0);
 
-  // Characters
+  // Characters (prefs?.x ?? hardcoded default — null prefs ⇒ unchanged)
   const [characters, setCharacters] = useState<Record<string, Character>>({});
-  const [characterA, setCharacterA] = useState("peter");
-  const [characterB, setCharacterB] = useState("stewie");
+  const [characterA, setCharacterA] = useState(prefs?.argumentCharacterA ?? "peter");
+  const [characterB, setCharacterB] = useState(prefs?.argumentCharacterB ?? "stewie");
 
   // Script source
   const [niche, setNiche] = useState("");
@@ -262,17 +263,17 @@ export default function ArgumentSetup() {
   const [vgJobId, setVgJobId] = useState("");
 
   // Creative settings (step 2)
-  const [tone, setTone] = useState("Regular");
+  const [tone, setTone] = useState(prefs?.argumentTone ?? "Regular");
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
-  const [captionStyle, setCaptionStyle] = useState("regular");
-  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">("medium");
-  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">("uppercase");
-  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">("bottom");
-  const [music, setMusic] = useState<string | null>("shadows");
+  const [captionStyle, setCaptionStyle] = useState(prefs?.captionStyle ?? "regular");
+  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">((prefs?.captionFontSize as "small" | "medium" | "large") ?? "medium");
+  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">((prefs?.captionTransform as "normal" | "uppercase" | "capitalize" | "lowercase") ?? "uppercase");
+  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">((prefs?.captionPosition as "top" | "middle" | "bottom") ?? "bottom");
+  const [music, setMusic] = useState<string | null>(prefs?.music ? (prefs.music === "none" ? null : prefs.music) : "shadows");
   const [speed, setSpeed] = useState(1.0);
-  const [duration, setDuration] = useState(45);
-  const [filmGrain, setFilmGrain] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [duration, setDuration] = useState(prefs?.argumentDuration ?? 45);
+  const [filmGrain, setFilmGrain] = useState(prefs?.filmGrain ?? false);
+  const [shake, setShake] = useState(prefs?.shakeEffect ?? false);
   const [durationPopoverOpen, setDurationPopoverOpen] = useState(false);
 
   // Generation state
