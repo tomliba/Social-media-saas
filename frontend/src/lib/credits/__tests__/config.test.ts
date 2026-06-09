@@ -130,4 +130,42 @@ describe("canUseVideoFormat — animation gating", () => {
       expect(canUseVideoFormat(plan, "skeleton")).toBe(true);
     }
   });
+
+  // Matrix completion: stock + skeleton are covered above; assert the remaining
+  // non-animated formats across all plans. Note `ai_story` is flat-priced and
+  // NOT animation-gated despite the name — only animated_* are Pro-gated.
+  it("allows the remaining non-animated formats on all three plans", () => {
+    const remaining = [
+      "motion",
+      "green",
+      "smart_mix",
+      "ai_story",
+      "ai_images",
+      "argument",
+    ] as const;
+    for (const plan of ["free", "creator", "pro"] as const) {
+      for (const f of remaining) {
+        expect(canUseVideoFormat(plan, f)).toBe(true);
+      }
+    }
+  });
+});
+
+describe("batch cost edge cases", () => {
+  it("empty batches cost 0", () => {
+    expect(videoBatchCost([])).toBe(0);
+    expect(postBatchCost([])).toBe(0);
+  });
+
+  it("a mixed free + paid post batch sums correctly", () => {
+    // image_post_template (free HTML, 5) + ad_creative (single Gemini ad, 10)
+    //   + image_post_ai{ideas:1} (20) = 35
+    expect(
+      postBatchCost([
+        { format: "image_post_template" },
+        { format: "ad_creative" },
+        { format: "image_post_ai", ideas: 1 },
+      ])
+    ).toBe(35);
+  });
 });
