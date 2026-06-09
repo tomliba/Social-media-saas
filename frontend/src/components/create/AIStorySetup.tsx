@@ -247,6 +247,7 @@ interface ScriptScene {
   image_prompt: string;
   /** Backward compat: Gemini may return image_prompt_1 instead of image_prompt */
   image_prompt_1?: string;
+  motion_prompt?: string;
 }
 
 /** Get the effective image prompt (prefers image_prompt, falls back to image_prompt_1) */
@@ -263,6 +264,8 @@ interface ScriptData {
   video_keywords?: string[];
   hook_image_prompt?: string;
   cta_image_prompt?: string;
+  hook_motion_prompt?: string;
+  cta_motion_prompt?: string;
 }
 
 export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
@@ -879,6 +882,12 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
     if (!scriptData) return;
     setPrepareError(null);
 
+    // ── STEP 6 (billing) — this ai-story flow does NOT yet charge credits.
+    //    Before dispatch, spendCredits must be wired HERE, gated by canUseVideoFormat:
+    //    format = animated (has motion prompts / Seedance) ? 'animated_story' : 'ai_story'.
+    //    'animated_story' is Pro-only, so the gate (currently unenforced for this lane)
+    //    lands with the charge. See project_credit_billing.md / PR #1 Step 6.
+
     try {
       const fullScript = editScenes.map((s) => s.text).join(" ");
       const aiStorySettings = buildAiStorySettings();
@@ -1001,7 +1010,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
               <div className="relative w-[200px] h-[267px] flex-shrink-0 rounded-[12px] overflow-hidden bg-zinc-100">
                 {animationStatus[-1]?.status === "done" && animationStatus[-1]?.video_url ? (
                   <video
-                    src={animationStatus[-1].video_url}
+                    src={animationStatus[-1].video_url ?? undefined}
                     autoPlay
                     loop
                     muted
@@ -1269,7 +1278,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
               <div className="relative w-[200px] h-[267px] flex-shrink-0 rounded-[12px] overflow-hidden bg-zinc-100">
                 {animationStatus[-2]?.status === "done" && animationStatus[-2]?.video_url ? (
                   <video
-                    src={animationStatus[-2].video_url}
+                    src={animationStatus[-2].video_url ?? undefined}
                     autoPlay
                     loop
                     muted
