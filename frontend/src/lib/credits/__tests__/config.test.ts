@@ -1,0 +1,133 @@
+import { describe, it, expect } from "vitest";
+import {
+  videoCost,
+  videoBatchCost,
+  postCost,
+  postBatchCost,
+  canUseVideoFormat,
+  videoFormatFromBackgroundMode,
+  ANIMATED_CREDITS_PER_SEC,
+} from "@/lib/credits/config";
+
+// These assert the LOCKED pricing numbers actually fire. If a constant in
+// config.ts drifts, one of these breaks — that is the point.
+
+describe("videoCost — flat formats", () => {
+  it("ai_story is 10 regardless of duration", () => {
+    expect(videoCost("ai_story", 30)).toBe(10);
+    expect(videoCost("ai_story", 90)).toBe(10);
+  });
+
+  it("skeleton (Flux Dev) is 15", () => {
+    expect(videoCost("skeleton", 30)).toBe(15);
+  });
+
+  it("the cheap lanes are 5", () => {
+    for (const f of ["stock", "motion", "green", "smart_mix"] as const) {
+      expect(videoCost(f, 60)).toBe(5);
+    }
+  });
+
+  it("argument and ai_images are 10", () => {
+    expect(videoCost("argument", 30)).toBe(10);
+    expect(videoCost("ai_images", 30)).toBe(10);
+  });
+});
+
+describe("videoCost — animated (per-second)", () => {
+  it("animated_character at 90s is 135", () => {
+    expect(videoCost("animated_character", 90)).toBe(135);
+  });
+
+  it("animated_story tracks 1.5 credits/sec at 30s and 60s", () => {
+    expect(ANIMATED_CREDITS_PER_SEC).toBe(1.5);
+    expect(videoCost("animated_story", 30)).toBe(45);
+    expect(videoCost("animated_story", 60)).toBe(90);
+  });
+});
+
+describe("videoBatchCost", () => {
+  it("sums mixed formats", () => {
+    expect(
+      videoBatchCost([
+        { format: "skeleton", durationSeconds: 30 },        // 15
+        { format: "smart_mix", durationSeconds: 30 },       // 5
+        { format: "animated_character", durationSeconds: 90 }, // 135
+      ])
+    ).toBe(155);
+  });
+});
+
+describe("videoFormatFromBackgroundMode", () => {
+  it("maps UI labels to formats", () => {
+    expect(videoFormatFromBackgroundMode("Smart Mix")).toBe("smart_mix");
+    expect(videoFormatFromBackgroundMode("Stock Footage")).toBe("stock");
+    expect(videoFormatFromBackgroundMode("AI Images")).toBe("ai_images");
+    expect(videoFormatFromBackgroundMode("Motion Graphics")).toBe("motion");
+    expect(videoFormatFromBackgroundMode("Green Screen")).toBe("green");
+    expect(videoFormatFromBackgroundMode("Animated AI")).toBe("animated_character");
+  });
+
+  it("falls back to smart_mix on unknown/empty", () => {
+    expect(videoFormatFromBackgroundMode(undefined)).toBe("smart_mix");
+    expect(videoFormatFromBackgroundMode("Nonsense")).toBe("smart_mix");
+  });
+});
+
+describe("postCost", () => {
+  it("image_post_ai is 20 per idea", () => {
+    expect(postCost("image_post_ai", { ideas: 1 })).toBe(20);
+    expect(postCost("image_post_ai", { ideas: 3 })).toBe(60);
+  });
+
+  it("a 5-slide gemini carousel is 40", () => {
+    expect(postCost("carousel_infographic", { slides: 5 })).toBe(40);
+    expect(postCost("carousel_handdrawn", { slides: 5 })).toBe(40);
+    expect(postCost("carousel_notebook", { slides: 5 })).toBe(40);
+  });
+
+  it("post_cloner is 12", () => {
+    expect(postCost("post_cloner")).toBe(12);
+  });
+
+  it("free HTML formats are 5", () => {
+    for (const f of ["image_post_template", "carousel_designed", "text"] as const) {
+      expect(postCost(f)).toBe(5);
+    }
+  });
+
+  it("single gemini ads are 10", () => {
+    for (const f of ["ad_creative", "ai_scene", "meme_ad", "ecommerce_ad"] as const) {
+      expect(postCost(f)).toBe(10);
+    }
+  });
+});
+
+describe("postBatchCost", () => {
+  it("sums mixed post formats", () => {
+    expect(
+      postBatchCost([
+        { format: "image_post_ai", ideas: 2 },        // 40
+        { format: "carousel_notebook", slides: 5 },   // 40
+        { format: "text" },                           // 5
+      ])
+    ).toBe(85);
+  });
+});
+
+describe("canUseVideoFormat — animation gating", () => {
+  it("blocks animation for free and creator, allows it for pro", () => {
+    for (const f of ["animated_character", "animated_story"] as const) {
+      expect(canUseVideoFormat("free", f)).toBe(false);
+      expect(canUseVideoFormat("creator", f)).toBe(false);
+      expect(canUseVideoFormat("pro", f)).toBe(true);
+    }
+  });
+
+  it("allows non-animated formats on every plan", () => {
+    for (const plan of ["free", "creator", "pro"] as const) {
+      expect(canUseVideoFormat(plan, "stock")).toBe(true);
+      expect(canUseVideoFormat(plan, "skeleton")).toBe(true);
+    }
+  });
+});

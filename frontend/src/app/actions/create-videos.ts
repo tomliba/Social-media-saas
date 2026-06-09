@@ -3,6 +3,7 @@
 import { renderVideoViaFlask } from "@/lib/flask-render";
 import type { VisualSegment } from "@/lib/video-types";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import {
   spendCredits,
   refundCredits,
@@ -10,12 +11,19 @@ import {
   InsufficientCreditsError,
   videoCost,
   videoBatchCost,
+  canUseVideoFormat,
+  type VideoFormat,
+  type PlanName,
 } from "@/lib/credits";
 
 export interface VideoRenderRequest {
   title: string;
   script: string;
   template: string;
+  /** Pricing/gating format, stamped by the create flow. */
+  format: VideoFormat;
+  /** Normalized duration in seconds (drives animated per-second pricing). */
+  durationSeconds: number;
   settings: {
     tone: string;
     presenter: string;
@@ -79,6 +87,7 @@ export interface VideoRenderHandle {
 export type TriggerVideoRendersResult =
   | { ok: true; handles: VideoRenderHandle[] }
   | { ok: false; error: "insufficient_credits"; needed: number; balance: number }
+  | { ok: false; error: "plan_not_allowed"; format: VideoFormat }
   | { ok: false; error: "unauthenticated" };
 
 export async function triggerVideoRenders(
@@ -89,8 +98,22 @@ export async function triggerVideoRenders(
   const userId = session?.user?.id;
   if (!userId) return { ok: false, error: "unauthenticated" };
 
+  // ── Plan gate: reject disallowed formats (e.g. animation on non-Pro) before
+  //    any credits are charged. ──
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { plan: true },
+  });
+  const plan = (user?.plan as PlanName) ?? "free";
+  const blocked = videos.find((v) => !canUseVideoFormat(plan, v.format));
+  if (blocked) {
+    return { ok: false, error: "plan_not_allowed", format: blocked.format };
+  }
+
   // ── Pre-flight balance check for the whole batch ──
-  const totalCost = videoBatchCost(videos);
+  const totalCost = videoBatchCost(
+    videos.map((v) => ({ format: v.format, durationSeconds: v.durationSeconds }))
+  );
   const balance = await getCreditBalance(userId);
   if (balance < totalCost) {
     return { ok: false, error: "insufficient_credits", needed: totalCost, balance };
@@ -116,7 +139,7 @@ export async function triggerVideoRenders(
         // Charge immediately, keyed on the run id (== ContentItem.jobId).
         await spendCredits({
           userId,
-          amount: videoCost(video),
+          amount: videoCost(video.format, video.durationSeconds),
           jobId: handle.id,
           type: "render_spend",
           reason: video.title,
@@ -152,7 +175,7 @@ export async function triggerVideoRenders(
     try {
       await spendCredits({
         userId,
-        amount: videoCost(video),
+        amount: videoCost(video.format, video.durationSeconds),
         jobId,
         type: "render_spend",
         reason: video.title,

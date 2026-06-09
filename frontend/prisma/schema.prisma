@@ -56,7 +56,7 @@ model User {
   image         String?
 
   // Plan & billing
-  plan          String    @default("free") // free, starter, creator, pro
+  plan          String    @default("free") // free, creator, pro
   lemonSqueezyCustomerId String?
   lemonSqueezySubscriptionId String?
   creditBalance Int       @default(0)

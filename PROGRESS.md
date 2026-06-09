@@ -127,7 +127,7 @@ VerificationToken — Email verification tokens
 // App model
 User {
   id, email, emailVerified, name, image
-  plan          — free | starter | creator | pro
+  plan          — free | creator | pro
   lemonSqueezyCustomerId, lemonSqueezySubscriptionId
   niche, tone, character, background, duration, layout, language  — user defaults
   videosUsed, videosLimit, postsUsed, postsLimit, usageResetAt   — usage counters

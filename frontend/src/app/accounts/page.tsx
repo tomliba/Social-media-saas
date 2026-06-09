@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 
 const PLAN_LABELS: Record<string, string> = {
   free: "Free",
-  starter: "Starter",
   creator: "Creator",
   pro: "Pro",
 };

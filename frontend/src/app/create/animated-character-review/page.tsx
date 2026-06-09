@@ -474,6 +474,8 @@ export default function AnimatedCharacterReviewPage() {
             title: s.title,
             script: s.script,
             template: setup.template,
+            format: "animated_character" as const,
+            durationSeconds: parseInt(setup.duration) || 0,
             settings: {
               tone: setup.tone,
               presenter: setup.character,
@@ -496,6 +498,8 @@ export default function AnimatedCharacterReviewPage() {
         setRendering(false);
         if (result.error === "insufficient_credits") {
           setCreditError({ needed: result.needed, balance: result.balance });
+        } else if (result.error === "plan_not_allowed") {
+          setRenderError("Animated videos require the Pro plan.");
         } else {
           setRenderError("You must be signed in to render.");
         }

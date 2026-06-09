@@ -7,13 +7,20 @@ import {
   refundCredits,
   getCreditBalance,
   InsufficientCreditsError,
-  postBatchCost,
+  postCost,
+  type PostFormat,
 } from "@/lib/credits";
 
 export interface PostRenderRequest {
   pgJobId: string;
   selectedIdeas: number[];
   ideaTopics: string[];
+  /** Pricing format, stamped by the create flow. */
+  format: PostFormat;
+  /** image_post_ai: number of ideas (2 Gemini images each). */
+  ideas?: number;
+  /** gemini carousels: slides per idea. */
+  slides?: number;
   settings: {
     tone: string;
     platform: string;
@@ -42,7 +49,10 @@ export async function triggerPostRenders(
   if (!userId) return { ok: false, error: "unauthenticated" };
 
   // One job renders N selected ideas — charge once for the whole batch.
-  const cost = postBatchCost(request.selectedIdeas.length);
+  const cost = postCost(request.format, {
+    ideas: request.ideas ?? request.selectedIdeas.length,
+    slides: request.slides,
+  });
   const balance = await getCreditBalance(userId);
   if (balance < cost) {
     return { ok: false, error: "insufficient_credits", needed: cost, balance };

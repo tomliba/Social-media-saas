@@ -26,7 +26,6 @@ const navItems: NavItem[] = [
 // Map the stored plan value to a clean display label.
 const PLAN_LABELS: Record<string, string> = {
   free: "Free",
-  starter: "Starter",
   creator: "Creator",
   pro: "Pro",
 };

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
+import { videoFormatFromBackgroundMode } from "@/lib/credits/config";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
@@ -663,6 +664,8 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
           title: s.title,
           script: s.script,
           template: selectedTemplate || "Custom",
+          format: videoFormatFromBackgroundMode(backgroundMode),
+          durationSeconds: parseInt(duration) || 0,
           settings: {
             tone,
             presenter: selectedCharacter.name,
@@ -694,6 +697,8 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
         setStep(1);
         if (result.error === "insufficient_credits") {
           setCreditError({ needed: result.needed, balance: result.balance });
+        } else if (result.error === "plan_not_allowed") {
+          setSubmitError("Animated videos require the Pro plan.");
         } else {
           setSubmitError("You must be signed in to create. Please sign in and try again.");
         }

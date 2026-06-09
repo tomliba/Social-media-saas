@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
 import { triggerPostRenders } from "@/app/actions/create-posts";
+import { videoFormatFromBackgroundMode } from "@/lib/credits/config";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
@@ -401,6 +402,8 @@ function EditorContent() {
           title: s.title,
           script: s.script,
           template,
+          format: videoFormatFromBackgroundMode(settings.backgroundMode),
+          durationSeconds: parseInt(settings.duration) || 0,
           settings: { ...settings, speed: selectedSpeed },
         }))
       );
@@ -409,6 +412,8 @@ function EditorContent() {
         setCreating(false);
         if (result.error === "insufficient_credits") {
           setCreditError({ needed: result.needed, balance: result.balance });
+        } else if (result.error === "plan_not_allowed") {
+          setSubmitError("Animated videos require the Pro plan.");
         } else {
           setSubmitError("You must be signed in to create. Please sign in and try again.");
         }
@@ -470,6 +475,8 @@ function EditorContent() {
         pgJobId,
         selectedIdeas: postIdeas.map((idea) => idea.number),
         ideaTopics: postIdeas.map((idea) => idea.topic),
+        format: "image_post_ai",
+        ideas: postIdeas.length,
         settings: {
           tone: settings.tone,
           platform: settings.platform,
