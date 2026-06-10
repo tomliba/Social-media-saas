@@ -20,3 +20,12 @@ public/characters/*/config.json
 # Test / E2E
 playwright.config.ts
 tests/
+.vercel
+
+# E2E secrets and artifacts (NEVER commit these)
+.env.test
+.env.*.local
+e2e/.auth/
+playwright-report-e2e/
+playwright-report/
+test-results/

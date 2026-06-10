@@ -10,6 +10,8 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test --config playwright.e2e.config.ts",
+    "test:e2e:headed": "playwright test --config playwright.e2e.config.ts --headed",
     "postinstall": "prisma generate"
   },
   "keywords": [],
