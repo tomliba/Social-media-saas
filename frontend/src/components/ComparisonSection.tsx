@@ -95,7 +95,7 @@ export default function ComparisonSection() {
           </div>
           <div className="mt-8 bg-primary/5 p-4 rounded-md text-center">
             <p className="text-primary font-bold text-sm">
-              Saving you ~24 hours of work every month.
+              Spend minutes, not hours — on every post.
             </p>
           </div>
         </div>
