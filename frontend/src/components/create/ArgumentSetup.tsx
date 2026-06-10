@@ -212,6 +212,7 @@ interface BackgroundVideo {
   name: string;
   url?: string;
   thumbnail_url?: string;
+  preview_url?: string;
   category?: string;
   duration?: number;
 }
@@ -255,6 +256,9 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
   const [selectedBg, setSelectedBg] = useState<BackgroundVideo | null>(null);
   const [bgModalOpen, setBgModalOpen] = useState(false);
   const [bgCategory, setBgCategory] = useState("All");
+  // Which grid tile is hovered — only this tile loads/plays its muted preview clip,
+  // so the default picker render stays thumbnails-only.
+  const [hoveredBg, setHoveredBg] = useState<string | null>(null);
   const [uploadingBg, setUploadingBg] = useState(false);
   const bgFileRef = useRef<HTMLInputElement>(null);
   const [charPickerOpen, setCharPickerOpen] = useState<"a" | "b" | null>(null);
@@ -1552,6 +1556,8 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
                 <button
                   key={bg.id}
                   onClick={() => { setSelectedBg(bg); setBgModalOpen(false); }}
+                  onMouseEnter={() => setHoveredBg(bg.id)}
+                  onMouseLeave={() => setHoveredBg((cur) => (cur === bg.id ? null : cur))}
                   className={`rounded-xl overflow-hidden transition-all border ${
                     selectedBg?.id === bg.id
                       ? "border-2 border-primary ring-2 ring-primary/20"
@@ -1566,6 +1572,19 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
                       <div className="w-full h-full bg-surface-container-low flex items-center justify-center">
                         <span className="material-symbols-outlined text-on-surface-variant">videocam</span>
                       </div>
+                    )}
+                    {/* Motion preview: mounted only while hovered, so it loads on hover
+                        and the default picker render stays thumbnails-only. */}
+                    {hoveredBg === bg.id && bg.preview_url && (
+                      <video
+                        src={bg.preview_url}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        preload="auto"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
                     )}
                     {bg.duration && (
                       <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">
