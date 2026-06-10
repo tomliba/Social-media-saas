@@ -1,0 +1,9 @@
+# Test artifacts and local-only content — never deploy these
+.playwright-cli/
+tests/
+test-results/
+public/uploads/
+*.log
+.env
+.env.local
+.env.*.local
