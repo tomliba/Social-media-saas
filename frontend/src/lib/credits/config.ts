@@ -154,8 +154,8 @@ export const FREE_TIER_ALLOTMENT = PLAN_MONTHLY_CREDITS.free;
  * One entry per paid tier. Used by subscription_* webhook events.
  */
 export const LS_SUBSCRIPTION_VARIANTS: Record<string, PlanName> = {
-  // TODO: real LS variant ID — "<creator_variant_id>": "creator",
-  // TODO: real LS variant ID — "<pro_variant_id>": "pro",
+  "1771372": "creator", // $24.99/mo
+  "1771393": "pro",     // $59.99/mo
 };
 
 /**
