@@ -4,12 +4,16 @@ import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
+import { videoFormatFromBackgroundMode } from "@/lib/credits/config";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import VoicePickerModal from "@/components/create/VoicePickerModal";
 import CharacterPickerModal from "@/components/create/CharacterPickerModal";
 import AIStorySetup from "@/components/create/AIStorySetup";
 import { ART_STYLES as artStyles, type ArtStyle, artPreviewSrc } from "@/lib/artStyles";
+import { usePreferenceDefaults } from "@/lib/usePreferenceDefaults";
+import type { UserPrefs } from "@/lib/createOptions";
 
 // ── Characters ──
 
@@ -258,25 +262,31 @@ function StepDots({ current }: { current: number }) {
 
 // ── Main content ──
 
-function VideoSetupContent() {
+function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const style = searchParams.get("style") || "character";
 
   // ── Route to AI Story setup if style=ai-story ──
   if (style === "ai-story") {
-    return <AIStorySetup />;
+    return <AIStorySetup prefs={prefs} />;
   }
 
   // ── Step: 0 = setup, 1 = review scripts, 2 = creating ──
   const [step, setStep] = useState(0);
 
-  // ── Creative settings ──
-  const [selectedCharacter, setSelectedCharacter] = useState(characters[0]);
-  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
-  const [selectedSpeed, setSelectedSpeed] = useState(1.0);
-  const [backgroundMode, setBackgroundMode] = useState("Smart Mix");
-  const [artStyle, setArtStyle] = useState("realism");
+  // ── Creative settings (prefs?.x ?? hardcoded default — null prefs ⇒ unchanged) ──
+  const [selectedCharacter, setSelectedCharacter] = useState(
+    (prefs?.characterName && characters.find((c) => c.name === prefs.characterName)) || characters[0]
+  );
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(
+    prefs?.characterVoiceId
+      ? { name: "Your default voice", fishAudioId: prefs.characterVoiceId, gender: "male", tags: [] }
+      : null
+  );
+  const [selectedSpeed, setSelectedSpeed] = useState(prefs?.characterSpeed ?? 1.0);
+  const [backgroundMode, setBackgroundMode] = useState(prefs?.characterBackgroundMode ?? "Smart Mix");
+  const [artStyle, setArtStyle] = useState(prefs?.characterArtStyle ?? "realism");
   const [characterModalOpen, setCharacterModalOpen] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -293,9 +303,9 @@ function VideoSetupContent() {
   const [activeMode, setActiveMode] = useState<ScriptMode | null>(null);
 
   // ── Template mode state ──
-  const [niche, setNiche] = useState("health and wellness");
-  const [tone, setTone] = useState("Funny");
-  const [duration, setDuration] = useState("30s");
+  const [niche, setNiche] = useState(prefs?.characterNiche ?? "health and wellness");
+  const [tone, setTone] = useState(prefs?.characterTone ?? "Funny");
+  const [duration, setDuration] = useState(prefs?.characterDuration ?? "30s");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   // ── Idea generation ──
@@ -388,17 +398,19 @@ function VideoSetupContent() {
 
   // ── Creating state ──
   const [creating, setCreating] = useState(false);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // ── Creative settings (captions, music, effects) ──
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
-  const [captionStyle, setCaptionStyle] = useState("regular");
-  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">("medium");
-  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">("uppercase");
-  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">("bottom");
-  const [music, setMusic] = useState<string | null>(null);
-  const [videoLanguage, setVideoLanguage] = useState("Auto Detect");
-  const [filmGrain, setFilmGrain] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [captionStyle, setCaptionStyle] = useState(prefs?.captionStyle ?? "regular");
+  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">((prefs?.captionFontSize as "small" | "medium" | "large") ?? "medium");
+  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">((prefs?.captionTransform as "normal" | "uppercase" | "capitalize" | "lowercase") ?? "uppercase");
+  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">((prefs?.captionPosition as "top" | "middle" | "bottom") ?? "bottom");
+  const [music, setMusic] = useState<string | null>(prefs?.music && prefs.music !== "none" ? prefs.music : null);
+  const [videoLanguage, setVideoLanguage] = useState(prefs?.language ?? "Auto Detect");
+  const [filmGrain, setFilmGrain] = useState(prefs?.filmGrain ?? false);
+  const [shake, setShake] = useState(prefs?.shakeEffect ?? false);
   const [langOpen, setLangOpen] = useState(false);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -623,8 +635,9 @@ function VideoSetupContent() {
   const handleAcceptAndCreate = async () => {
     if (scripts.length === 0) return;
 
-    // Animated AI: redirect to animated character review page
-    if (backgroundMode === "Animated AI") {
+    // Animated AI: redirect to animated character review page.
+    // Revoice takes priority — never redirect a revoice job, regardless of bg mode.
+    if (backgroundMode === "Animated AI" && activeMode !== "revoice") {
       sessionStorage.setItem("animated-character-setup", JSON.stringify({
         scripts,
         template: selectedTemplate || "Custom",
@@ -642,14 +655,17 @@ function VideoSetupContent() {
 
     setCreating(true);
     setStep(2);
+    setSubmitError(null);
 
     console.log("[video-setup] activeMode:", activeMode, "revoiceMode:", activeMode === "revoice", "revoiceVideoUrl:", revoiceVideoUrl);
     try {
-      const handles = await triggerVideoRenders(
+      const result = await triggerVideoRenders(
         scripts.map((s) => ({
           title: s.title,
           script: s.script,
           template: selectedTemplate || "Custom",
+          format: videoFormatFromBackgroundMode(backgroundMode),
+          durationSeconds: parseInt(duration) || 0,
           settings: {
             tone,
             presenter: selectedCharacter.name,
@@ -675,6 +691,20 @@ function VideoSetupContent() {
           },
         }))
       );
+
+      if (!result.ok) {
+        setCreating(false);
+        setStep(1);
+        if (result.error === "insufficient_credits") {
+          setCreditError({ needed: result.needed, balance: result.balance });
+        } else if (result.error === "plan_not_allowed") {
+          setSubmitError("Animated videos require the Pro plan.");
+        } else {
+          setSubmitError("You must be signed in to create. Please sign in and try again.");
+        }
+        return;
+      }
+      const handles = result.handles;
 
       await Promise.all(
         handles.map(async (h) => {
@@ -704,6 +734,7 @@ function VideoSetupContent() {
       router.push("/library");
     } catch (err) {
       console.error("Failed to trigger video renders:", err);
+      setSubmitError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setCreating(false);
       setStep(1);
     }
@@ -747,6 +778,13 @@ function VideoSetupContent() {
   if (step >= 1) {
     return (
       <main className="min-h-screen bg-surface pt-24 pb-48 px-6 max-w-4xl mx-auto">
+        {creditError && (
+          <InsufficientCreditsDialog
+            needed={creditError.needed}
+            balance={creditError.balance}
+            onClose={() => setCreditError(null)}
+          />
+        )}
         <StepDots current={step >= 2 ? 2 : 1} />
 
         {/* Back to setup */}
@@ -842,7 +880,10 @@ function VideoSetupContent() {
 
         {/* Bottom bar */}
         {!scriptsLoading && scripts.length > 0 && (
-          <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex justify-center">
+          <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center gap-3">
+            {submitError && (
+              <p className="text-red-500 text-sm font-medium">{submitError}</p>
+            )}
             <button
               onClick={handleAcceptAndCreate}
               disabled={creating}
@@ -875,6 +916,13 @@ function VideoSetupContent() {
   // ── STEP 0: Setup ──
   return (
     <main className="min-h-screen bg-surface pt-24 pb-48 px-6 max-w-4xl mx-auto">
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
+      )}
       <StepDots current={0} />
 
       {/* Back */}
@@ -896,7 +944,8 @@ function VideoSetupContent() {
         </p>
       </div>
 
-      {/* ── Your Niche (always visible) ── */}
+      {/* ── Your Niche (hidden in Revoice — the script comes from the transcript) ── */}
+      {activeMode !== "revoice" && (
       <div className="mb-8">
         <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block font-headline">
           Your niche
@@ -909,6 +958,7 @@ function VideoSetupContent() {
           className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/40 focus:border-primary text-on-surface placeholder:text-on-surface-variant/50 transition-all font-body text-sm"
         />
       </div>
+      )}
 
       {/* ── Creative Settings ── */}
       <section className="mb-12">
@@ -982,7 +1032,8 @@ function VideoSetupContent() {
             )}
           </div>
 
-          {/* Background mode pill */}
+          {/* Background mode pill — hidden in Revoice (the uploaded video is the background) */}
+          {activeMode !== "revoice" && (
           <div className="relative" ref={bgModeRef}>
             <button
               onClick={() => setBgModeOpen((prev) => !prev)}
@@ -1031,6 +1082,7 @@ function VideoSetupContent() {
               </div>
             )}
           </div>
+          )}
 
           {/* Tone pill */}
           <div className="relative" ref={toneRef}>
@@ -1073,7 +1125,8 @@ function VideoSetupContent() {
             )}
           </div>
 
-          {/* Duration pill */}
+          {/* Duration pill — hidden in Revoice (duration comes from the audio) */}
+          {activeMode !== "revoice" && (
           <div className="relative" ref={durationRef}>
             <button
               onClick={() => setDurationOpen((prev) => !prev)}
@@ -1113,14 +1166,15 @@ function VideoSetupContent() {
               </div>
             )}
           </div>
+          )}
 
         </div>
         <p className="mt-4 text-sm text-on-surface-variant">
           Using your defaults &middot; Tap any to change
         </p>
 
-        {/* Art style picker (AI Images / Animated AI only) */}
-        {(backgroundMode === "Animated AI" || backgroundMode === "AI Images") && (
+        {/* Art style picker (AI Images / Animated AI only; not in Revoice) */}
+        {activeMode !== "revoice" && (backgroundMode === "Animated AI" || backgroundMode === "AI Images") && (
           <div className="mt-6">
             <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3 font-headline">
               Art Style
@@ -1830,9 +1884,17 @@ function VideoSetupContent() {
 }
 
 export default function VideoSetupPage() {
+  const { prefs, loaded } = usePreferenceDefaults();
+  if (!loaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="material-symbols-outlined animate-spin text-primary text-3xl">progressactivity</span>
+      </div>
+    );
+  }
   return (
     <Suspense>
-      <VideoSetupContent />
+      <VideoSetupContent prefs={prefs} />
     </Suspense>
   );
 }

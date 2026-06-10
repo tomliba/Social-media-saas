@@ -1327,6 +1327,7 @@ export const Video: React.FC<VideoProps> = ({
   music,
   musicUrl,
   imageDurations,
+  greenScreen,
 }) => {
   const frame = useCurrentFrame();
 
@@ -1345,7 +1346,7 @@ export const Video: React.FC<VideoProps> = ({
     : undefined;
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "#000" }}>
+    <AbsoluteFill style={{ backgroundColor: greenScreen ? "#00FF00" : "#000" }}>
       {/* Background layer (with optional shake) */}
       <AbsoluteFill style={shakeTransform ? { transform: shakeTransform } : undefined}>
         {backgroundPaths.length > 0 ? (
@@ -1361,7 +1362,7 @@ export const Video: React.FC<VideoProps> = ({
           ) : (
             <ImageBackground paths={backgroundPaths} durationInFrames={durationInFrames} />
           )
-        ) : (
+        ) : greenScreen ? null : (
           <AbsoluteFill
             style={{
               background: "linear-gradient(180deg, #16213e 0%, #0f3460 40%, #1a1a2e 100%)",

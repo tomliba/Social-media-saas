@@ -3,6 +3,8 @@
 import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import { chargePost, refundRender } from "@/app/actions/charge-render";
 
 // ── Meme templates ──
 
@@ -125,6 +127,7 @@ function MemeAdContent() {
   const [step, setStep] = useState<Step>("input");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
 
   // ── Step 1 → 2 ──
   const handleContinueToTemplate = () => {
@@ -137,7 +140,7 @@ function MemeAdContent() {
   };
 
   // ── Background generation: generate image, upload to R2, update library entry ──
-  const generateInBackground = useCallback(async (libraryItemId: string, templateId: string, pName: string, desc: string, pain: string, aud: string) => {
+  const generateInBackground = useCallback(async (libraryItemId: string, jobId: string, templateId: string, pName: string, desc: string, pain: string, aud: string) => {
     try {
       // 1. Fetch labels from Gemini
       const labelsRes = await fetch("/api/meme-ad/generate-labels", {
@@ -199,6 +202,7 @@ function MemeAdContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "failed", error: err instanceof Error ? err.message : "Generation failed" }),
       }).catch(() => {});
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   }, []);
 
@@ -207,6 +211,18 @@ function MemeAdContent() {
     if (!selectedTemplate || submitting) return;
     setSubmitting(true);
     setError(null);
+
+    const jobId = `meme-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const charge = await chargePost({ jobId, format: "meme_ad" });
+    if (!charge.ok) {
+      setSubmitting(false);
+      if (charge.error === "insufficient_credits") {
+        setCreditError({ needed: charge.needed, balance: charge.balance });
+      } else {
+        setError("Please sign in to create.");
+      }
+      return;
+    }
 
     try {
       const tmpl = memeTemplates.find((t) => t.id === selectedTemplate);
@@ -217,7 +233,7 @@ function MemeAdContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobId: `meme-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          jobId,
           title,
           format: "image",
           status: "rendering",
@@ -227,13 +243,14 @@ function MemeAdContent() {
       const { item } = await res.json();
 
       // Fire background generation (don't await)
-      generateInBackground(item.id, selectedTemplate, productName, description, painPoint, audience);
+      generateInBackground(item.id, jobId, selectedTemplate, productName, description, painPoint, audience);
 
       // Redirect immediately
       router.push("/library");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start generation");
       setSubmitting(false);
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   }, [selectedTemplate, submitting, productName, description, painPoint, audience, generateInBackground, router]);
 
@@ -420,6 +437,13 @@ function MemeAdContent() {
             </button>
           </div>
         </section>
+      )}
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
       )}
     </main>
   );

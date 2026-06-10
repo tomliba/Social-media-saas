@@ -30,7 +30,8 @@ function renderSegmentContent(
   seg: VisualSegment,
   startFrame: number,
   endFrame: number,
-  scale: number
+  scale: number,
+  fps: number
 ): React.ReactNode {
   switch (seg.visual_type) {
     case "pexels_clip":
@@ -67,75 +68,84 @@ function renderSegmentContent(
     case "animated_list":
       return (
         <AnimatedList
-          title={seg.data.title ?? ""}
-          items={seg.data.items ?? []}
-          style={seg.data.style}
+          data={{ title: seg.data.title ?? "", items: seg.data.items ?? [] }}
           startFrame={startFrame}
           endFrame={endFrame}
+          fps={fps}
         />
       );
 
     case "stat_counter":
       return (
         <StatCounter
-          number={seg.data.number ?? 0}
-          suffix={seg.data.suffix}
-          label={seg.data.label ?? ""}
-          color={seg.data.color}
+          data={{
+            number: seg.data.number ?? 0,
+            suffix: seg.data.suffix ?? "",
+            label: seg.data.label ?? "",
+            color: seg.data.color ?? "",
+          }}
           startFrame={startFrame}
           endFrame={endFrame}
+          fps={fps}
         />
       );
 
     case "diagram":
       return (
         <Diagram
-          steps={seg.data.steps ?? []}
-          style={seg.data.style}
+          data={{ steps: seg.data.steps ?? [], style: seg.data.style }}
           startFrame={startFrame}
           endFrame={endFrame}
+          fps={fps}
         />
       );
 
     case "comparison":
       return (
         <Comparison
-          left_label={seg.data.left_label ?? ""}
-          right_label={seg.data.right_label ?? ""}
-          left_items={seg.data.left_items}
-          right_items={seg.data.right_items}
+          data={{
+            left_label: seg.data.left_label ?? "",
+            right_label: seg.data.right_label ?? "",
+            left_items: seg.data.left_items,
+            right_items: seg.data.right_items,
+          }}
           startFrame={startFrame}
           endFrame={endFrame}
+          fps={fps}
         />
       );
 
     case "quote_highlight":
       return (
         <QuoteHighlight
-          text={seg.data.text ?? ""}
-          style={seg.data.style}
+          data={{ text: seg.data.text ?? "", style: seg.data.style }}
           startFrame={startFrame}
           endFrame={endFrame}
+          fps={fps}
         />
       );
 
     case "title_card":
       return (
         <TitleCard
-          headline={seg.data.headline ?? ""}
-          subtitle={seg.data.subtitle}
-          accent_color={seg.data.accent_color}
+          data={{
+            headline: seg.data.headline ?? "",
+            subtitle: seg.data.subtitle,
+            accent_color: seg.data.accent_color,
+          }}
           startFrame={startFrame}
           endFrame={endFrame}
+          fps={fps}
         />
       );
 
     case "icon_grid":
       return (
         <IconGrid
-          items={seg.data.items ?? []}
+          data={{ items: seg.data.items ?? [] }}
           startFrame={startFrame}
           endFrame={endFrame}
+          fps={fps}
         />
       );
 
@@ -197,7 +207,7 @@ export const VisualSegmentRenderer: React.FC<VisualSegmentRendererProps> = ({
                 overflow: "hidden",
               }}
             >
-              {renderSegmentContent(seg, startFrame, endFrame, scale)}
+              {renderSegmentContent(seg, startFrame, endFrame, scale, fps)}
             </div>
           );
         })}

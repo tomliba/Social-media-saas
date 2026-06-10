@@ -3,6 +3,9 @@
 import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import { chargePost, refundRender } from "@/app/actions/charge-render";
+import { postCost } from "@/lib/credits/config";
 
 // ── Scene templates ──
 
@@ -219,6 +222,7 @@ function AISceneContent() {
   // Step state
   const [step, setStep] = useState<Step>(preselectedScene ? "content" : "pick-scene");
   const [error, setError] = useState<string | null>(null);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
 
   // Scene selection
   const [selectedScene, setSelectedScene] = useState<string | null>(preselectedScene);
@@ -266,6 +270,22 @@ function AISceneContent() {
   // ── Generate 1 variation ──
   const generateOne = useCallback(async (existingResults: GeneratedImage[] = []) => {
     if (!scene || !contentText.trim()) return existingResults;
+
+    // RECONCILE GAP: ai-scene's library item is only created on save (success), so
+    // a charge that dies mid-generation has no item for the reconcile cron to anchor
+    // on. Only refund-on-failure below covers it, until a server-side pending-charge
+    // record exists. See project_credit_billing.md KNOWN GAP.
+    const jobId = `ais-gen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const charge = await chargePost({ jobId, format: "ai_scene" });
+    if (!charge.ok) {
+      if (charge.error === "insufficient_credits") {
+        setCreditError({ needed: charge.needed, balance: charge.balance });
+      } else {
+        setError("Please sign in to generate.");
+      }
+      return existingResults;
+    }
+
     const prompt = scene.promptTemplate.replace("{content}", contentText.trim());
     const i = existingResults.length;
 
@@ -294,6 +314,7 @@ function AISceneContent() {
       setGeneratedImages(updated);
       return updated;
     } catch (err) {
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
       setError(err instanceof Error ? err.message : "Generation failed");
       const updated = [...existingResults, { image: "" }];
       setGeneratedImages(updated);
@@ -326,6 +347,20 @@ function AISceneContent() {
     setRegeneratingIndex(index);
     setError(null);
 
+    // RECONCILE GAP: see note in generateOne — regeneration charges are likewise
+    // not reconcilable (no library item until save). See KNOWN GAP.
+    const jobId = `ais-regen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const charge = await chargePost({ jobId, format: "ai_scene" });
+    if (!charge.ok) {
+      setRegeneratingIndex(null);
+      if (charge.error === "insufficient_credits") {
+        setCreditError({ needed: charge.needed, balance: charge.balance });
+      } else {
+        setError("Please sign in to regenerate.");
+      }
+      return;
+    }
+
     const prompt = scene.promptTemplate.replace("{content}", contentText.trim());
 
     try {
@@ -355,6 +390,7 @@ function AISceneContent() {
         return next;
       });
     } catch (err) {
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
       setError(err instanceof Error ? err.message : "Regeneration failed");
     } finally {
       setRegeneratingIndex(null);
@@ -600,6 +636,9 @@ function AISceneContent() {
             </div>
           </div>
 
+          <p className="text-xs text-on-surface-variant mb-3">
+            {postCost("ai_scene")} credits per image
+          </p>
           {/* Actions */}
           <div className="flex items-center gap-3">
             <button
@@ -750,6 +789,13 @@ function AISceneContent() {
           <h2 className="text-xl font-bold font-headline mb-2">Saving to library...</h2>
           <p className="text-on-surface-variant text-sm">You&apos;ll be redirected in a moment</p>
         </section>
+      )}
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
       )}
     </main>
   );

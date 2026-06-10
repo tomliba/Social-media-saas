@@ -7,6 +7,9 @@ import VoicePickerModal from "@/components/create/VoicePickerModal";
 import { triggerPrepareAssets } from "@/app/actions/prepare-assets";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
+import type { UserPrefs } from "@/lib/createOptions";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import { chargeVideo, refundRender } from "@/app/actions/charge-render";
 
 // ── Script source modes (same accordion pattern as Argument) ──
 
@@ -249,7 +252,7 @@ interface ScriptData {
 
 // ── Main Component ──
 
-export default function SkeletonSetup() {
+export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
   const router = useRouter();
 
   // Step: 0 = setup, 1 = script review
@@ -272,23 +275,27 @@ export default function SkeletonSetup() {
   const [customPrompt, setCustomPrompt] = useState("");
 
   // Settings state (identical to AIStorySetup)
-  const [tone, setTone] = useState("Regular");
-  const [skeletonStyle, setSkeletonStyle] = useState("red");
+  const [tone, setTone] = useState(prefs?.skeletonTone ?? "Regular");
+  const [skeletonStyle, setSkeletonStyle] = useState(prefs?.skeletonColor ?? "red");
   const [sceneMode, setSceneMode] = useState<"static" | "animated">("static");
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
-  const [captionStyle, setCaptionStyle] = useState("regular");
-  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">("medium");
-  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">("uppercase");
-  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">("bottom");
-  const [music, setMusic] = useState<string | null>("tension");
-  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
+  const [captionStyle, setCaptionStyle] = useState(prefs?.captionStyle ?? "regular");
+  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">((prefs?.captionFontSize as "small" | "medium" | "large") ?? "medium");
+  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">((prefs?.captionTransform as "normal" | "uppercase" | "capitalize" | "lowercase") ?? "uppercase");
+  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">((prefs?.captionPosition as "top" | "middle" | "bottom") ?? "bottom");
+  const [music, setMusic] = useState<string | null>(prefs?.music ? (prefs.music === "none" ? null : prefs.music) : "tension");
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(
+    prefs?.skeletonVoiceId
+      ? { name: "Your default voice", fishAudioId: prefs.skeletonVoiceId, gender: "male", tags: [] }
+      : null
+  );
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [speed, setSpeed] = useState(1.0);
-  const [duration, setDuration] = useState(30);
-  const [videoLanguage, setVideoLanguage] = useState("Auto Detect");
+  const [duration, setDuration] = useState(prefs?.skeletonDuration ?? 30);
+  const [videoLanguage, setVideoLanguage] = useState(prefs?.language ?? "Auto Detect");
   const [langOpen, setLangOpen] = useState(false);
-  const [filmGrain, setFilmGrain] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [filmGrain, setFilmGrain] = useState(prefs?.filmGrain ?? false);
+  const [shake, setShake] = useState(prefs?.shakeEffect ?? false);
   const [endScreenCta, setEndScreenCta] = useState("Follow for more!");
 
   // Music preview
@@ -352,6 +359,7 @@ export default function SkeletonSetup() {
 
   // Preview flow state
   const [prepareError, setPrepareError] = useState<string | null>(null);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
 
   // Popover state
   const [durationPopoverOpen, setDurationPopoverOpen] = useState(false);
@@ -833,12 +841,25 @@ export default function SkeletonSetup() {
     if (!scriptData) return;
     setPrepareError(null);
 
+    const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const format = sceneMode === "animated" ? "animated_skeleton" : "skeleton";
+    const charge = await chargeVideo({ jobId, format, durationSeconds: duration });
+    if (!charge.ok) {
+      if (charge.error === "insufficient_credits") {
+        setCreditError({ needed: charge.needed, balance: charge.balance });
+      } else if (charge.error === "plan_not_allowed") {
+        setPrepareError("Animated videos require the Pro plan.");
+      } else {
+        setPrepareError("Please sign in to create.");
+      }
+      return;
+    }
+
     try {
       const fullScript = editScenes.map((s) => s.text).join(" ");
       const aiStorySettings = buildAiStorySettings();
       const title = editHook || scriptData.hook || "Skeleton Video";
 
-      const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const thumbnailUrl = [hookImageUrl, ...sceneImageUrls].find(
         (url) => typeof url === "string" && url.startsWith("https://") && !url.endsWith(".mp4") && !url.endsWith(".webm")
       ) || null;
@@ -890,12 +911,14 @@ export default function SkeletonSetup() {
         },
       }).catch((err) => {
         console.error("Failed to trigger prepare-assets:", err);
+        refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
       });
 
       router.push("/library");
     } catch (err) {
       console.error("Failed to start preview:", err);
       setPrepareError(err instanceof Error ? err.message : "Failed to start preview");
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   };
 
@@ -1836,6 +1859,13 @@ export default function SkeletonSetup() {
       </footer>
 
       <VoicePickerModal open={voiceModalOpen} onClose={() => setVoiceModalOpen(false)} onSelect={handleVoiceSelect} currentVoiceId={selectedVoice?.fishAudioId || defaultVoice.fishAudioId} />
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
+      )}
     </main>
   );
 }

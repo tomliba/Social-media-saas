@@ -47,7 +47,7 @@ export async function GET(
       if (images.length > 0) {
         const { buildZip } = await import("./zip");
         const zipBuffer = await buildZip(images, safeTitle);
-        return new NextResponse(zipBuffer, {
+        return new NextResponse(new Uint8Array(zipBuffer), {
           headers: {
             "Content-Type": "application/zip",
             "Content-Disposition": `attachment; filename="${safeTitle}.zip"`,
@@ -64,7 +64,7 @@ export async function GET(
     const ext = item.format === "video" ? "mp4" : "png";
     const filename = `${safeTitle}.${ext}`;
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": type,
         "Content-Disposition": `attachment; filename="${filename}"`,

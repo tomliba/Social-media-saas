@@ -231,4 +231,6 @@ export interface VideoProps {
   transitionStyle?: SceneTransitionStyle;
   /** Per-scene duration in frames — controls how long each background image is shown */
   imageDurations?: number[];
+  /** Green screen mode — renders #00FF00 background instead of black */
+  greenScreen?: boolean;
 }

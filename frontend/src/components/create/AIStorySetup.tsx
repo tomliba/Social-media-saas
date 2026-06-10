@@ -8,6 +8,9 @@ import { triggerPrepareAssets } from "@/app/actions/prepare-assets";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import { ART_STYLES as artStyles, type ArtStyle, artPreviewSrc } from "@/lib/artStyles";
+import type { UserPrefs } from "@/lib/createOptions";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import { chargeVideo, refundRender } from "@/app/actions/charge-render";
 
 // ── Topic presets (29 topics) ──
 
@@ -246,6 +249,7 @@ interface ScriptScene {
   image_prompt: string;
   /** Backward compat: Gemini may return image_prompt_1 instead of image_prompt */
   image_prompt_1?: string;
+  motion_prompt?: string;
 }
 
 /** Get the effective image prompt (prefers image_prompt, falls back to image_prompt_1) */
@@ -262,29 +266,35 @@ interface ScriptData {
   video_keywords?: string[];
   hook_image_prompt?: string;
   cta_image_prompt?: string;
+  hook_motion_prompt?: string;
+  cta_motion_prompt?: string;
 }
 
-export default function AIStorySetup() {
+export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
   const router = useRouter();
 
   // ── Step: 0 = setup, 1 = script review, 2 = preparing assets ──
   const [step, setStep] = useState(0);
 
-  // Setup state
-  const [topic, setTopic] = useState("scary_stories");
+  // Setup state (prefs?.x ?? hardcoded default — null prefs ⇒ unchanged)
+  const [topic, setTopic] = useState(prefs?.storyTopicPreset ?? "scary_stories");
   const [customPrompt, setCustomPrompt] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
-  const [tone, setTone] = useState("Regular");
-  const [artStyle, setArtStyle] = useState("anime");
+  const [tone, setTone] = useState(prefs?.storyTone ?? "Regular");
+  const [artStyle, setArtStyle] = useState(prefs?.storyArtStyle ?? "anime");
   const [artModalOpen, setArtModalOpen] = useState(false);
-  const [sceneMode, setSceneMode] = useState<"static" | "animated">("static");
+  const [sceneMode, setSceneMode] = useState<"static" | "animated">((prefs?.storySceneMode as "static" | "animated") ?? "static");
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
-  const [captionStyle, setCaptionStyle] = useState("regular");
-  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">("medium");
-  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">("uppercase");
-  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">("bottom");
-  const [music, setMusic] = useState<string | null>("shadows");
-  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
+  const [captionStyle, setCaptionStyle] = useState(prefs?.captionStyle ?? "regular");
+  const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">((prefs?.captionFontSize as "small" | "medium" | "large") ?? "medium");
+  const [captionTransform, setCaptionTransform] = useState<"normal" | "uppercase" | "capitalize" | "lowercase">((prefs?.captionTransform as "normal" | "uppercase" | "capitalize" | "lowercase") ?? "uppercase");
+  const [captionPosition, setCaptionPosition] = useState<"top" | "middle" | "bottom">((prefs?.captionPosition as "top" | "middle" | "bottom") ?? "bottom");
+  const [music, setMusic] = useState<string | null>(prefs?.music ? (prefs.music === "none" ? null : prefs.music) : "shadows");
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(
+    prefs?.storyVoiceId
+      ? { name: "Your default voice", fishAudioId: prefs.storyVoiceId, gender: "male", tags: [] }
+      : null
+  );
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [speed, setSpeed] = useState(1.0);
 
@@ -324,11 +334,11 @@ export default function AIStorySetup() {
       stopPreview();
     };
   }, [stopPreview]);
-  const [duration, setDuration] = useState(30);
-  const [videoLanguage, setVideoLanguage] = useState("Auto Detect");
+  const [duration, setDuration] = useState(prefs?.storyDuration ?? 30);
+  const [videoLanguage, setVideoLanguage] = useState(prefs?.language ?? "Auto Detect");
   const [langOpen, setLangOpen] = useState(false);
-  const [filmGrain, setFilmGrain] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [filmGrain, setFilmGrain] = useState(prefs?.filmGrain ?? false);
+  const [shake, setShake] = useState(prefs?.shakeEffect ?? false);
   const [endScreenCta, setEndScreenCta] = useState("Follow for more!");
 
   // Script generation state
@@ -371,6 +381,7 @@ export default function AIStorySetup() {
 
   // Preview flow state
   const [prepareError, setPrepareError] = useState<string | null>(null);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
 
   // Popover state
   const [durationPopoverOpen, setDurationPopoverOpen] = useState(false);
@@ -874,13 +885,26 @@ export default function AIStorySetup() {
     if (!scriptData) return;
     setPrepareError(null);
 
+    const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const format = sceneMode === "animated" ? "animated_story" : "ai_story";
+    const charge = await chargeVideo({ jobId, format, durationSeconds: duration });
+    if (!charge.ok) {
+      if (charge.error === "insufficient_credits") {
+        setCreditError({ needed: charge.needed, balance: charge.balance });
+      } else if (charge.error === "plan_not_allowed") {
+        setPrepareError("Animated videos require the Pro plan.");
+      } else {
+        setPrepareError("Please sign in to create.");
+      }
+      return;
+    }
+
     try {
       const fullScript = editScenes.map((s) => s.text).join(" ");
       const aiStorySettings = buildAiStorySettings();
       const title = editHook || scriptData.hook || "AI Voice Story";
 
       // 1. Create library item with status "preparing"
-      const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const thumbnailUrl = [hookImageUrl, ...sceneImageUrls].find(
         (url) => typeof url === "string" && url.startsWith("https://") && !url.endsWith(".mp4") && !url.endsWith(".webm")
       ) || null;
@@ -944,6 +968,7 @@ export default function AIStorySetup() {
         },
       }).catch((err) => {
         console.error("Failed to trigger prepare-assets:", err);
+        refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
       });
 
       // 3. Navigate immediately
@@ -951,6 +976,7 @@ export default function AIStorySetup() {
     } catch (err) {
       console.error("Failed to start preview:", err);
       setPrepareError(err instanceof Error ? err.message : "Failed to start preview");
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   };
 
@@ -996,7 +1022,7 @@ export default function AIStorySetup() {
               <div className="relative w-[200px] h-[267px] flex-shrink-0 rounded-[12px] overflow-hidden bg-zinc-100">
                 {animationStatus[-1]?.status === "done" && animationStatus[-1]?.video_url ? (
                   <video
-                    src={animationStatus[-1].video_url}
+                    src={animationStatus[-1].video_url ?? undefined}
                     autoPlay
                     loop
                     muted
@@ -1264,7 +1290,7 @@ export default function AIStorySetup() {
               <div className="relative w-[200px] h-[267px] flex-shrink-0 rounded-[12px] overflow-hidden bg-zinc-100">
                 {animationStatus[-2]?.status === "done" && animationStatus[-2]?.video_url ? (
                   <video
-                    src={animationStatus[-2].video_url}
+                    src={animationStatus[-2].video_url ?? undefined}
                     autoPlay
                     loop
                     muted
@@ -2130,6 +2156,13 @@ export default function AIStorySetup() {
         onSelect={handleVoiceSelect}
         currentVoiceId={selectedVoice?.fishAudioId || defaultVoice.fishAudioId}
       />
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
+      )}
     </main>
   );
 }

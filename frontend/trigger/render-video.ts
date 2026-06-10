@@ -1,6 +1,7 @@
 import { task, metadata, logger } from "@trigger.dev/sdk";
 import { defaultVoice } from "../src/lib/voices";
 import type { VisualSegment } from "../src/lib/video-types";
+import { postCompletionCallback } from "../src/lib/callback-auth";
 
 export interface RenderVideoPayload {
   title: string;
@@ -191,15 +192,7 @@ export const renderVideo = task({
     const runId = params.ctx.run.id;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const errMsg = params.error instanceof Error ? params.error.message : "Render failed";
-    try {
-      await fetch(`${appUrl}/api/library/${runId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "failed", error: errMsg }),
-      });
-    } catch (err) {
-      logger.warn("Failed to update library item on failure", { error: String(err) });
-    }
+    await postCompletionCallback(appUrl, runId, { status: "failed", error: errMsg });
   },
   run: async (payload: RenderVideoPayload, { ctx }): Promise<RenderVideoOutput> => {
     logger.log("Starting video render", { title: payload.title, template: payload.template });
@@ -220,15 +213,11 @@ export const renderVideo = task({
       const result = await runSimulation(payload);
 
       // Update library item status to ready
-      try {
-        await fetch(`${appUrl}/api/library/${runId}/complete`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "ready", videoUrl: result.videoUrl, thumbnailUrl: result.previewUrl }),
-        });
-      } catch (err) {
-        logger.warn("Failed to update library item (simulation)", { error: String(err) });
-      }
+      await postCompletionCallback(appUrl, runId, {
+        status: "ready",
+        videoUrl: result.videoUrl,
+        thumbnailUrl: result.previewUrl,
+      });
 
       return result;
     }
@@ -695,20 +684,13 @@ export const renderVideo = task({
     console.log(`[render-video] ✓ COMPLETE | title="${payload.title}" videoUrl="${videoUrl}"`);
     logger.log("Render complete", { title: payload.title, videoUrl });
 
-    // Update library item status to ready
-    try {
-      await fetch(`${appUrl}/api/library/${runId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "ready",
-          videoUrl,
-          thumbnailUrl: thumbnailUrl ?? videoUrl,
-        }),
-      });
-    } catch (err) {
-      logger.warn("Failed to update library item", { error: String(err) });
-    }
+    // Update library item status to ready. A failed callback throws here so the
+    // run fails and Trigger retries it, rather than leaving the item stuck.
+    await postCompletionCallback(appUrl, runId, {
+      status: "ready",
+      videoUrl,
+      thumbnailUrl: thumbnailUrl ?? videoUrl,
+    });
 
     return {
       title: payload.title,

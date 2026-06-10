@@ -353,12 +353,13 @@ Not corporate logos — real creator faces, handles, follower counts, quotes abo
 
 ## PRICING
 
-| Tier | Price | Videos/mo | Posts/mo | Features |
-|---|---|---|---|---|
-| Free | $0 | 3 (720p, watermark) | 10 | Create mode, 1 platform |
-| Starter | $12/mo | 20 | 50 | Create mode, all platforms |
-| Creator ⭐ | $24/mo | 60 | 150 | + Autopilot (draft/review mode) |
-| Pro | $49/mo | 200 | Unlimited | + Full auto + AI video backgrounds + HeyGen avatars |
+Metered by a shared monthly credit pool (see `src/lib/credits/config.ts`).
+
+| Tier | Price | Credits/mo | Features |
+|---|---|---|---|
+| Free | $0 | 30 | 720p, watermark, 1 platform, no animation |
+| Creator ⭐ | $24/mo | 600 | 1080p, no watermark, all platforms |
+| Pro | $59/mo | 2000 | + Animated AI video, priority render, commercial license |
 
 ---
 

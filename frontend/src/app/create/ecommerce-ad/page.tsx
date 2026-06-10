@@ -3,6 +3,8 @@
 import { useState, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import { chargePost, refundRender } from "@/app/actions/charge-render";
 
 // ── Ad styles ──
 
@@ -210,10 +212,12 @@ function EcommerceAdContent() {
   };
 
   const [submitting, setSubmitting] = useState(false);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
 
   // ── Background generation for a single style ──
   const generateOneInBackground = useCallback(async (
     libraryItemId: string,
+    jobId: string,
     pName: string,
     styleBrief: ResearchBrief,
     styleId: string,
@@ -262,6 +266,7 @@ ${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference imag
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "failed", error: err instanceof Error ? err.message : "Generation failed" }),
       }).catch(() => {});
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   }, []);
 
@@ -271,6 +276,7 @@ ${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference imag
     setSubmitting(true);
     setError(null);
 
+    let pendingJobId: string | null = null;
     try {
       const styleList = Array.from(selectedStyles);
 
@@ -279,12 +285,25 @@ ${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference imag
         const styleName = adStyles.find((s) => s.id === styleId)?.name || styleId;
         const headline = brief.suggestedHeadlines[i] || brief.suggestedHeadlines[0] || "TRANSFORM YOUR WORLD";
 
+        const jobId = `ecom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const charge = await chargePost({ jobId, format: "ecommerce_ad" });
+        if (!charge.ok) {
+          setSubmitting(false);
+          if (charge.error === "insufficient_credits") {
+            setCreditError({ needed: charge.needed, balance: charge.balance });
+          } else {
+            setError("Please sign in to create.");
+          }
+          return; // stops the loop; already-dispatched items stay charged
+        }
+        pendingJobId = jobId;
+
         // Create library entry with "rendering" status
         const res = await fetch("/api/library", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            jobId: `ecom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            jobId,
             title: `${productName}: ${styleName}`,
             format: "image",
             status: "rendering",
@@ -292,9 +311,10 @@ ${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference imag
         });
         if (!res.ok) throw new Error("Failed to create library entry");
         const { item } = await res.json();
+        pendingJobId = null;
 
         // Fire background generation (don't await)
-        generateOneInBackground(item.id, productName, brief, styleId, headline, photoBase64);
+        generateOneInBackground(item.id, jobId, productName, brief, styleId, headline, photoBase64);
       }
 
       // Redirect immediately
@@ -302,6 +322,7 @@ ${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference imag
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start generation");
       setSubmitting(false);
+      if (pendingJobId) refundRender({ jobId: pendingJobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   }, [brief, selectedStyles, submitting, productName, photoBase64, generateOneInBackground, router]);
 
@@ -578,6 +599,13 @@ ${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference imag
             </div>
           )}
         </section>
+      )}
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
       )}
     </main>
   );

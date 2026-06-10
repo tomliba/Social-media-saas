@@ -1,4 +1,5 @@
 import { task, metadata, logger } from "@trigger.dev/sdk";
+import { postCompletionCallback } from "../src/lib/callback-auth";
 
 export interface RenderPostPayload {
   /** pg_job_id from Flask /pg/generate_ideas */
@@ -89,15 +90,7 @@ export const renderPost = task({
     const runId = params.ctx.run.id;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const errMsg = params.error instanceof Error ? params.error.message : "Post render failed";
-    try {
-      await fetch(`${appUrl}/api/library/${runId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "failed", error: errMsg }),
-      });
-    } catch (err) {
-      logger.warn("Failed to update library item on failure", { error: String(err) });
-    }
+    await postCompletionCallback(appUrl, runId, { status: "failed", error: errMsg });
   },
   run: async (payload: RenderPostPayload, { ctx }): Promise<RenderPostOutput> => {
     logger.log("Starting post render", {
@@ -118,15 +111,7 @@ export const renderPost = task({
     if (!flaskUrl) {
       logger.warn("FLASK_API_URL not set — using simulated render");
       const result = await runSimulation(payload);
-      try {
-        await fetch(`${appUrl}/api/library/${runId}/complete`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "ready" }),
-        });
-      } catch (err) {
-        logger.warn("Failed to update library item (simulation)", { error: String(err) });
-      }
+      await postCompletionCallback(appUrl, runId, { status: "ready" });
       return result;
     }
 
@@ -272,16 +257,12 @@ export const renderPost = task({
       }
     }
 
-    // Update library item status to ready
-    try {
-      await fetch(`${appUrl}/api/library/${runId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "ready", thumbnailUrl: thumbnailUrl ?? firstImage }),
-      });
-    } catch (err) {
-      logger.warn("Failed to update library item", { error: String(err) });
-    }
+    // Update library item status to ready. A failed callback throws here so the
+    // run fails and Trigger retries it, rather than leaving the item stuck.
+    await postCompletionCallback(appUrl, runId, {
+      status: "ready",
+      thumbnailUrl: thumbnailUrl ?? firstImage,
+    });
 
     return { results: finalResults, succeeded, failed };
   },

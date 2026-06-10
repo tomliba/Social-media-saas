@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
 import { triggerPostRenders } from "@/app/actions/create-posts";
+import { videoFormatFromBackgroundMode } from "@/lib/credits/config";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import VoicePickerModal from "@/components/create/VoicePickerModal";
@@ -366,6 +368,8 @@ function EditorContent() {
   const speedRef = useRef<HTMLDivElement>(null);
 
   const [creating, setCreating] = useState(false);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [characterModalOpen, setCharacterModalOpen] = useState(false);
@@ -391,15 +395,31 @@ function EditorContent() {
   const handleCreateVideos = async () => {
     if (scripts.length === 0) return;
     setCreating(true);
+    setSubmitError(null);
     try {
-      const handles = await triggerVideoRenders(
+      const result = await triggerVideoRenders(
         scripts.map((s) => ({
           title: s.title,
           script: s.script,
           template,
+          format: videoFormatFromBackgroundMode(settings.backgroundMode),
+          durationSeconds: parseInt(settings.duration) || 0,
           settings: { ...settings, speed: selectedSpeed },
         }))
       );
+
+      if (!result.ok) {
+        setCreating(false);
+        if (result.error === "insufficient_credits") {
+          setCreditError({ needed: result.needed, balance: result.balance });
+        } else if (result.error === "plan_not_allowed") {
+          setSubmitError("Animated videos require the Pro plan.");
+        } else {
+          setSubmitError("You must be signed in to create. Please sign in and try again.");
+        }
+        return;
+      }
+      const handles = result.handles;
 
       // Create library items for each render
       await Promise.all(
@@ -435,6 +455,7 @@ function EditorContent() {
       router.push("/library");
     } catch (err) {
       console.error("Failed to trigger video renders:", err);
+      setSubmitError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setCreating(false);
     }
   };
@@ -443,21 +464,35 @@ function EditorContent() {
   const handleCreatePosts = async () => {
     if (postIdeas.length === 0) return;
     setCreating(true);
+    setSubmitError(null);
     try {
       const pgJobId = sessionStorage.getItem("pg_job_id");
       if (!pgJobId) {
         throw new Error("pg_job_id not found. Go back and generate ideas first");
       }
 
-      const handle = await triggerPostRenders({
+      const postResult = await triggerPostRenders({
         pgJobId,
         selectedIdeas: postIdeas.map((idea) => idea.number),
         ideaTopics: postIdeas.map((idea) => idea.topic),
+        format: "image_post_ai",
+        ideas: postIdeas.length,
         settings: {
           tone: settings.tone,
           platform: settings.platform,
         },
       });
+
+      if (!postResult.ok) {
+        setCreating(false);
+        if (postResult.error === "insufficient_credits") {
+          setCreditError({ needed: postResult.needed, balance: postResult.balance });
+        } else {
+          setSubmitError("You must be signed in to create. Please sign in and try again.");
+        }
+        return;
+      }
+      const handle = postResult.handle;
 
       // Create library item for the render
       await fetch("/api/library", {
@@ -479,6 +514,7 @@ function EditorContent() {
       router.push("/library");
     } catch (err) {
       console.error("Failed to trigger post renders:", err);
+      setSubmitError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setCreating(false);
     }
   };
@@ -637,6 +673,18 @@ function EditorContent() {
 
   return (
     <main className="pt-24 pb-72 px-6 max-w-4xl mx-auto">
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
+      )}
+      {submitError && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white shadow-lg">
+          {submitError}
+        </div>
+      )}
       {/* Breadcrumb */}
       <div className="flex items-center gap-3 mb-10 text-on-surface-variant font-headline">
         <Link
