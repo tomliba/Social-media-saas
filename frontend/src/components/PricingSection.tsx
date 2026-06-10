@@ -1,38 +1,53 @@
 import Link from "next/link";
+import { PLAN_MONTHLY_CREDITS } from "@/lib/credits/config";
+import { startSubscriptionCheckout } from "@/app/actions/checkout";
 
+// Three real tiers from config.ts / PLAN_FEATURES. Credit counts come from
+// PLAN_MONTHLY_CREDITS so they stay in sync. Display prices mirror the Lemon
+// Squeezy variants (Creator 1771372 = $24.99, Pro 1771393 = $59.99); LS is the
+// source of truth for the actual charge.
 const plans = [
   {
     name: "Free",
+    plan: "free" as const,
     price: "$0",
-    features: ["3 videos /mo", "Basic templates", "Watermarked"],
-    cta: "Start Free",
-    highlighted: false,
-  },
-  {
-    name: "Hobby",
-    price: "$12",
-    features: ["15 videos /mo", "No watermarks", "All formats"],
-    cta: "Select Plan",
+    period: "forever",
+    features: [
+      `${PLAN_MONTHLY_CREDITS.free} credits / month`,
+      "720p video, watermarked",
+      "Standard formats",
+      "No animated AI video",
+    ],
+    cta: "Start free",
     highlighted: false,
   },
   {
     name: "Creator",
-    price: "$24",
+    plan: "creator" as const,
+    price: "$24.99",
+    period: "/mo",
     features: [
-      "Unlimited videos",
-      "Custom AI characters",
-      "Priority rendering",
-      "Multi-brand support",
+      `${PLAN_MONTHLY_CREDITS.creator.toLocaleString()} credits / month`,
+      "1080p, no watermark",
+      "All standard formats",
     ],
-    cta: "Go Unlimited",
+    cta: "Choose Creator",
     highlighted: true,
     badge: "Most popular",
   },
   {
-    name: "Agency",
-    price: "$49",
-    features: ["5 team seats", "Shared library", "Dedicated manager"],
-    cta: "Contact Sales",
+    name: "Pro",
+    plan: "pro" as const,
+    price: "$59.99",
+    period: "/mo",
+    features: [
+      `${PLAN_MONTHLY_CREDITS.pro.toLocaleString()} credits / month`,
+      "Animated AI video",
+      "Priority rendering",
+      "Commercial license",
+      "1080p, no watermark",
+    ],
+    cta: "Choose Pro",
     highlighted: false,
   },
 ];
@@ -40,11 +55,15 @@ const plans = [
 export default function PricingSection() {
   return (
     <section id="pricing" className="py-24 bg-surface-container-low px-6">
-      <div className="mx-auto max-w-screen-2xl">
-        <h2 className="font-headline font-bold text-4xl text-center mb-16">
-          Simple pricing for serious scale
+      <div className="mx-auto max-w-screen-xl">
+        <h2 className="font-headline font-bold text-4xl text-center mb-3">
+          Simple, credit-based pricing
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <p className="text-center text-on-surface-variant mb-16 max-w-2xl mx-auto">
+          One monthly pool of credits, shared across videos and posts. What a
+          create costs depends on its format. Cancel anytime.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {plans.map((plan) => (
             <div
               key={plan.name}
@@ -68,7 +87,7 @@ export default function PricingSection() {
               </h3>
               <div className="flex items-baseline gap-1 mb-6">
                 <span className="text-4xl font-black">{plan.price}</span>
-                <span className="text-on-surface-variant text-sm">/mo</span>
+                <span className="text-on-surface-variant text-sm">{plan.period}</span>
               </div>
               <ul className="space-y-4 mb-10 flex-1">
                 {plan.features.map((f) => (
@@ -85,19 +104,35 @@ export default function PricingSection() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/signup"
-                className={`w-full py-3 rounded-md font-bold transition-all block text-center ${
-                  plan.highlighted
-                    ? "primary-gradient text-white hover:opacity-90"
-                    : "bg-surface-container-highest hover:bg-surface-variant"
-                }`}
-              >
-                {plan.cta}
-              </Link>
+
+              {plan.plan === "free" ? (
+                <Link
+                  href="/signup"
+                  className="w-full py-3 rounded-md font-bold transition-all block text-center bg-surface-container-highest hover:bg-surface-variant"
+                >
+                  {plan.cta}
+                </Link>
+              ) : (
+                <form action={startSubscriptionCheckout}>
+                  <input type="hidden" name="plan" value={plan.plan} />
+                  <button
+                    type="submit"
+                    className={`w-full py-3 rounded-md font-bold transition-all block text-center ${
+                      plan.highlighted
+                        ? "primary-gradient text-white hover:opacity-90"
+                        : "bg-surface-container-highest hover:bg-surface-variant"
+                    }`}
+                  >
+                    {plan.cta}
+                  </button>
+                </form>
+              )}
             </div>
           ))}
         </div>
+        <p className="text-center text-on-surface-variant text-xs mt-8">
+          Paid checkout opens after you sign in. One-off credit top-ups are coming soon.
+        </p>
       </div>
     </section>
   );
