@@ -11,7 +11,7 @@ export default function SocialProofStrip() {
     <div className="bg-surface-container-low py-12">
       <div className="mx-auto max-w-screen-2xl px-6 flex flex-col items-center gap-8">
         <p className="font-headline font-bold text-on-surface-variant uppercase tracking-widest text-sm">
-          Used by 10,000+ creators on
+          Create content sized for every platform
         </p>
         <div className="flex flex-wrap justify-center gap-10 md:gap-20 opacity-60 grayscale hover:grayscale-0 transition-all">
           {platforms.map((p) => (

@@ -49,7 +49,7 @@ export default function HeroSection() {
                   smart_display
                 </span>
                 <p className="text-on-surface-variant text-sm mt-4 font-medium">
-                  AI Video Preview
+                  Stylized preview
                 </p>
               </div>
             </div>
@@ -63,10 +63,10 @@ export default function HeroSection() {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-on-surface">
-                    Doctor Curses
+                    Your AI character
                   </p>
                   <p className="text-[10px] text-on-surface-variant">
-                    AI Explainer Series
+                    Illustrative mockup
                   </p>
                 </div>
               </div>
