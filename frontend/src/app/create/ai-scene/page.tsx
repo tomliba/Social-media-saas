@@ -271,6 +271,10 @@ function AISceneContent() {
   const generateOne = useCallback(async (existingResults: GeneratedImage[] = []) => {
     if (!scene || !contentText.trim()) return existingResults;
 
+    // RECONCILE GAP: ai-scene's library item is only created on save (success), so
+    // a charge that dies mid-generation has no item for the reconcile cron to anchor
+    // on. Only refund-on-failure below covers it, until a server-side pending-charge
+    // record exists. See project_credit_billing.md KNOWN GAP.
     const jobId = `ais-gen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const charge = await chargePost({ jobId, format: "ai_scene" });
     if (!charge.ok) {
@@ -343,6 +347,8 @@ function AISceneContent() {
     setRegeneratingIndex(index);
     setError(null);
 
+    // RECONCILE GAP: see note in generateOne — regeneration charges are likewise
+    // not reconcilable (no library item until save). See KNOWN GAP.
     const jobId = `ais-regen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const charge = await chargePost({ jobId, format: "ai_scene" });
     if (!charge.ok) {

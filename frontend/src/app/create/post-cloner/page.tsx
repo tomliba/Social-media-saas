@@ -107,6 +107,10 @@ export default function PostClonerPage() {
   const startClone = async (slides: SlideData[]) => {
     setError(null);
 
+    // RECONCILE GAP: this charge has no library item until the clone succeeds, so
+    // the reconcile cron can't anchor on it. If the job dies mid-flight after the
+    // user navigates away, only the failure paths below refund. Closing this needs
+    // a server-side pending-charge record. See project_credit_billing.md KNOWN GAP.
     const chargeKey = `clone-charge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const charge = await chargePost({ jobId: chargeKey, format: "post_cloner" });
     if (!charge.ok) {

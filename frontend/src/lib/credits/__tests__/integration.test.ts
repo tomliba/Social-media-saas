@@ -31,6 +31,16 @@ const store = vi.hoisted(() => ({
     externalEventId: string | null;
     createdAt: Date;
   }>,
+  items: [] as Array<{
+    id: string;
+    userId: string;
+    jobId: string | null;
+    status: string;
+    createdAt: Date;
+    videoUrl?: string | null;
+    thumbnailUrl?: string | null;
+    error?: string | null;
+  }>,
 }));
 
 vi.mock("@/lib/prisma", () => {
@@ -98,6 +108,22 @@ vi.mock("@/lib/prisma", () => {
         return null;
       },
     },
+    contentItem: {
+      findMany: async ({ where }: any) => {
+        return store.items
+          .filter((it) => {
+            const statusOk = where?.status?.in ? where.status.in.includes(it.status) : true;
+            const cutoffOk = where?.createdAt?.lt ? it.createdAt < where.createdAt.lt : true;
+            return statusOk && cutoffOk;
+          })
+          .map((it) => ({ ...it }));
+      },
+      update: async ({ where, data }: any) => {
+        const it = store.items.find((i) => i.id === where.id);
+        if (it) Object.assign(it, data);
+        return it ? { ...it } : null;
+      },
+    },
   };
   return { prisma: { ...tx, $transaction: async (fn: (t: typeof tx) => unknown) => fn(tx) } };
 });
@@ -108,11 +134,13 @@ vi.mock("@/lib/flask-render", () => ({
   renderVideoViaFlask: vi.fn(),
   renderPostViaFlask: vi.fn(),
 }));
+vi.mock("@trigger.dev/sdk", () => ({ runs: { retrieve: vi.fn() } }));
 
 import { triggerVideoRenders, type VideoRenderRequest } from "@/app/actions/create-videos";
 import { triggerPostRenders, type PostRenderRequest } from "@/app/actions/create-posts";
 import { chargeVideo, chargePost, refundRender } from "@/app/actions/charge-render";
 import { POST as lemonWebhook } from "@/app/api/webhooks/lemonsqueezy/route";
+import { GET as reconcileCron } from "@/app/api/cron/reconcile/route";
 import { PLAN_MONTHLY_CREDITS, TOPUP_PACKS, type VideoFormat } from "@/lib/credits/config";
 import { auth } from "@/lib/auth";
 import { renderVideoViaFlask, renderPostViaFlask } from "@/lib/flask-render";
@@ -177,9 +205,11 @@ function webhookReq(payload: unknown): NextRequest {
 beforeEach(() => {
   store.users.clear();
   store.txs.length = 0;
+  store.items.length = 0;
   vi.clearAllMocks();
   vi.stubEnv("TRIGGER_SECRET_KEY", ""); // force the Direct Flask path (no Trigger.dev)
   vi.stubEnv("LEMONSQUEEZY_WEBHOOK_SECRET", "test_secret");
+  vi.stubEnv("CRON_SECRET", "test_cron_secret");
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -433,5 +463,65 @@ describe("charge-render actions", () => {
     expect(res).toMatchObject({ ok: false, error: "insufficient_credits", needed: 15, balance: 5 });
     expect(balanceOf("c6")).toBe(5);
     expect(store.txs).toHaveLength(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Reconcile cron — coverage for the non-Trigger bypass flows. A stuck,
+// non-terminal item past the cutoff is refunded on its charge key (== jobId).
+// ─────────────────────────────────────────────────────────────────────────
+
+function cronReq(): NextRequest {
+  return new Request("http://test/api/cron/reconcile", {
+    method: "GET",
+    headers: { authorization: "Bearer test_cron_secret" },
+  }) as unknown as NextRequest;
+}
+
+describe("reconcile cron — bypass flows", () => {
+  it("refunds a stuck non-Trigger item older than the cutoff and marks it failed", async () => {
+    seedUser("r1", 100, "pro");
+    mockedAuth.mockResolvedValue(asSession("r1"));
+    await chargeVideo({ jobId: "prepare-old", format: "skeleton", durationSeconds: 30 }); // spend 15
+    expect(balanceOf("r1")).toBe(85);
+
+    store.items.push({
+      id: "item-old",
+      userId: "r1",
+      jobId: "prepare-old",
+      status: "preparing",
+      createdAt: new Date(Date.now() - 60 * 60 * 1000), // 1h ago — well past the 15m cutoff
+    });
+
+    const res = await reconcileCron(cronReq());
+    const json = await res.json();
+
+    expect(json.refunded).toBe(1);
+    expect(balanceOf("r1")).toBe(100); // credits restored
+    expect(txsByType("refund")).toHaveLength(1);
+    expect(store.items.find((i) => i.id === "item-old")!.status).toBe("failed");
+  });
+
+  it("leaves a stuck item younger than the cutoff untouched", async () => {
+    seedUser("r2", 100, "pro");
+    mockedAuth.mockResolvedValue(asSession("r2"));
+    await chargeVideo({ jobId: "prepare-new", format: "skeleton", durationSeconds: 30 }); // spend 15
+    expect(balanceOf("r2")).toBe(85);
+
+    store.items.push({
+      id: "item-new",
+      userId: "r2",
+      jobId: "prepare-new",
+      status: "preparing",
+      createdAt: new Date(), // just now — inside the cutoff window
+    });
+
+    const res = await reconcileCron(cronReq());
+    const json = await res.json();
+
+    expect(json.refunded).toBe(0);
+    expect(balanceOf("r2")).toBe(85); // not refunded
+    expect(txsByType("refund")).toHaveLength(0);
+    expect(store.items.find((i) => i.id === "item-new")!.status).toBe("preparing");
   });
 });
