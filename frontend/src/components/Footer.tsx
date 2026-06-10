@@ -1,11 +1,12 @@
 import Link from "next/link";
 
 const links = [
-  { label: "Features", href: "#" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Privacy Policy", href: "#" },
-  { label: "Terms of Service", href: "#" },
-  { label: "Contact", href: "#" },
+  { label: "Features", href: "/#features" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms of Service", href: "/terms" },
+  // TODO: confirm the real support address (placeholder).
+  { label: "Contact", href: "mailto:hello@thefluidcurator.com" },
 ];
 
 export default function Footer() {
@@ -27,7 +28,7 @@ export default function Footer() {
           ))}
         </div>
         <div className="text-center md:text-right">
-          © 2024 The Fluid Curator. Designed for intentional creators.
+          © {new Date().getFullYear()} The Fluid Curator. Designed for intentional creators.
         </div>
       </div>
     </footer>

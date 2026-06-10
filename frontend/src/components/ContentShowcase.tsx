@@ -38,37 +38,35 @@ const formats = [
     ),
   },
   {
-    name: "Quote Card",
+    name: "Skeleton Video",
     content: (
-      <div className="w-full h-full primary-gradient p-8 flex items-center justify-center">
-        <div className="text-white text-center italic font-headline text-xl font-bold">
-          &ldquo;Your output is only as good as your curation.&rdquo;
+      <div className="w-full h-full bg-gradient-to-br from-cyan-700 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <span
+            className="material-symbols-outlined text-cyan-200"
+            style={{ fontSize: "64px", fontVariationSettings: "'FILL' 1" }}
+          >
+            animation
+          </span>
+          <p className="text-white/60 text-xs mt-2 font-medium">X-ray explainer</p>
         </div>
       </div>
     ),
   },
   {
-    name: "Thread",
+    name: "Meme Ad",
     content: (
-      <div className="w-full h-full bg-white p-6">
-        <div className="space-y-4">
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary-container flex-shrink-0" />
-            <div className="flex-1 space-y-1">
-              <div className="h-2 w-1/3 bg-surface-variant rounded-full" />
-              <div className="h-2 w-full bg-surface-container rounded-full" />
-            </div>
-          </div>
-          <div className="h-2 w-full bg-surface-container rounded-full" />
-          <div className="h-2 w-2/3 bg-surface-container rounded-full" />
-          <div className="border-l-2 border-primary-container ml-4 pl-4 mt-4 space-y-2">
-            <div className="h-2 w-full bg-surface-container rounded-full" />
-            <div className="h-2 w-3/4 bg-surface-container rounded-full" />
-          </div>
-          <div className="border-l-2 border-primary-container ml-4 pl-4 space-y-2">
-            <div className="h-2 w-full bg-surface-container rounded-full" />
-            <div className="h-2 w-1/2 bg-surface-container rounded-full" />
-          </div>
+      <div className="w-full h-full bg-surface-container-lowest p-4 flex flex-col gap-2">
+        <div className="flex-1 bg-gradient-to-br from-amber-200 to-orange-300 rounded-xl flex items-center justify-center">
+          <span
+            className="material-symbols-outlined text-orange-700"
+            style={{ fontSize: "48px" }}
+          >
+            sentiment_very_satisfied
+          </span>
+        </div>
+        <div className="h-10 bg-surface-container-low rounded-lg flex items-center justify-center px-3">
+          <div className="h-2 w-2/3 bg-outline-variant/40 rounded-full" />
         </div>
       </div>
     ),
@@ -90,7 +88,7 @@ const formats = [
 
 export default function ContentShowcase() {
   return (
-    <section className="py-24 bg-surface-container-low overflow-hidden">
+    <section id="features" className="py-24 bg-surface-container-low overflow-hidden">
       <div className="mx-auto max-w-screen-2xl px-6 mb-12">
         <h2 className="font-headline font-bold text-4xl text-on-surface">
           What you can create

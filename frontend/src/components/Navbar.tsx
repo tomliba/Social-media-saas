@@ -13,7 +13,7 @@ export default function Navbar() {
 
         <div className="hidden md:flex items-center space-x-8 font-headline font-semibold tracking-tight">
           <Link
-            href="#"
+            href="/#features"
             className="text-neutral-500 hover:text-violet-500 transition-all duration-300"
           >
             Features
