@@ -111,6 +111,7 @@ vi.mock("@/lib/flask-render", () => ({
 
 import { triggerVideoRenders, type VideoRenderRequest } from "@/app/actions/create-videos";
 import { triggerPostRenders, type PostRenderRequest } from "@/app/actions/create-posts";
+import { chargeVideo, chargePost, refundRender } from "@/app/actions/charge-render";
 import { POST as lemonWebhook } from "@/app/api/webhooks/lemonsqueezy/route";
 import { PLAN_MONTHLY_CREDITS, TOPUP_PACKS, type VideoFormat } from "@/lib/credits/config";
 import { auth } from "@/lib/auth";
@@ -323,5 +324,114 @@ describe("lemonsqueezy webhook grants", () => {
     } finally {
       TOPUP_PACKS.length = original; // restore the shared module array
     }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// charge-render actions — the bypass flows (argument, skeleton, ai-story,
+// specialized posts) charge through these. Same harness (auth + prisma store).
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("charge-render actions", () => {
+  it("chargeVideo deducts the cost and writes exactly one render_spend row", async () => {
+    seedUser("c1", 100, "pro");
+    mockedAuth.mockResolvedValue(asSession("c1"));
+
+    const res = await chargeVideo({ jobId: "j-skel", format: "skeleton", durationSeconds: 30 });
+
+    expect(res).toMatchObject({ ok: true });
+    expect(balanceOf("c1")).toBe(85); // skeleton = 15
+    const spends = txsByType("render_spend");
+    expect(spends).toHaveLength(1);
+    expect(spends[0].delta).toBe(-15);
+  });
+
+  it("animated_story is Pro-gated: free/creator blocked with no spend, pro charged per second", async () => {
+    for (const plan of ["free", "creator"] as const) {
+      store.users.clear();
+      store.txs.length = 0;
+      vi.clearAllMocks();
+      seedUser("c2", 1000, plan);
+      mockedAuth.mockResolvedValue(asSession("c2"));
+
+      const res = await chargeVideo({ jobId: "j-story", format: "animated_story", durationSeconds: 60 });
+      expect(res).toMatchObject({ ok: false, error: "plan_not_allowed", format: "animated_story" });
+      expect(balanceOf("c2")).toBe(1000);
+      expect(store.txs).toHaveLength(0);
+    }
+
+    // Pro: charged ceil(1.5 * 60) = 90
+    store.users.clear();
+    store.txs.length = 0;
+    vi.clearAllMocks();
+    seedUser("c2", 1000, "pro");
+    mockedAuth.mockResolvedValue(asSession("c2"));
+
+    const res = await chargeVideo({ jobId: "j-story", format: "animated_story", durationSeconds: 60 });
+    expect(res).toMatchObject({ ok: true });
+    expect(balanceOf("c2")).toBe(910);
+    expect(txsByType("render_spend")[0].delta).toBe(-90);
+  });
+
+  it("animated_skeleton is Pro-gated: free/creator blocked with no spend, pro charged per second", async () => {
+    for (const plan of ["free", "creator"] as const) {
+      store.users.clear();
+      store.txs.length = 0;
+      vi.clearAllMocks();
+      seedUser("c3", 1000, plan);
+      mockedAuth.mockResolvedValue(asSession("c3"));
+
+      const res = await chargeVideo({ jobId: "j-askel", format: "animated_skeleton", durationSeconds: 90 });
+      expect(res).toMatchObject({ ok: false, error: "plan_not_allowed", format: "animated_skeleton" });
+      expect(balanceOf("c3")).toBe(1000);
+      expect(store.txs).toHaveLength(0);
+    }
+
+    // Pro: charged ceil(1.5 * 90) = 135
+    store.users.clear();
+    store.txs.length = 0;
+    vi.clearAllMocks();
+    seedUser("c3", 1000, "pro");
+    mockedAuth.mockResolvedValue(asSession("c3"));
+
+    const res = await chargeVideo({ jobId: "j-askel", format: "animated_skeleton", durationSeconds: 90 });
+    expect(res).toMatchObject({ ok: true });
+    expect(balanceOf("c3")).toBe(865);
+    expect(txsByType("render_spend")[0].delta).toBe(-135);
+  });
+
+  it("chargePost deducts the post cost and writes one post_spend row", async () => {
+    seedUser("c4", 100, "free");
+    mockedAuth.mockResolvedValue(asSession("c4"));
+
+    const res = await chargePost({ jobId: "j-meme", format: "meme_ad" });
+
+    expect(res).toMatchObject({ ok: true });
+    expect(balanceOf("c4")).toBe(90); // meme_ad = 10
+    expect(txsByType("post_spend")).toHaveLength(1);
+    expect(txsByType("post_spend")[0].delta).toBe(-10);
+  });
+
+  it("refundRender restores a charge, netting back to the original balance", async () => {
+    seedUser("c5", 100, "free");
+    mockedAuth.mockResolvedValue(asSession("c5"));
+
+    await chargePost({ jobId: "j-refund", format: "ai_scene" }); // 10
+    expect(balanceOf("c5")).toBe(90);
+
+    await refundRender({ jobId: "j-refund" });
+    expect(balanceOf("c5")).toBe(100);
+    expect(txsByType("refund")).toHaveLength(1);
+    expect(txsByType("refund")[0].delta).toBe(10);
+  });
+
+  it("insufficient balance is rejected with no spend", async () => {
+    seedUser("c6", 5, "pro");
+    mockedAuth.mockResolvedValue(asSession("c6"));
+
+    const res = await chargeVideo({ jobId: "j-skel2", format: "skeleton", durationSeconds: 30 });
+    expect(res).toMatchObject({ ok: false, error: "insufficient_credits", needed: 15, balance: 5 });
+    expect(balanceOf("c6")).toBe(5);
+    expect(store.txs).toHaveLength(0);
   });
 });

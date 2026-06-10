@@ -9,6 +9,8 @@ import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import { ART_STYLES as artStyles, type ArtStyle, artPreviewSrc } from "@/lib/artStyles";
 import type { UserPrefs } from "@/lib/createOptions";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import { chargeVideo, refundRender } from "@/app/actions/charge-render";
 
 // ── Topic presets (29 topics) ──
 
@@ -379,6 +381,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
 
   // Preview flow state
   const [prepareError, setPrepareError] = useState<string | null>(null);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
 
   // Popover state
   const [durationPopoverOpen, setDurationPopoverOpen] = useState(false);
@@ -882,11 +885,19 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
     if (!scriptData) return;
     setPrepareError(null);
 
-    // ── STEP 6 (billing) — this ai-story flow does NOT yet charge credits.
-    //    Before dispatch, spendCredits must be wired HERE, gated by canUseVideoFormat:
-    //    format = animated (has motion prompts / Seedance) ? 'animated_story' : 'ai_story'.
-    //    'animated_story' is Pro-only, so the gate (currently unenforced for this lane)
-    //    lands with the charge. See project_credit_billing.md / PR #1 Step 6.
+    const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const format = sceneMode === "animated" ? "animated_story" : "ai_story";
+    const charge = await chargeVideo({ jobId, format, durationSeconds: duration });
+    if (!charge.ok) {
+      if (charge.error === "insufficient_credits") {
+        setCreditError({ needed: charge.needed, balance: charge.balance });
+      } else if (charge.error === "plan_not_allowed") {
+        setPrepareError("Animated videos require the Pro plan.");
+      } else {
+        setPrepareError("Please sign in to create.");
+      }
+      return;
+    }
 
     try {
       const fullScript = editScenes.map((s) => s.text).join(" ");
@@ -894,7 +905,6 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
       const title = editHook || scriptData.hook || "AI Voice Story";
 
       // 1. Create library item with status "preparing"
-      const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const thumbnailUrl = [hookImageUrl, ...sceneImageUrls].find(
         (url) => typeof url === "string" && url.startsWith("https://") && !url.endsWith(".mp4") && !url.endsWith(".webm")
       ) || null;
@@ -958,6 +968,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
         },
       }).catch((err) => {
         console.error("Failed to trigger prepare-assets:", err);
+        refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
       });
 
       // 3. Navigate immediately
@@ -965,6 +976,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
     } catch (err) {
       console.error("Failed to start preview:", err);
       setPrepareError(err instanceof Error ? err.message : "Failed to start preview");
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   };
 
@@ -2144,6 +2156,13 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
         onSelect={handleVoiceSelect}
         currentVoiceId={selectedVoice?.fishAudioId || defaultVoice.fishAudioId}
       />
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
+      )}
     </main>
   );
 }

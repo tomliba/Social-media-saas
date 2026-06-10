@@ -8,6 +8,8 @@ import { triggerPrepareAssets } from "@/app/actions/prepare-assets";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import type { UserPrefs } from "@/lib/createOptions";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import { chargeVideo, refundRender } from "@/app/actions/charge-render";
 
 // ── Script source modes (same accordion pattern as Argument) ──
 
@@ -357,6 +359,7 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
 
   // Preview flow state
   const [prepareError, setPrepareError] = useState<string | null>(null);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
 
   // Popover state
   const [durationPopoverOpen, setDurationPopoverOpen] = useState(false);
@@ -838,12 +841,25 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
     if (!scriptData) return;
     setPrepareError(null);
 
+    const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const format = sceneMode === "animated" ? "animated_skeleton" : "skeleton";
+    const charge = await chargeVideo({ jobId, format, durationSeconds: duration });
+    if (!charge.ok) {
+      if (charge.error === "insufficient_credits") {
+        setCreditError({ needed: charge.needed, balance: charge.balance });
+      } else if (charge.error === "plan_not_allowed") {
+        setPrepareError("Animated videos require the Pro plan.");
+      } else {
+        setPrepareError("Please sign in to create.");
+      }
+      return;
+    }
+
     try {
       const fullScript = editScenes.map((s) => s.text).join(" ");
       const aiStorySettings = buildAiStorySettings();
       const title = editHook || scriptData.hook || "Skeleton Video";
 
-      const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const thumbnailUrl = [hookImageUrl, ...sceneImageUrls].find(
         (url) => typeof url === "string" && url.startsWith("https://") && !url.endsWith(".mp4") && !url.endsWith(".webm")
       ) || null;
@@ -895,12 +911,14 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
         },
       }).catch((err) => {
         console.error("Failed to trigger prepare-assets:", err);
+        refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
       });
 
       router.push("/library");
     } catch (err) {
       console.error("Failed to start preview:", err);
       setPrepareError(err instanceof Error ? err.message : "Failed to start preview");
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   };
 
@@ -1841,6 +1859,13 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
       </footer>
 
       <VoicePickerModal open={voiceModalOpen} onClose={() => setVoiceModalOpen(false)} onSelect={handleVoiceSelect} currentVoiceId={selectedVoice?.fishAudioId || defaultVoice.fishAudioId} />
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
+      )}
     </main>
   );
 }

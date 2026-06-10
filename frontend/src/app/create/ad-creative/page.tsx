@@ -3,6 +3,8 @@
 import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import { chargePost, refundRender } from "@/app/actions/charge-render";
 
 // ── Visual concepts ──
 
@@ -72,6 +74,7 @@ function AdCreativeContent() {
   const [step, setStep] = useState<Step>("input");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
 
   // ── Step 1 → 2 ──
   const handleContinueToConcept = () => {
@@ -84,7 +87,7 @@ function AdCreativeContent() {
   };
 
   // ── Background generation: generate image, upload to R2, update library entry ──
-  const generateInBackground = useCallback(async (libraryItemId: string, prod: string, desc: string, conceptId: string, variationIndex: number) => {
+  const generateInBackground = useCallback(async (libraryItemId: string, jobId: string, prod: string, desc: string, conceptId: string, variationIndex: number) => {
     try {
       // 1. Generate image via server-side route (builds prompt + calls Flask)
       const res = await fetch("/api/ad-creative/generate", {
@@ -119,6 +122,7 @@ function AdCreativeContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "failed", error: err instanceof Error ? err.message : "Generation failed" }),
       }).catch(() => {});
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   }, []);
 
@@ -127,6 +131,18 @@ function AdCreativeContent() {
     if (!selectedConcept || submitting) return;
     setSubmitting(true);
     setError(null);
+
+    const jobId = `ad-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const charge = await chargePost({ jobId, format: "ad_creative" });
+    if (!charge.ok) {
+      setSubmitting(false);
+      if (charge.error === "insufficient_credits") {
+        setCreditError({ needed: charge.needed, balance: charge.balance });
+      } else {
+        setError("Please sign in to create.");
+      }
+      return;
+    }
 
     try {
       const conceptName = concepts.find((c) => c.id === selectedConcept)?.name || "Ad";
@@ -137,7 +153,7 @@ function AdCreativeContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobId: `ad-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          jobId,
           title,
           format: "image",
           status: "rendering",
@@ -147,13 +163,14 @@ function AdCreativeContent() {
       const { item } = await res.json();
 
       // Fire background generation (don't await)
-      generateInBackground(item.id, product, description, selectedConcept, 0);
+      generateInBackground(item.id, jobId, product, description, selectedConcept, 0);
 
       // Redirect immediately
       router.push("/library");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start generation");
       setSubmitting(false);
+      refundRender({ jobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   }, [selectedConcept, submitting, product, description, generateInBackground, router]);
 
@@ -314,6 +331,13 @@ function AdCreativeContent() {
             </button>
           </div>
         </section>
+      )}
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
       )}
     </main>
   );

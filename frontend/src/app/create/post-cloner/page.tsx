@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import { chargePost, refundRender } from "@/app/actions/charge-render";
 
 type Step = "input" | "processing" | "results";
 type CloneMode = "exact" | "fresh";
@@ -44,6 +46,7 @@ export default function PostClonerPage() {
   const [cloneMode, setCloneMode] = useState<CloneMode>("exact");
   const [caption, setCaption] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [jobResult, setJobResult] = useState<JobResult | null>(null);
   const [saving, setSaving] = useState(false);
@@ -103,6 +106,19 @@ export default function PostClonerPage() {
 
   const startClone = async (slides: SlideData[]) => {
     setError(null);
+
+    const chargeKey = `clone-charge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const charge = await chargePost({ jobId: chargeKey, format: "post_cloner" });
+    if (!charge.ok) {
+      if (charge.error === "insufficient_credits") {
+        setCreditError({ needed: charge.needed, balance: charge.balance });
+      } else {
+        setError("Please sign in to clone.");
+      }
+      setStep("input");
+      return;
+    }
+
     setStep("processing");
     setJobStatus({ job_id: "", status: "processing", current_step: "Starting...", total_slides: slides.length, completed_slides: 0, error: null });
 
@@ -135,6 +151,7 @@ export default function PostClonerPage() {
           setJobResult(result);
           setStep("results");
         } else if (status.status === "failed") {
+          refundRender({ jobId: chargeKey }).catch((e) => console.error("refundRender call failed:", e));
           setError(status.error || "Clone failed");
           setStep("input");
         } else {
@@ -143,6 +160,7 @@ export default function PostClonerPage() {
       };
       setTimeout(poll, 2000);
     } catch (e) {
+      refundRender({ jobId: chargeKey }).catch((er) => console.error("refundRender call failed:", er));
       setError(e instanceof Error ? e.message : "Clone failed");
       setStep("input");
     }
@@ -508,6 +526,13 @@ export default function PostClonerPage() {
             </button>
           </div>
         </div>
+      )}
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
       )}
     </main>
   );

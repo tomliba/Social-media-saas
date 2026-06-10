@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { UserPrefs } from "@/lib/createOptions";
+import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import { chargeVideo, refundRender } from "@/app/actions/charge-render";
 
 // ── Tone options (shared with AIStorySetup) ──
 
@@ -280,6 +282,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
 
   // Music preview playback
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
@@ -534,6 +537,17 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
     setRendering(true);
     setGenerateError(null);
 
+    const charge = await chargeVideo({ jobId: vgJobId, format: "argument", durationSeconds: duration });
+    if (!charge.ok) {
+      setRendering(false);
+      if (charge.error === "insufficient_credits") {
+        setCreditError({ needed: charge.needed, balance: charge.balance });
+      } else {
+        setGenerateError("Please sign in to create.");
+      }
+      return;
+    }
+
     try {
       // 1. Create library item
       const libRes = await fetch("/api/library", {
@@ -587,6 +601,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : "Failed to start render");
       setRendering(false);
+      refundRender({ jobId: vgJobId }).catch((e) => console.error("refundRender call failed:", e));
     }
   }, [vgJobId, lines, selectedBg, speed, captionsEnabled, captionStyle, captionFontSize, captionTransform, music, filmGrain, shake, selectedTopic, duration, router]);
 
@@ -1566,6 +1581,13 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
             </div>
           </div>
         </div>
+      )}
+      {creditError && (
+        <InsufficientCreditsDialog
+          needed={creditError.needed}
+          balance={creditError.balance}
+          onClose={() => setCreditError(null)}
+        />
       )}
     </main>
   );

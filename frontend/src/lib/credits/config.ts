@@ -22,7 +22,8 @@ export type VideoFormat =
   | 'argument'
   | 'skeleton'                        // Flux Dev
   | 'animated_character'              // Flux Dev + Seedance
-  | 'animated_story';                 // Flux Dev + Seedance
+  | 'animated_story'                  // Flux Dev + Seedance
+  | 'animated_skeleton';             // Flux Dev + Seedance (skeleton, animated)
 
 export type PostFormat =
   | 'image_post_template'             // free HTML
@@ -60,7 +61,7 @@ const FLAT_VIDEO: Partial<Record<VideoFormat, number>> = {
 // Pro-only (see PLAN_FEATURES). Bump to 1.65 if you want a wider cushion.
 export const ANIMATED_CREDITS_PER_SEC = 1.5;
 
-const ANIMATED_FORMATS: VideoFormat[] = ['animated_character', 'animated_story'];
+const ANIMATED_FORMATS: VideoFormat[] = ['animated_character', 'animated_story', 'animated_skeleton'];
 
 export function videoCost(format: VideoFormat, durationSeconds: number): number {
   if (ANIMATED_FORMATS.includes(format)) {
