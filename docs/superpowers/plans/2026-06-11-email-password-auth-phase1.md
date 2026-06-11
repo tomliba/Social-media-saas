@@ -129,24 +129,54 @@ model PasswordResetToken {
 }
 ```
 
-- [ ] **Step 2: Create and apply the migration to the local/dev DB**
+> ⚠️ **Important (verified during execution):** the local `.env` `DATABASE_URL` points at the **same Neon database as production** — there is no separate dev DB. Therefore **do NOT run `prisma migrate dev`** (it applies to the DB and can reset/drift prod). Author the migration **offline** here; it is applied to Neon only at the gated Task 18 via `prisma migrate deploy`.
 
-Run: `npx prisma migrate dev --name add_password_auth`
-Expected: migration created under `prisma/migrations/`, applied, and Prisma Client regenerated. (Requires `DATABASE_URL` + `DIRECT_URL` in `.env`.)
+- [ ] **Step 2: Hand-author the migration SQL (no DB contact)**
 
-- [ ] **Step 3: Verify the client has the new fields**
+Create `prisma/migrations/20260611120000_add_password_auth/migration.sql` with exactly:
+
+```sql
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "password" TEXT;
+
+-- CreateTable
+CREATE TABLE "PasswordResetToken" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "expires" TIMESTAMP(3) NOT NULL,
+    "consumedAt" TIMESTAMP(3),
+    CONSTRAINT "PasswordResetToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PasswordResetToken_tokenHash_key" ON "PasswordResetToken"("tokenHash");
+
+-- CreateIndex
+CREATE INDEX "PasswordResetToken_userId_idx" ON "PasswordResetToken"("userId");
+
+-- AddForeignKey
+ALTER TABLE "PasswordResetToken" ADD CONSTRAINT "PasswordResetToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+```
+
+- [ ] **Step 3: Regenerate the Prisma client from the schema (offline, no DB)**
+
+Run: `npx prisma generate`
+Expected: "Generated Prisma Client" — reads `schema.prisma` only, does not touch the DB.
+
+- [ ] **Step 4: Verify the client has the new fields**
 
 Run: `npx tsc --noEmit`
-Expected: exit 0 (no type changes break yet; this just confirms the client regenerated).
+Expected: exit 0 (confirms the client regenerated with `password` + `PasswordResetToken`).
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add prisma/schema.prisma prisma/migrations
-git commit -m "feat(db): add User.password and PasswordResetToken (add_password_auth migration)"
+git commit -m "feat(db): add User.password and PasswordResetToken (add_password_auth migration, offline)"
 ```
 
-> ⚠️ **Deploy-time:** this migration must be applied to Neon prod with `npx prisma migrate deploy` (see Task 18). The Vercel build only runs `prisma generate`.
+> ⚠️ **Deploy-time (Task 18):** apply with `npx prisma migrate deploy` against Neon (needs `DATABASE_URL` + `DIRECT_URL`). The Vercel build only runs `prisma generate`, so without this step signup/login error in prod.
 
 ---
 

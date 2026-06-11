@@ -1,9 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 
 export default function SignupPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault();
+    if (password.length < 8) { setFormError("Password must be at least 8 characters."); return; }
+    setSubmitting(true); setFormError(null);
+    const res = await fetch("/api/auth/signup", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    setSubmitting(false);
+    if (res.ok) setDone(true);
+    else setFormError("Enter a valid email and a password of at least 8 characters.");
+  }
+
   return (
     <main className="min-h-screen bg-surface flex items-center justify-center px-6">
       <div className="w-full max-w-md">
@@ -50,6 +70,32 @@ export default function SignupPage() {
             </svg>
             Sign up with Google
           </button>
+
+          {/* Or divider */}
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-outline-variant/20" />
+            <span className="text-xs text-on-surface-variant font-bold uppercase">or</span>
+            <div className="flex-1 h-px bg-outline-variant/20" />
+          </div>
+
+          {/* Email/password signup */}
+          {done ? (
+            <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg text-primary text-sm text-center">
+              Check your email for a verification link to finish signing up.
+            </div>
+          ) : (
+            <form onSubmit={handleSignup} className="flex flex-col gap-3">
+              {formError && <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm text-center">{formError}</div>}
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"
+                className="px-4 py-3 bg-surface-container-low border border-outline-variant/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/40" />
+              <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)"
+                className="px-4 py-3 bg-surface-container-low border border-outline-variant/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/40" />
+              <button type="submit" disabled={submitting}
+                className="px-6 py-3 bg-primary text-on-primary rounded-xl font-headline font-bold hover:opacity-90 transition disabled:opacity-50">
+                {submitting ? "Creating…" : "Create account"}
+              </button>
+            </form>
+          )}
 
           {/* What you get */}
           <div className="mt-8 space-y-3">

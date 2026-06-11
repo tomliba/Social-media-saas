@@ -54,6 +54,7 @@ model User {
   emailVerified DateTime?
   name          String?
   image         String?
+  password      String?   // bcrypt hash; null for Google-only accounts
 
   // Plan & billing
   plan          String    @default("free") // free, creator, pro
@@ -83,6 +84,19 @@ model User {
   contentItems  ContentItem[]
   creditTransactions CreditTransaction[]
   preferences   UserPreferences?
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expires    DateTime
+  consumedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Per-format default settings that pre-fill the Create flow.
