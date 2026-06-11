@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import PricingSection from "@/components/PricingSection";
 
 export const metadata = {
-  title: "Pricing — The Fluid Curator",
+  title: "Pricing — Fluvio",
   description: "Credit-based plans: Free, Creator, and Pro.",
 };
 

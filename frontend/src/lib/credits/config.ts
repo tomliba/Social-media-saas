@@ -2,7 +2,7 @@
 //
 // Credit system — single source of truth.
 //
-// Locked pricing, Fluid Curator. Three tiers: Free, Creator, Pro.
+// Locked pricing, Fluvio. Three tiers: Free, Creator, Pro.
 // Free $0 / 30 credits, Creator $24 / 600 credits, Pro $59 / 2000 credits.
 // Credit value: Creator $0.040, Pro $0.0295. Pro is the margin floor, so anything
 // that clears at the Pro rate clears everywhere.

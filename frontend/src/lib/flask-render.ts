@@ -177,7 +177,7 @@ export async function renderVideoViaFlask(
   // ── Revoice mode: calls /vg/start directly (not /vg/render) ──
   if (payload.settings.revoiceMode === true) {
     if (!base) {
-      return { videoUrl: "", caption: `${payload.title} — Created with The Fluid Curator.` };
+      return { videoUrl: "", caption: `${payload.title} — Created with Fluvio.` };
     }
     const headers = flaskHeaders();
     const tone = toneMap[payload.settings.tone] ?? "funny_clean";
@@ -265,14 +265,14 @@ export async function renderVideoViaFlask(
 
     const flaskPath = `/vg/preview/${outputDir}/${videoFilename}`;
     const videoUrl = `/api/video-proxy?path=${encodeURIComponent(flaskPath)}`;
-    return { videoUrl, caption: `${payload.title} — Created with The Fluid Curator.` };
+    return { videoUrl, caption: `${payload.title} — Created with Fluvio.` };
   }
   // ── End Revoice branch. Fall through to existing code path for all other modes. ──
 
   console.log("[flask-render] ENTRY backgroundMode =", payload.settings.backgroundMode, "mapped =", backgroundModeMap[payload.settings.backgroundMode ?? "Smart Mix"]);
   if (!base) {
     // No Flask either — return empty (simulation)
-    return { videoUrl: "", caption: `${payload.title} — Created with The Fluid Curator.` };
+    return { videoUrl: "", caption: `${payload.title} — Created with Fluvio.` };
   }
 
   const headers = flaskHeaders();
@@ -799,7 +799,7 @@ export async function renderPostViaFlask(
     const results: DirectPostResult[] = payload.ideaTopics.map((topic) => ({
       topic,
       imageUrls: [],
-      caption: `${topic} — Created with The Fluid Curator.`,
+      caption: `${topic} — Created with Fluvio.`,
     }));
     return { results, succeeded: results.length, failed: 0 };
   }

@@ -15,7 +15,7 @@ const beVietnam = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "The Fluid Curator | Make a week of content before lunch",
+  title: "Fluvio | Make a week of content before lunch",
   description:
     "AI short-form video creation for creators. Pick a template. AI writes the script. Choose your character. Get a finished video in 2 minutes.",
 };

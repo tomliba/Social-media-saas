@@ -67,7 +67,7 @@ export default function ComparisonSection() {
             </span>
           </div>
           <h3 className="font-headline font-bold text-2xl text-primary mb-8">
-            With The Fluid Curator
+            With Fluvio
           </h3>
           <ul className="space-y-6">
             {newWaySteps.map((step) => (

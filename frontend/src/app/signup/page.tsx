@@ -31,7 +31,7 @@ export default function SignupPage() {
         <div className="text-center mb-10">
           <Link href="/">
             <h1 className="text-3xl font-black font-headline tracking-tighter text-gradient inline-block">
-              The Fluid Curator
+              Fluvio
             </h1>
           </Link>
         </div>

@@ -8,7 +8,7 @@ export default function Navbar() {
           href="/"
           className="text-xl font-black text-violet-600 font-headline tracking-tight"
         >
-          The Fluid Curator
+          Fluvio
         </Link>
 
         <div className="hidden md:flex items-center space-x-8 font-headline font-semibold tracking-tight">
@@ -19,7 +19,7 @@ export default function Navbar() {
             Features
           </Link>
           <Link
-            href="#pricing"
+            href="/#pricing"
             className="text-neutral-500 hover:text-violet-500 transition-all duration-300"
           >
             Pricing

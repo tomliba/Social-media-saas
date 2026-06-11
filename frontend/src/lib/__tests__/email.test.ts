@@ -6,7 +6,7 @@ vi.mock("resend", () => ({ Resend: vi.fn(() => ({ emails: { send } })) }));
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.RESEND_API_KEY = "re_test";
-  process.env.EMAIL_FROM = "Fluid Curator <noreply@example.com>";
+  process.env.EMAIL_FROM = "Fluvio <noreply@example.com>";
   process.env.NEXT_PUBLIC_APP_URL = "https://app.example.com";
 });
 
