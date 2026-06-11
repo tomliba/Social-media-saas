@@ -6,13 +6,6 @@ import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import type { renderVideo } from "@trigger/render-video";
 import type { renderPost } from "@trigger/render-post";
 
-const platforms = [
-  { key: "web", icon: "public", label: "Web" },
-  { key: "reels", icon: "movie", label: "Reels" },
-  { key: "yt", icon: "video_library", label: "YouTube" },
-  { key: "x", icon: "alternate_email", label: "X" },
-];
-
 const gradients = [
   "from-violet-900 via-purple-800 to-indigo-900",
   "from-zinc-600 via-stone-500 to-zinc-700",
@@ -124,18 +117,7 @@ function ReadyVideoCard({
   total: number;
   visualSegments?: VisualSegmentMeta[];
 }) {
-  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
-  const [showScheduler, setShowScheduler] = useState(false);
   const [videoError, setVideoError] = useState(false);
-
-  const togglePlatform = (key: string) => {
-    setActivePlatforms((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
 
   const hasVideo = videoUrl && !videoError;
 
@@ -150,9 +132,7 @@ function ReadyVideoCard({
         </span>
       </div>
       <div
-        className={`bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)] ${
-          showScheduler ? "border-2 border-primary/20" : ""
-        }`}
+        className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)]"
       >
         <div className="relative aspect-video rounded-lg overflow-hidden mb-6 bg-black group-hover:scale-[1.01] transition-transform duration-500 shadow-inner">
           {hasVideo ? (
@@ -182,10 +162,8 @@ function ReadyVideoCard({
         )}
 
         <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{title}</h2>
-        <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
         <CaptionBlock caption={caption} />
-        <SchedulerBlock show={showScheduler} />
-        <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
+        <LibraryActions />
       </div>
     </section>
   );
@@ -339,18 +317,7 @@ function ReadyPostCard({
   index: number;
   total: number;
 }) {
-  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
-  const [showScheduler, setShowScheduler] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
-
-  const togglePlatform = (key: string) => {
-    setActivePlatforms((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
 
   return (
     <section className="group animate-in fade-in duration-500">
@@ -363,9 +330,7 @@ function ReadyPostCard({
         </span>
       </div>
       <div
-        className={`bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)] ${
-          showScheduler ? "border-2 border-primary/20" : ""
-        }`}
+        className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)]"
       >
         {/* Image preview */}
         {imageUrls.length > 0 ? (
@@ -402,10 +367,8 @@ function ReadyPostCard({
         )}
 
         <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{topic}</h2>
-        <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
         <CaptionBlock caption={caption} />
-        <SchedulerBlock show={showScheduler} />
-        <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
+        <LibraryActions />
       </div>
     </section>
   );
@@ -414,36 +377,6 @@ function ReadyPostCard({
 // ══════════════════════════════════════════════════════════════
 //  SHARED COMPONENTS
 // ══════════════════════════════════════════════════════════════
-
-function PlatformSelector({ activePlatforms, onToggle }: { activePlatforms: Set<string>; onToggle: (key: string) => void }) {
-  return (
-    <div className="flex items-center gap-3 mb-6">
-      {platforms.map((p) => {
-        const isActive = activePlatforms.has(p.key);
-        return (
-          <button
-            key={p.key}
-            onClick={() => onToggle(p.key)}
-            title={`${p.label}${isActive ? " (active)" : ""}`}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-full transition-all duration-200 text-sm font-medium ${
-              isActive
-                ? "bg-primary text-on-primary shadow-md ring-2 ring-primary/30"
-                : "bg-surface-container-low text-on-surface-variant/50 hover:bg-surface-container-high hover:text-on-surface-variant"
-            }`}
-          >
-            <span
-              className="material-symbols-outlined text-lg"
-              style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-            >
-              {p.icon}
-            </span>
-            <span className="text-xs font-bold">{p.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 function CaptionBlock({ caption }: { caption: string | null }) {
   if (!caption) return null;
@@ -460,45 +393,15 @@ function CaptionBlock({ caption }: { caption: string | null }) {
   );
 }
 
-function SchedulerBlock({ show }: { show: boolean }) {
-  if (!show) return null;
-  return (
-    <div className="mb-6 p-5 bg-surface-container-high/50 rounded-lg">
-      <div className="flex items-center gap-2 mb-4 text-primary font-bold text-sm">
-        <span className="material-symbols-outlined text-lg">calendar_month</span>
-        <span>Set Publication Date</span>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-3 bg-surface-container-lowest rounded-sm border border-outline-variant/20">
-          <span className="block text-[10px] uppercase tracking-wider text-outline-variant font-bold mb-1">Date</span>
-          <span className="font-medium text-on-surface">Mar 31, 2026</span>
-        </div>
-        <div className="p-3 bg-surface-container-lowest rounded-sm border border-outline-variant/20">
-          <span className="block text-[10px] uppercase tracking-wider text-outline-variant font-bold mb-1">Time</span>
-          <span className="font-medium text-on-surface">10:00 AM</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ActionButtons({ showScheduler, onToggleScheduler }: { showScheduler: boolean; onToggleScheduler: () => void }) {
+function LibraryActions() {
   return (
     <div className="flex items-center gap-3">
-      <button
-        onClick={onToggleScheduler}
-        className="flex-1 py-3 rounded-full font-label font-bold shadow-md primary-gradient text-on-primary hover:opacity-90 transition-opacity"
+      <Link
+        href="/library"
+        className="flex-1 py-3 rounded-full font-label font-bold shadow-md primary-gradient text-on-primary hover:opacity-90 transition-opacity text-center"
       >
-        {showScheduler ? "Confirm Schedule" : "Schedule"}
-      </button>
-      {!showScheduler && (
-        <button className="px-6 py-3 border-2 border-primary text-primary rounded-full font-label font-bold hover:bg-primary/5 transition-colors">
-          Post now
-        </button>
-      )}
-      <button className="p-3 text-outline-variant hover:text-error transition-colors">
-        <span className="material-symbols-outlined">delete</span>
-      </button>
+        View in Library
+      </Link>
     </div>
   );
 }
@@ -540,17 +443,6 @@ function RenderingCard({
           <span className="text-primary font-bold text-xs">{progress}%</span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button disabled className="flex-1 bg-surface-container-highest text-on-surface-variant/40 py-3 rounded-full font-label font-bold cursor-not-allowed">
-            Schedule
-          </button>
-          <button disabled className="px-6 py-3 border-2 border-surface-container-highest text-on-surface-variant/40 rounded-full font-label font-bold cursor-not-allowed">
-            Post now
-          </button>
-          <button disabled className="p-3 text-on-surface-variant/20 cursor-not-allowed">
-            <span className="material-symbols-outlined">delete</span>
-          </button>
-        </div>
       </div>
     </section>
   );
@@ -602,18 +494,7 @@ function ReadyCarouselCard({
   index: number;
   total: number;
 }) {
-  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
-  const [showScheduler, setShowScheduler] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
-
-  const togglePlatform = (key: string) => {
-    setActivePlatforms((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
 
   return (
     <section className="group animate-in fade-in duration-500">
@@ -626,9 +507,7 @@ function ReadyCarouselCard({
         </span>
       </div>
       <div
-        className={`bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)] ${
-          showScheduler ? "border-2 border-primary/20" : ""
-        }`}
+        className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)]"
       >
         {/* Horizontal scrollable slide preview */}
         {result.images.length > 0 && (
@@ -681,10 +560,8 @@ function ReadyCarouselCard({
         )}
 
         <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{result.title}</h2>
-        <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
         <CaptionBlock caption={result.caption} />
-        <SchedulerBlock show={showScheduler} />
-        <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
+        <LibraryActions />
       </div>
     </section>
   );
@@ -709,18 +586,7 @@ function ReadyTextCard({
   index: number;
   total: number;
 }) {
-  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
-  const [showScheduler, setShowScheduler] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  const togglePlatform = (key: string) => {
-    setActivePlatforms((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(result.text);
@@ -746,9 +612,7 @@ function ReadyTextCard({
         </span>
       </div>
       <div
-        className={`bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)] ${
-          showScheduler ? "border-2 border-primary/20" : ""
-        }`}
+        className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)]"
       >
         <div className="flex justify-between items-start mb-4">
           <h2 className="text-xl font-headline font-bold text-on-surface">{result.title}</h2>
@@ -770,9 +634,7 @@ function ReadyTextCard({
           {result.text}
         </div>
 
-        <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
-        <SchedulerBlock show={showScheduler} />
-        <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
+        <LibraryActions />
       </div>
     </section>
   );
@@ -797,17 +659,6 @@ function ReadyImagePostCard({
   index: number;
   total: number;
 }) {
-  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(["reels"]));
-  const [showScheduler, setShowScheduler] = useState(false);
-
-  const togglePlatform = (key: string) => {
-    setActivePlatforms((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
 
   return (
     <section className="group animate-in fade-in duration-500">
@@ -820,9 +671,7 @@ function ReadyImagePostCard({
         </span>
       </div>
       <div
-        className={`bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)] ${
-          showScheduler ? "border-2 border-primary/20" : ""
-        }`}
+        className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_20px_40px_rgba(111,51,213,0.04)] transition-all hover:shadow-[0px_20px_40px_rgba(111,51,213,0.08)]"
       >
         {result.image && (
           <div className="mb-6">
@@ -838,10 +687,8 @@ function ReadyImagePostCard({
         )}
 
         <h2 className="text-xl font-headline font-bold mb-4 text-on-surface">{result.title}</h2>
-        <PlatformSelector activePlatforms={activePlatforms} onToggle={togglePlatform} />
         <CaptionBlock caption={result.caption} />
-        <SchedulerBlock show={showScheduler} />
-        <ActionButtons showScheduler={showScheduler} onToggleScheduler={() => setShowScheduler(!showScheduler)} />
+        <LibraryActions />
       </div>
     </section>
   );
@@ -935,7 +782,7 @@ export default function ReviewPage() {
   const subText = isCarousel
     ? `${totalItems} carousel${totalItems !== 1 ? "s" : ""} rendered successfully`
     : isText
-      ? `${totalItems} text post${totalItems !== 1 ? "s" : ""} ready to publish`
+      ? `${totalItems} text post${totalItems !== 1 ? "s" : ""} ready`
       : isTemplateImage
         ? `${totalItems} image post${totalItems !== 1 ? "s" : ""} rendered successfully`
         : isImage
