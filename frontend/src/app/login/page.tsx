@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -10,8 +9,6 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const error = searchParams.get("error");
-  const [devEmail, setDevEmail] = useState("dev@example.com");
-  const [devSecret, setDevSecret] = useState("");
 
   return (
     <main className="min-h-screen bg-surface flex items-center justify-center px-6">
@@ -67,45 +64,6 @@ function LoginForm() {
             </svg>
             Continue with Google
           </button>
-
-          {/* Dev Login — Credentials provider only registered in development */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-outline-variant/20" />
-            <span className="text-xs text-on-surface-variant font-bold uppercase">
-              Dev only
-            </span>
-            <div className="flex-1 h-px bg-outline-variant/20" />
-          </div>
-          <div className="flex flex-col gap-2">
-            <input
-              type="email"
-              value={devEmail}
-              onChange={(e) => setDevEmail(e.target.value)}
-              className="px-4 py-3 bg-surface-container-low border border-outline-variant/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/40"
-              placeholder="dev@example.com"
-            />
-            <div className="flex gap-2">
-              <input
-                type="password"
-                value={devSecret}
-                onChange={(e) => setDevSecret(e.target.value)}
-                className="flex-1 px-4 py-3 bg-surface-container-low border border-outline-variant/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/40"
-                placeholder="Secret (deployed only)"
-              />
-              <button
-                onClick={() =>
-                  signIn("credentials", {
-                    email: devEmail,
-                    secret: devSecret,
-                    callbackUrl,
-                  })
-                }
-                className="px-5 py-3 bg-surface-container-highest text-on-surface rounded-lg text-sm font-bold hover:bg-surface-dim transition-colors"
-              >
-                Dev Login
-              </button>
-            </div>
-          </div>
 
           <div className="mt-8 text-center">
             <p className="text-on-surface-variant text-sm">
