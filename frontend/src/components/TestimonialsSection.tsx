@@ -4,7 +4,11 @@ import Link from "next/link";
 // soon" placeholder). Real follower counts provided by the founder; both
 // Instagram profile URLs verified to resolve (HTTP 200). No invented
 // quotes/testimonials anywhere — the founder accounts are the social proof.
-const accounts = [
+// `image` is optional: when a real profile image is provided, the card uses it;
+// otherwise it falls back to a clean letter monogram (no fake/silhouette photo).
+type Account = { handle: string; href: string; followers: string; blurb: string; image?: string };
+
+const accounts: Account[] = [
   {
     handle: "@doctor_curses",
     href: "https://instagram.com/doctor_curses",
@@ -40,14 +44,18 @@ export default function TestimonialsSection() {
             className="bg-surface-container-lowest p-8 rounded-[1rem] border border-outline-variant/10 hover:border-primary/30 hover:shadow-lg transition-all flex flex-col gap-3 group"
           >
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full primary-gradient flex items-center justify-center text-white">
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  person
-                </span>
-              </div>
+              {a.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={a.image}
+                  alt={a.handle}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full primary-gradient flex items-center justify-center text-white font-headline font-bold text-lg">
+                  {a.handle.replace("@", "").charAt(0).toUpperCase()}
+                </div>
+              )}
               <div>
                 <p className="font-headline font-bold text-on-surface group-hover:text-primary transition-colors">
                   {a.handle}
