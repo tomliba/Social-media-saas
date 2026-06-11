@@ -997,11 +997,11 @@ export default function ReviewPage() {
           Create more content
         </Link>
         <Link
-          href="/dashboard"
+          href="/library"
           className="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 font-medium"
         >
           <span className="material-symbols-outlined">arrow_back</span>
-          Back to dashboard
+          Back to library
         </Link>
       </div>
     </main>

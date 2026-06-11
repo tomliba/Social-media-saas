@@ -15,7 +15,6 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: "home", label: "Home", href: "/dashboard", match: "/dashboard" },
   { icon: "add_circle", label: "Create", href: "/create", match: "/create" },
   { icon: "video_library", label: "Library", href: "/library", match: "/library" },
   { icon: "auto_awesome", label: "Autopilot", href: "/autopilot", match: "/autopilot", comingSoon: true },
