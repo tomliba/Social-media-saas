@@ -41,6 +41,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Defense-in-depth: an image/carousel item is only "ready" if it actually has
+  // an image. Never let a failed render masquerade as a ready item with a blank.
+  if (
+    (format === "image" || format === "carousel") &&
+    (itemStatus ?? "rendering") === "ready" &&
+    !videoUrl
+  ) {
+    return NextResponse.json(
+      { error: "A ready image/carousel item requires a non-empty image URL" },
+      { status: 400 }
+    );
+  }
+
   const item = await prisma.contentItem.create({
     data: {
       userId: session.user.id,

@@ -523,43 +523,68 @@ function EditorContent() {
   const handleCreateImagePosts = async () => {
     if (imagePostSlides.length === 0) return;
     setCreating(true);
+    setSubmitError(null);
     try {
-      const results = [];
+      const results: { title: string; image: string; caption: string }[] = [];
+      let failures = 0;
       for (let i = 0; i < imagePostSlides.length; i++) {
-        const res = await fetch("/api/render-carousel", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateId,
-            themeId,
-            slides: imagePostSlides[i].slides,
-            width: 1080,
-            height: 1350,
-            ...(photoUrlParam && { photoUrl: photoUrlParam }),
-            ...(authorNameParam && { authorName: authorNameParam }),
-          }),
-        });
-        const data = await res.json();
-        results.push({
-          title: imagePostIdeas[i]?.title || `Post ${i + 1}`,
-          image: data.images?.[0] || "",
-          caption: imagePostSlides[i].caption,
-        });
-      }
-      // Create library items for each rendered image post
-      for (const r of results) {
+        const title = imagePostIdeas[i]?.title || `Post ${i + 1}`;
+        const caption = imagePostSlides[i].caption;
+        let image = "";
+        try {
+          const res = await fetch("/api/render-carousel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              templateId,
+              themeId,
+              slides: imagePostSlides[i].slides,
+              width: 1080,
+              height: 1350,
+              ...(photoUrlParam && { photoUrl: photoUrlParam }),
+              ...(authorNameParam && { authorName: authorNameParam }),
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && typeof data.images?.[0] === "string" && data.images[0]) {
+            image = data.images[0];
+          }
+        } catch {
+          /* network error — treated as a failure below */
+        }
+
+        const jobId = `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        if (!image) {
+          // Loud failure: record a failed item, never a "ready" item with a blank image.
+          failures++;
+          await fetch("/api/library", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jobId, title, format: "image", status: "failed" }),
+          });
+          continue;
+        }
         await fetch("/api/library", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            jobId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            title: r.title,
+            jobId,
+            title,
             format: "image",
             status: "ready",
-            videoUrl: r.image,
-            thumbnailUrl: r.image,
+            videoUrl: image,
+            thumbnailUrl: image,
           }),
         });
+        results.push({ title, image, caption });
+      }
+
+      if (failures > 0) {
+        setSubmitError(
+          `Couldn't render ${failures} of ${imagePostSlides.length} image post${imagePostSlides.length > 1 ? "s" : ""}. ${failures === imagePostSlides.length ? "Please try again." : "The failed ones are marked failed in your library."}`
+        );
+        setCreating(false);
+        return;
       }
 
       sessionStorage.setItem("pending-image-post-results", JSON.stringify(results));
@@ -567,6 +592,7 @@ function EditorContent() {
       router.push("/library");
     } catch (err) {
       console.error("Failed to render image posts:", err);
+      setSubmitError(err instanceof Error ? err.message : "Failed to render image posts. Please try again.");
       setCreating(false);
     }
   };
@@ -575,44 +601,82 @@ function EditorContent() {
   const handleCreateCarousels = async () => {
     if (carouselSlides.length === 0) return;
     setCreating(true);
+    setSubmitError(null);
     try {
       const size = slideSizes.find((s) => s.id === carouselSize) || slideSizes[0];
-      const results = [];
+      const results: { title: string; images: string[]; caption: string }[] = [];
+      let failures = 0;
       for (let i = 0; i < carouselSlides.length; i++) {
-        const res = await fetch("/api/render-carousel", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateId: templateId,
-            themeId: themeId,
-            slides: carouselSlides[i].slides,
-            width: size.width,
-            height: size.height,
-          }),
-        });
-        const data = await res.json();
-        results.push({
-          title: carouselIdeas[i]?.title || `Carousel ${i + 1}`,
-          images: data.images || [],
-          caption: carouselSlides[i].caption,
-        });
-      }
-      // Create library items for each rendered carousel
-      for (const r of results) {
+        const title = carouselIdeas[i]?.title || `Carousel ${i + 1}`;
+        const caption = carouselSlides[i].caption;
+        const expected = carouselSlides[i].slides.length;
+        let images: string[] = [];
+        try {
+          const res = await fetch("/api/render-carousel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              templateId: templateId,
+              themeId: themeId,
+              slides: carouselSlides[i].slides,
+              width: size.width,
+              height: size.height,
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+          const imgs = data.images;
+          if (
+            res.ok &&
+            Array.isArray(imgs) &&
+            imgs.length === expected &&
+            imgs.every((u: unknown) => typeof u === "string" && u)
+          ) {
+            images = imgs as string[];
+          }
+        } catch {
+          /* network error — treated as a failure below */
+        }
+
+        const jobId = `car-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        if (images.length === 0) {
+          // Loud failure: record a failed item, never a "ready" item with a blank image.
+          failures++;
+          await fetch("/api/library", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jobId,
+              title,
+              format: "carousel",
+              templateId: templateId ?? null,
+              status: "failed",
+            }),
+          });
+          continue;
+        }
         await fetch("/api/library", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            jobId: `car-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            title: r.title,
+            jobId,
+            title,
             format: "carousel",
             templateId: templateId ?? null,
             status: "ready",
-            videoUrl: r.images[0] || null,
-            thumbnailUrl: r.images[0] || null,
-            previewData: JSON.stringify({ images: r.images }),
+            videoUrl: images[0],
+            thumbnailUrl: images[0],
+            previewData: JSON.stringify({ images }),
           }),
         });
+        results.push({ title, images, caption });
+      }
+
+      if (failures > 0) {
+        setSubmitError(
+          `Couldn't render ${failures} of ${carouselSlides.length} carousel${carouselSlides.length > 1 ? "s" : ""}. ${failures === carouselSlides.length ? "Please try again." : "The failed ones are marked failed in your library."}`
+        );
+        setCreating(false);
+        return;
       }
 
       sessionStorage.setItem("pending-carousel-results", JSON.stringify(results));
@@ -620,6 +684,7 @@ function EditorContent() {
       router.push("/library");
     } catch (err) {
       console.error("Failed to render carousels:", err);
+      setSubmitError(err instanceof Error ? err.message : "Failed to render carousels. Please try again.");
       setCreating(false);
     }
   };
