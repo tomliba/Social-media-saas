@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
+// High-quality gpt-image-1 fallback can take ~60s/slide; allow up to the Pro cap.
+export const maxDuration = 300;
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {

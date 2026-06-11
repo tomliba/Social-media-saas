@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
+// High-quality gpt-image-1 fallback can take ~60s; allow up to the Pro cap.
+export const maxDuration = 300;
+
 const STYLE_BLOCK =
   "Style: bold graphic novel, dark near-black background (#0A0A0A), high contrast, vivid accents. Gold (#C9A84C) for right-choice elements, red (#FF4444) for wrong-way elements. Do NOT use light backgrounds. Do NOT add logos or watermarks. Format: 1:1 square (1080x1080).";
 
