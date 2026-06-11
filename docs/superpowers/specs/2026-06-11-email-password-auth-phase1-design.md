@@ -73,6 +73,9 @@ Signup credits are granted on first successful login via the existing idempotent
 ### Admin plumbing
 - `jwt`/`session` callbacks set `role: "admin" | "user"` from `isAdminEmail(email)` (`ADMIN_EMAILS`, comma-separated). `src/types/next-auth.d.ts` augments `session.user` with `role`. No route/feature gating in Phase 1.
 
+### Google + existing-password collision (no account linking)
+- Account linking stays **disabled** (`allowDangerousEmailAccountLinking` is never set). When someone signs in with Google using an email already registered with a password, NextAuth throws `OAuthAccountNotLinked`; the login page surfaces a clear, actionable message: "This email is already registered with a password. Please sign in with your password." No automatic linking or account modification occurs.
+
 ## Rate limiting (Upstash)
 
 `@upstash/ratelimit` + `@upstash/redis`, sliding window. Limiters in `rate-limit.ts`:
@@ -125,3 +128,4 @@ On limit exceeded: generic 429 ("Too many attempts, please try again later"). Re
 
 - Re-sending a verification email for an unverified existing account is **deferred** (kept strictly no-op in Phase 1).
 - "Add password to a Google account" via reset is **not supported** in Phase 1 (intentional, preserves the no-op guarantee).
+- **Session invalidation after password reset is deferred to Phase 2 hardening (decided 2026-06-11).** With JWT sessions, a reset does not invalidate existing sessions for up to ~30 days. Correct enforcement needs a `passwordChangedAt` field + a per-request check in the session callback (or database sessions), which imposes a per-request DB read and pairs with "log out other sessions" UX. Residual risk accepted for Phase 1.
