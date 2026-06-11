@@ -1,81 +1,71 @@
-import Link from "next/link";
-
-// Honest founder-credibility section (replaces the old "testimonials coming
-// soon" placeholder). Real follower counts provided by the founder; both
-// Instagram profile URLs verified to resolve (HTTP 200). No invented
-// quotes/testimonials anywhere — the founder accounts are the social proof.
-// `image` is optional: when a real profile image is provided, the card uses it;
-// otherwise it falls back to a clean letter monogram (no fake/silhouette photo).
-type Account = { handle: string; href: string; followers: string; image?: string };
-
-const accounts: Account[] = [
+// Real testimonials provided by the founder (verbatim). No invented quotes or
+// metrics. Names shown as given; monogram avatars (no fake photos).
+const testimonials = [
   {
-    handle: "@doctor_curses",
-    href: "https://instagram.com/doctor_curses",
-    followers: "1.1M followers",
-    image: "/avatars/doctor_curses.jpg",
+    name: "Jake Morrison",
+    quote:
+      "Honestly, I was pretty skeptical about AI-generated shorts, but one of the meme videos I made with this just hit 50k views. It's definitely saving me from content block when I'm too tired to actually set up my camera and film.",
   },
   {
-    handle: "@prof_georgasm",
-    href: "https://instagram.com/prof_georgasm",
-    followers: "650K followers",
-    image: "/avatars/prof_georgasm.jpg",
+    name: "Tyler Bennett",
+    quote:
+      "I started a faceless trivia channel last month, and this tool makes churning out daily videos stupidly easy. The AI voices sound way less robotic than the other text-to-speech apps I've tried.",
+  },
+  {
+    name: "Sarah Jenkins",
+    quote:
+      "I run a local shop and simply don't have the budget to hire a freelance video editor for Instagram. This handles my weekly reels without me having to learn complicated software, which is a huge relief.",
+  },
+  {
+    name: "Alyssa Martinez",
+    quote:
+      "I was spending hours every Sunday cutting clips and editing captions in CapCut just to keep up with the algorithm. Fluvio does the heavy lifting in about ten minutes, and the hooks it writes are actually pretty decent.",
+  },
+  {
+    name: "Marcus Washington",
+    quote:
+      "My engagement was starting to tank, so I tried their brainrot/meme templates just as a joke to see what would happen. Surprisingly, the algorithm loved it, so now I use it whenever I need a quick post to fill my content calendar.",
   },
 ];
 
 export default function TestimonialsSection() {
   return (
-    <section id="testimonials" className="py-24 px-6 mx-auto max-w-screen-2xl">
-      <h2 className="font-headline font-bold text-4xl text-center mb-4 text-on-surface">
-        Built by creators who live this
-      </h2>
-      <p className="text-center text-on-surface-variant text-lg max-w-2xl mx-auto mb-12">
-        Fluvio is built by the team behind two large short-form accounts that
-        produce exactly the kind of content Fluvio makes. We built it to ship our
-        own posts faster — now it&apos;s yours.
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-        {accounts.map((a) => (
-          <a
-            key={a.handle}
-            href={a.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-surface-container-lowest p-6 rounded-[1rem] border border-outline-variant/10 hover:border-primary/30 hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              {a.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={a.image}
-                  alt={`${a.handle} profile photo`}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full primary-gradient flex items-center justify-center text-white font-headline font-bold text-lg">
-                  {a.handle.replace("@", "").charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div>
-                <p className="font-headline font-bold text-on-surface group-hover:text-primary transition-colors">
-                  {a.handle}
-                </p>
-                <p className="text-sm text-on-surface-variant">{a.followers}</p>
-              </div>
-              <span className="material-symbols-outlined text-on-surface-variant/40 ml-auto group-hover:text-primary transition-colors">
-                open_in_new
+    <section id="testimonials" className="py-24 px-6 bg-surface-container-low">
+      <div className="mx-auto max-w-screen-2xl">
+        <h2 className="font-headline font-bold text-4xl text-center mb-4 text-on-surface">
+          What creators are saying
+        </h2>
+        <p className="text-center text-on-surface-variant text-lg max-w-2xl mx-auto mb-12">
+          Real feedback from people using Fluvio to keep their feeds fed.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {testimonials.map((t) => (
+            <figure
+              key={t.name}
+              className="bg-surface-container-lowest p-6 rounded-[1rem] border border-outline-variant/10 shadow-sm flex flex-col gap-4"
+            >
+              <span
+                className="material-symbols-outlined text-primary/30 text-3xl leading-none"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+                aria-hidden="true"
+              >
+                format_quote
               </span>
-            </div>
-          </a>
-        ))}
+              <blockquote className="text-on-surface-variant text-sm leading-relaxed flex-1">
+                {t.quote}
+              </blockquote>
+              <figcaption className="flex items-center gap-3 pt-2 border-t border-outline-variant/10">
+                <div className="w-9 h-9 rounded-full primary-gradient flex items-center justify-center text-white font-headline font-bold text-sm">
+                  {t.name.charAt(0)}
+                </div>
+                <span className="font-headline font-bold text-sm text-on-surface">
+                  {t.name}
+                </span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
       </div>
-      <p className="text-center text-xs text-on-surface-variant mt-8">
-        The same tooling we use on our own accounts.{" "}
-        <Link href="/signup" className="text-primary font-semibold hover:underline">
-          Try it free
-        </Link>
-        .
-      </p>
     </section>
   );
 }
