@@ -6,21 +6,19 @@ import Link from "next/link";
 // quotes/testimonials anywhere — the founder accounts are the social proof.
 // `image` is optional: when a real profile image is provided, the card uses it;
 // otherwise it falls back to a clean letter monogram (no fake/silhouette photo).
-type Account = { handle: string; href: string; followers: string; blurb: string; image?: string };
+type Account = { handle: string; href: string; followers: string; image?: string };
 
 const accounts: Account[] = [
   {
     handle: "@doctor_curses",
     href: "https://instagram.com/doctor_curses",
     followers: "1.1M followers",
-    blurb: "Daily short-form content.",
     image: "/avatars/doctor_curses.jpg",
   },
   {
     handle: "@prof_georgasm",
     href: "https://instagram.com/prof_georgasm",
     followers: "650K followers",
-    blurb: "Short-form edutainment.",
     image: "/avatars/prof_georgasm.jpg",
   },
 ];
@@ -43,7 +41,7 @@ export default function TestimonialsSection() {
             href={a.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-surface-container-lowest p-8 rounded-[1rem] border border-outline-variant/10 hover:border-primary/30 hover:shadow-lg transition-all flex flex-col gap-3 group"
+            className="bg-surface-container-lowest p-6 rounded-[1rem] border border-outline-variant/10 hover:border-primary/30 hover:shadow-lg transition-all group"
           >
             <div className="flex items-center gap-3">
               {a.image ? (
@@ -68,7 +66,6 @@ export default function TestimonialsSection() {
                 open_in_new
               </span>
             </div>
-            <p className="text-on-surface-variant text-sm">{a.blurb}</p>
           </a>
         ))}
       </div>
