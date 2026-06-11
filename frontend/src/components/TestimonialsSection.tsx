@@ -54,10 +54,7 @@ export default function TestimonialsSection() {
               <blockquote className="text-on-surface-variant text-sm leading-relaxed flex-1">
                 {t.quote}
               </blockquote>
-              <figcaption className="flex items-center gap-3 pt-2 border-t border-outline-variant/10">
-                <div className="w-9 h-9 rounded-full primary-gradient flex items-center justify-center text-white font-headline font-bold text-sm">
-                  {t.name.charAt(0)}
-                </div>
+              <figcaption className="pt-2 border-t border-outline-variant/10">
                 <span className="font-headline font-bold text-sm text-on-surface">
                   {t.name}
                 </span>
