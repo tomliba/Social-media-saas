@@ -11,6 +11,7 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const error = searchParams.get("error");
   const [devEmail, setDevEmail] = useState("dev@example.com");
+  const [devSecret, setDevSecret] = useState("");
 
   return (
     <main className="min-h-screen bg-surface flex items-center justify-center px-6">
@@ -75,22 +76,35 @@ function LoginForm() {
             </span>
             <div className="flex-1 h-px bg-outline-variant/20" />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             <input
               type="email"
               value={devEmail}
               onChange={(e) => setDevEmail(e.target.value)}
-              className="flex-1 px-4 py-3 bg-surface-container-low border border-outline-variant/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/40"
+              className="px-4 py-3 bg-surface-container-low border border-outline-variant/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/40"
               placeholder="dev@example.com"
             />
-            <button
-              onClick={() =>
-                signIn("credentials", { email: devEmail, callbackUrl })
-              }
-              className="px-5 py-3 bg-surface-container-highest text-on-surface rounded-lg text-sm font-bold hover:bg-surface-dim transition-colors"
-            >
-              Dev Login
-            </button>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={devSecret}
+                onChange={(e) => setDevSecret(e.target.value)}
+                className="flex-1 px-4 py-3 bg-surface-container-low border border-outline-variant/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/40"
+                placeholder="Secret (deployed only)"
+              />
+              <button
+                onClick={() =>
+                  signIn("credentials", {
+                    email: devEmail,
+                    secret: devSecret,
+                    callbackUrl,
+                  })
+                }
+                className="px-5 py-3 bg-surface-container-highest text-on-surface rounded-lg text-sm font-bold hover:bg-surface-dim transition-colors"
+              >
+                Dev Login
+              </button>
+            </div>
           </div>
 
           <div className="mt-8 text-center">

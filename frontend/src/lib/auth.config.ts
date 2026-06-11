@@ -9,16 +9,22 @@ export const authConfig: NextAuthConfig = {
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
     }),
-    // Dev-only credentials login — remove for production
-    ...(process.env.NODE_ENV === "development"
+    // Dev login. Enabled locally (NODE_ENV=development) with no secret, and on
+    // deployed environments only when DEV_LOGIN_SECRET is set — in which case
+    // the matching secret must be supplied, so it is not a public auth bypass.
+    ...(process.env.NODE_ENV === "development" || process.env.DEV_LOGIN_SECRET
       ? [
           Credentials({
             name: "Dev Login",
             credentials: {
               email: { label: "Email", type: "email" },
+              secret: { label: "Secret", type: "password" },
             },
             async authorize(credentials) {
               if (!credentials?.email) return null;
+              // When a secret is configured (any deployed env), it is mandatory.
+              const required = process.env.DEV_LOGIN_SECRET;
+              if (required && credentials.secret !== required) return null;
               return {
                 id: "dev-user-1",
                 email: credentials.email as string,
