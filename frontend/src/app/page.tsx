@@ -3,6 +3,7 @@ import HeroSection from "@/components/HeroSection";
 import SocialProofStrip from "@/components/SocialProofStrip";
 import ComparisonSection from "@/components/ComparisonSection";
 import ContentShowcase from "@/components/ContentShowcase";
+import FoundersSection from "@/components/FoundersSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import PricingSection from "@/components/PricingSection";
 import FinalCTA from "@/components/FinalCTA";
@@ -17,6 +18,7 @@ export default function Home() {
         <SocialProofStrip />
         <ComparisonSection />
         <ContentShowcase />
+        <FoundersSection />
         <TestimonialsSection />
         <PricingSection />
         <FinalCTA />
