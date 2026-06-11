@@ -219,3 +219,48 @@ export function parseJsonArray<T = unknown>(raw: string): T[] {
     `parseJsonArray: no array found. Parsed type: ${typeof parsed}. First 300 chars: ${raw.slice(0, 300)}`
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  Idea-list generation (tolerant parse + retry)                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Generate a list of items (ideas/scripts) from a prompt that should return a
+ * JSON array, hardened against the "LLM returned no ideas array" failure:
+ *
+ * - Parsing is tolerant via `parseJsonArray`: a bare array is used as-is; a
+ *   single object with idea fields (e.g. Gemini returning `{title,...}` instead
+ *   of `[{title,...}]`) is wrapped into a one-element array; `{ideas:[...]}` /
+ *   `{results:[...]}` wrappers and code fences are unwrapped.
+ * - Retries up to `attempts` times when a response can't be parsed into a
+ *   non-empty array (covers transient malformed output).
+ *
+ * `gen` is injectable so the behavior can be unit-tested without a live LLM.
+ * Throws only if every attempt yields nothing.
+ */
+export async function generateIdeas<T = unknown>(
+  prompt: string,
+  options?: { attempts?: number; gen?: (prompt: string) => Promise<string> },
+): Promise<T[]> {
+  const attempts = Math.max(1, options?.attempts ?? 2);
+  const gen = options?.gen ?? ((p: string) => generateText(p, { jsonMode: true }));
+
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const raw = (await gen(prompt)).trim();
+      const items = parseJsonArray<T>(raw);
+      if (items.length > 0) return items;
+      lastErr = new Error("parsed array was empty");
+    } catch (err) {
+      lastErr = err;
+    }
+    console.warn(
+      `[generateIdeas] attempt ${attempt}/${attempts} yielded no items: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
+    );
+  }
+
+  throw new Error(
+    `generateIdeas: no items after ${attempts} attempts. Last error: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
+  );
+}

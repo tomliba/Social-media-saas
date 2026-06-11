@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateText, parseJsonArray } from "@/lib/llm";
+import { generateIdeas } from "@/lib/llm";
 import { auth } from "@/lib/auth";
 
 const templateStructures: Record<string, string> = {
@@ -46,17 +46,13 @@ For each idea, provide:
 - A catchy, scroll-stopping title (max 15 words, written as if it's the video's hook text)
 - A relevant category tag (1-2 words, like "Health", "Psychology", "Science", "Tech", "Business", "Lifestyle", etc.)
 
-Return ONLY a JSON array, no markdown, no code fences. Example format:
-[{"title": "Your catchy title here", "tag": "Category"}]
+Return ONLY a JSON array of exactly 10 ideas — a top-level JSON array (not an object, not a single object), no markdown, no code fences. Example format:
+[{"title": "Your catchy title here", "tag": "Category"}, ... 10 items ...]
 
 Make titles provocative, curiosity-driven, and optimized for clicks. Use power words. Each title should make someone stop scrolling.
 Include specific numbers or statistics in at least 3 of the 10 titles (e.g., "97% of people get this wrong", "This $2 trick saved me 10 hours").`;
 
-    const text = (await generateText(prompt, { jsonMode: true })).trim();
-    const ideas = parseJsonArray(text);
-    if (ideas.length === 0) {
-      throw new Error(`LLM returned empty ideas array. Raw: ${text.slice(0, 500)}`);
-    }
+    const ideas = await generateIdeas(prompt);
 
     return NextResponse.json({ ideas });
   } catch (error) {

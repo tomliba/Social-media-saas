@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateText } from "@/lib/llm";
+import { generateIdeas } from "@/lib/llm";
 import { auth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
@@ -26,17 +26,12 @@ For each idea, provide:
 - slideCount: Recommended number of slides (5-10)
 - tag: Category tag (1-2 words)
 
-Return ONLY a JSON array, no markdown, no code fences:
-[{"title": "...", "hook": "...", "slideCount": 7, "tag": "Category"}]
+Return ONLY a JSON array of exactly 10 ideas — a top-level JSON array (not an object, not a single object), no markdown, no code fences:
+[{"title": "...", "hook": "...", "slideCount": 7, "tag": "Category"}, ... 10 items ...]
 
 Make titles curiosity-driven and optimized for saves/shares. Include numbers or stats in at least 3 titles.`;
 
-    const text = (await generateText(prompt, { jsonMode: true })).trim();
-    const parsed = JSON.parse(text);
-    const ideas = Array.isArray(parsed) ? parsed : (parsed.ideas || parsed.results || Object.values(parsed).find(Array.isArray) || []);
-    if (ideas.length === 0) {
-      throw new Error(`LLM returned no ideas array. Raw: ${text.slice(0, 500)}`);
-    }
+    const ideas = await generateIdeas(prompt);
     return NextResponse.json({ ideas });
   } catch (error) {
     console.error("generate-carousel-ideas error:", error);
