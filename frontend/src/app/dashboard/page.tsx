@@ -1,15 +1,8 @@
-import NotificationBanner from "@/components/dashboard/NotificationBanner";
-import CalendarHeader from "@/components/dashboard/CalendarHeader";
-import ContentCalendarGrid from "@/components/dashboard/ContentCalendarGrid";
-import FloatingActionBar from "@/components/dashboard/FloatingActionBar";
+import { redirect } from "next/navigation";
 
+// The app is create-only: the format picker (/create) is the landing surface
+// for logged-in users. The old calendar "home" was removed; keep this route as
+// a redirect so any existing /dashboard links/bookmarks still resolve.
 export default function DashboardPage() {
-  return (
-    <>
-      <NotificationBanner />
-      <CalendarHeader />
-      <ContentCalendarGrid />
-      <FloatingActionBar />
-    </>
-  );
+  redirect("/create");
 }
