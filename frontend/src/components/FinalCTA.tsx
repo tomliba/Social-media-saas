@@ -8,8 +8,8 @@ export default function FinalCTA() {
           Your competitors are posting every day. Are you?
         </h2>
         <p className="text-white/80 text-xl max-w-2xl">
-          Stop grinding out content and start curating your presence. Make your
-          first video free — no credit card needed.
+          Stop grinding out content and start curating your presence with Fluvio.
+          Make your first video free — no credit card needed.
         </p>
         <Link href="/signup" className="bg-white text-primary font-black text-xl px-12 py-6 rounded-lg hover:scale-105 active:scale-95 transition-all shadow-xl inline-block">
           Start creating for free

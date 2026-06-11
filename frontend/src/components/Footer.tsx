@@ -13,7 +13,7 @@ export default function Footer() {
   return (
     <footer className="bg-neutral-50 w-full py-12 mt-20">
       <div className="mx-auto max-w-screen-2xl px-6 flex flex-col md:flex-row justify-between items-center gap-8 font-body text-sm text-neutral-500">
-        <div className="text-lg font-bold text-neutral-900">
+        <div className="text-2xl font-black text-neutral-900 font-headline tracking-tight">
           Fluvio
         </div>
         <div className="flex flex-wrap justify-center gap-8">

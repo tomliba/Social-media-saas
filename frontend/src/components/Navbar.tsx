@@ -6,7 +6,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-screen-2xl px-6 py-4 flex justify-between items-center">
         <Link
           href="/"
-          className="text-xl font-black text-violet-600 font-headline tracking-tight"
+          className="text-3xl font-black text-violet-600 font-headline tracking-tight"
         >
           Fluvio
         </Link>

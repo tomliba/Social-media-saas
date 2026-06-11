@@ -5,6 +5,9 @@ export default function HeroSection() {
     <section className="pt-32 pb-20 px-6 mx-auto max-w-screen-2xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
       {/* Left: Copy */}
       <div className="flex flex-col gap-6 lg:pr-12">
+        <span className="font-headline font-black text-2xl md:text-3xl text-gradient w-fit tracking-tight">
+          Fluvio
+        </span>
         <h1 className="font-headline font-extrabold text-5xl md:text-7xl leading-[1.1] tracking-tight text-on-surface">
           Make a week of content{" "}
           <span className="text-gradient">before lunch</span>
