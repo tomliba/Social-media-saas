@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Terms of Service — The Fluid Curator",
+  title: "Terms of Service — Fluvio",
 };
 
 // DRAFT starter template — NOT legal advice. Replace the [BRACKETED] fill-ins and
@@ -24,7 +24,7 @@ export default function TermsPage() {
 
       <div className="prose prose-neutral max-w-none space-y-6 text-on-surface-variant leading-relaxed">
         <p>
-          These Terms govern your use of The Fluid Curator (the
+          These Terms govern your use of Fluvio (the
           &ldquo;Service&rdquo;), operated by <strong>[COMPANY NAME]</strong>. By
           using the Service you agree to these Terms.
         </p>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy — The Fluid Curator",
+  title: "Privacy Policy — Fluvio",
 };
 
 // DRAFT starter template — NOT legal advice. Replace the [BRACKETED] fill-ins and
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         <p>
           This Privacy Policy describes how <strong>[COMPANY NAME]</strong>{" "}
           (&ldquo;we&rdquo;, &ldquo;us&rdquo;) collects, uses, and shares
-          information when you use The Fluid Curator (the &ldquo;Service&rdquo;).
+          information when you use Fluvio (the &ldquo;Service&rdquo;).
         </p>
 
         <h2 className="text-xl font-bold text-on-surface">Information we collect</h2>

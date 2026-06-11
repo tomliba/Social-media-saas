@@ -12,6 +12,10 @@ const plans = [
     plan: "free" as const,
     price: "$0",
     period: "forever",
+    // Output estimate: a standard video or a typical post runs ~5–10 credits
+    // (see config.ts: smart_mix/stock 5, ai_story/argument 10, single AI post 10,
+    // free template/text posts 5). 30 credits ÷ 10 = 3, ÷ 5 = 6.
+    outputs: "≈ 3–6 short videos or posts / month",
     features: [
       `${PLAN_MONTHLY_CREDITS.free} credits / month`,
       "720p video, watermarked",
@@ -26,6 +30,7 @@ const plans = [
     plan: "creator" as const,
     price: "$24.99",
     period: "/mo",
+    outputs: "≈ 60–120 short videos or posts / month", // 600 credits ÷ 10–5
     features: [
       `${PLAN_MONTHLY_CREDITS.creator.toLocaleString()} credits / month`,
       "1080p, no watermark",
@@ -40,6 +45,7 @@ const plans = [
     plan: "pro" as const,
     price: "$59.99",
     period: "/mo",
+    outputs: "≈ 200–400 short videos or posts / month", // 2000 credits ÷ 10–5 (standard; animated AI costs more)
     features: [
       `${PLAN_MONTHLY_CREDITS.pro.toLocaleString()} credits / month`,
       "Animated AI video",
@@ -85,10 +91,11 @@ export default function PricingSection() {
               >
                 {plan.name}
               </h3>
-              <div className="flex items-baseline gap-1 mb-6">
+              <div className="flex items-baseline gap-1 mb-1">
                 <span className="text-4xl font-black">{plan.price}</span>
                 <span className="text-on-surface-variant text-sm">{plan.period}</span>
               </div>
+              <p className="text-sm font-semibold text-primary mb-6">{plan.outputs}</p>
               <ul className="space-y-4 mb-10 flex-1">
                 {plan.features.map((f) => (
                   <li

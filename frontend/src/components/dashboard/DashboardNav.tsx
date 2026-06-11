@@ -7,7 +7,7 @@ export default function DashboardNav() {
         href="/"
         className="text-2xl font-bold bg-gradient-to-br from-violet-600 to-violet-400 bg-clip-text text-transparent font-headline tracking-tight"
       >
-        The Fluid Curator
+        Fluvio
       </Link>
       <div className="flex items-center gap-3">
         <Link href="/create" className="bg-primary text-on-primary px-5 py-2 rounded-full font-semibold hover:opacity-90 transition-opacity flex items-center gap-2">

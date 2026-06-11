@@ -7,7 +7,7 @@ function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 }
 function from() {
-  return process.env.EMAIL_FROM || "Fluid Curator <onboarding@resend.dev>";
+  return process.env.EMAIL_FROM || "Fluvio <onboarding@resend.dev>";
 }
 
 export async function sendVerificationEmail(to: string, token: string): Promise<void> {
@@ -16,7 +16,7 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
     from: from(),
     to,
     subject: "Verify your email",
-    html: `<p>Welcome to The Fluid Curator. Confirm your email to finish signing up:</p>
+    html: `<p>Welcome to Fluvio. Confirm your email to finish signing up:</p>
            <p><a href="${link}">Verify my email</a></p>
            <p>This link expires in 24 hours. If you didn't sign up, ignore this email.</p>`,
   });
