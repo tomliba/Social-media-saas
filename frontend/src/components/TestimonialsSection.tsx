@@ -14,12 +14,14 @@ const accounts: Account[] = [
     href: "https://instagram.com/doctor_curses",
     followers: "1.1M followers",
     blurb: "Daily short-form content.",
+    image: "/avatars/doctor_curses.jpg",
   },
   {
     handle: "@prof_georgasm",
     href: "https://instagram.com/prof_georgasm",
     followers: "650K followers",
     blurb: "Short-form edutainment.",
+    image: "/avatars/prof_georgasm.jpg",
   },
 ];
 
@@ -48,7 +50,7 @@ export default function TestimonialsSection() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={a.image}
-                  alt={a.handle}
+                  alt={`${a.handle} profile photo`}
                   className="w-12 h-12 rounded-full object-cover"
                 />
               ) : (
