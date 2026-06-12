@@ -40,16 +40,16 @@ export default function FoundersSection() {
             rel="noopener noreferrer"
             className="bg-surface-container-lowest p-6 rounded-[1rem] border border-outline-variant/10 hover:border-primary/30 hover:shadow-lg transition-all group"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {a.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={a.image}
                   alt={`${a.handle} profile photo`}
-                  className="w-12 h-12 rounded-full object-cover"
+                  className="w-20 h-20 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full primary-gradient flex items-center justify-center text-white font-headline font-bold text-lg">
+                <div className="w-20 h-20 rounded-full primary-gradient flex items-center justify-center text-white font-headline font-bold text-2xl">
                   {a.handle.replace("@", "").charAt(0).toUpperCase()}
                 </div>
               )}

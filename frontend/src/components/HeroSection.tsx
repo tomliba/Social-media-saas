@@ -13,8 +13,9 @@ export default function HeroSection() {
           <span className="text-gradient">before lunch</span>
         </h1>
         <p className="text-on-surface-variant text-xl md:text-2xl leading-relaxed max-w-xl">
-          Pick a template. AI writes the script. Choose your character. Get a
-          finished video in 2 minutes.
+          AI voice stories, character videos, carousels, and posts, or clone any
+          video or post that&apos;s already working. The AI writes, voices, and
+          renders it all for you, automatically.
         </p>
         <div className="flex flex-col gap-3 pt-4">
           <Link href="/signup" className="primary-gradient text-white text-lg font-bold px-10 py-5 rounded-lg w-fit hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20">
