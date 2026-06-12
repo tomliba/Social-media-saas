@@ -16,6 +16,22 @@ const formats = [
     ),
   },
   {
+    name: "AI voice story",
+    content: (
+      <video
+        src="/previews/ai-story-loop.mp4"
+        poster="/previews/ai-story-loop.jpg"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        aria-label="AI voice story example"
+        className="w-full h-full object-cover"
+      />
+    ),
+  },
+  {
     name: "Carousel",
     content: (
       <div className="w-full h-full bg-surface-container-lowest p-4 flex flex-col gap-2">
@@ -36,19 +52,19 @@ const formats = [
     ),
   },
   {
-    name: "Skeleton Video",
+    name: "Skeleton videos",
     content: (
-      <div className="w-full h-full bg-gradient-to-br from-cyan-700 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <span
-            className="material-symbols-outlined text-cyan-200"
-            style={{ fontSize: "64px", fontVariationSettings: "'FILL' 1" }}
-          >
-            animation
-          </span>
-          <p className="text-white/60 text-xs mt-2 font-medium">X-ray explainer</p>
-        </div>
-      </div>
+      <video
+        src="/previews/skeleton-loop.mp4"
+        poster="/previews/skeleton-loop.jpg"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        aria-label="Skeleton video example"
+        className="w-full h-full object-cover"
+      />
     ),
   },
   {
