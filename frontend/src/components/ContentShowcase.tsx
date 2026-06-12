@@ -1,20 +1,18 @@
 const formats = [
   {
-    name: "AI Video",
+    name: "Character video",
     content: (
-      <div className="w-full h-full bg-gradient-to-br from-inverse-surface to-primary-dim flex items-center justify-center">
-        <div className="text-center">
-          <span
-            className="material-symbols-outlined text-white"
-            style={{ fontSize: "64px", fontVariationSettings: "'FILL' 1" }}
-          >
-            smart_display
-          </span>
-          <p className="text-white/70 text-xs mt-2 font-medium">
-            AI Explainer
-          </p>
-        </div>
-      </div>
+      <video
+        src="/previews/character-video-loop.mp4"
+        poster="/previews/character-video-loop.jpg"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        aria-label="Character video example"
+        className="w-full h-full object-cover"
+      />
     ),
   },
   {
