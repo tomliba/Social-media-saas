@@ -1,4 +1,71 @@
+// Image-post showcase images live in /public/showcase-posts (01.png … 09.png).
+// Shown at their native aspect ratio (mostly square, one tweet) — no padding or
+// cropping, so there are no blurred "filler" bands.
+const POST_IMAGES = Array.from(
+  { length: 9 },
+  (_, i) => `/showcase-posts/${String(i + 1).padStart(2, "0")}.png`
+);
+
+// A vertical auto-scrolling feed of image posts. The list is rendered twice and
+// the track drifts by exactly one set (-50% → 0) for a seamless loop. Pauses on
+// hover; honours prefers-reduced-motion (see the <style> block below).
+function PostFeed() {
+  return (
+    <div className="showcase-feed-viewport w-full h-full overflow-hidden bg-surface-container-lowest">
+      <div className="showcase-feed-track flex flex-col">
+        {[...POST_IMAGES, ...POST_IMAGES].map((src, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={`${src}-${i}`}
+            src={src}
+            alt=""
+            aria-hidden={i >= POST_IMAGES.length}
+            loading="lazy"
+            className="w-full h-auto block flex-none mb-2"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// One carousel's slides live in /public/showcase-carousel (01.png … 09.png).
+const CAROUSEL_IMAGES = Array.from(
+  { length: 9 },
+  (_, i) => `/showcase-carousel/${String(i + 1).padStart(2, "0")}.png`
+);
+
+// Vertical auto-scrolling feed of one carousel's slides. Drifts UP so the slides
+// appear in order (01 → 09); downward motion would reveal them last-to-first.
+// List rendered twice for a seamless loop; pauses on hover; honours reduced-motion.
+function CarouselSlideshow() {
+  return (
+    <div
+      className="showcase-carousel-viewport w-full h-full overflow-hidden"
+      style={{ backgroundColor: "#faf3d7" }}
+    >
+      <div className="showcase-carousel-track flex flex-col">
+        {[...CAROUSEL_IMAGES, ...CAROUSEL_IMAGES].map((src, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={`${src}-${i}`}
+            src={src}
+            alt=""
+            aria-hidden={i >= CAROUSEL_IMAGES.length}
+            loading="lazy"
+            className="w-full h-auto block flex-none mb-2 px-2"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const formats = [
+  {
+    name: "Post",
+    content: <PostFeed />,
+  },
   {
     name: "Character video",
     content: (
@@ -65,41 +132,7 @@ const formats = [
   },
   {
     name: "Carousel",
-    content: (
-      <div className="w-full h-full bg-surface-container-lowest p-4 flex flex-col gap-2">
-        <div className="h-1/2 w-full bg-gradient-to-br from-primary/20 to-primary-container/40 rounded-xl flex items-center justify-center">
-          <span
-            className="material-symbols-outlined text-primary"
-            style={{ fontSize: "48px" }}
-          >
-            view_carousel
-          </span>
-        </div>
-        <div className="flex-1 bg-surface-container-low rounded-xl p-4">
-          <div className="h-2 w-1/2 bg-outline-variant/30 rounded-full mb-2" />
-          <div className="h-2 w-full bg-outline-variant/30 rounded-full mb-2" />
-          <div className="h-2 w-3/4 bg-outline-variant/30 rounded-full" />
-        </div>
-      </div>
-    ),
-  },
-  {
-    name: "Meme Ad",
-    content: (
-      <div className="w-full h-full bg-surface-container-lowest p-4 flex flex-col gap-2">
-        <div className="flex-1 bg-gradient-to-br from-amber-200 to-orange-300 rounded-xl flex items-center justify-center">
-          <span
-            className="material-symbols-outlined text-orange-700"
-            style={{ fontSize: "48px" }}
-          >
-            sentiment_very_satisfied
-          </span>
-        </div>
-        <div className="h-10 bg-surface-container-low rounded-lg flex items-center justify-center px-3">
-          <div className="h-2 w-2/3 bg-outline-variant/40 rounded-full" />
-        </div>
-      </div>
-    ),
+    content: <CarouselSlideshow />,
   },
 ];
 
@@ -120,6 +153,34 @@ export default function ContentShowcase() {
         }
         @media (prefers-reduced-motion: reduce) {
           .showcase-marquee-track { animation: none; }
+        }
+        @keyframes showcase-feed {
+          from { transform: translateY(-50%); }
+          to { transform: translateY(0); }
+        }
+        .showcase-feed-track {
+          animation: showcase-feed 48s linear infinite;
+          will-change: transform;
+        }
+        .showcase-feed-viewport:hover .showcase-feed-track {
+          animation-play-state: paused;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .showcase-feed-track { animation: none; }
+        }
+        @keyframes showcase-carousel-up {
+          from { transform: translateY(0); }
+          to { transform: translateY(-50%); }
+        }
+        .showcase-carousel-track {
+          animation: showcase-carousel-up 36s linear infinite;
+          will-change: transform;
+        }
+        .showcase-carousel-viewport:hover .showcase-carousel-track {
+          animation-play-state: paused;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .showcase-carousel-track { animation: none; }
         }
       `}</style>
       <div className="mx-auto max-w-screen-2xl px-6 mb-12">
