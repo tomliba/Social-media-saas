@@ -16,11 +16,14 @@ function post(body: unknown) {
 beforeEach(() => { vi.clearAllMocks(); ratelimit.allow.mockResolvedValue(true); });
 
 describe("POST /api/auth/reset", () => {
-  it("sets a new password for a valid token", async () => {
+  it("sets a new password and verifies the email for a valid token", async () => {
     tokens.consumePasswordResetToken.mockResolvedValue("u1");
     const res = await POST(post({ token: "good", password: "longenough" }));
     expect(res.status).toBe(200);
-    expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: "u1" }, data: { password: "NEWHASH" } });
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "u1" },
+      data: { password: "NEWHASH", emailVerified: expect.any(Date) },
+    });
   });
   it("rejects a short password before touching the token", async () => {
     const res = await POST(post({ token: "good", password: "short" }));

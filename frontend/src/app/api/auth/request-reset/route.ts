@@ -15,7 +15,11 @@ export async function POST(req: Request) {
   if (!okRate) return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
 
   const user = email ? await prisma.user.findUnique({ where: { email } }) : null;
-  if (user?.password) {
+  // Send a reset link to ANY existing account, including password-less Google
+  // accounts adding a password for the first time. The link only reaches the
+  // account's own (verified) email, so this is safe. Non-existent emails still
+  // fall through to the generic response below — no enumeration.
+  if (user) {
     const token = await createPasswordResetToken(user.id);
     await sendPasswordResetEmail(email, token);
   }

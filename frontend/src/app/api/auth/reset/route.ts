@@ -21,6 +21,13 @@ export async function POST(req: Request) {
   if (!userId) {
     return NextResponse.json({ error: "This reset link is invalid or has expired." }, { status: 400 });
   }
-  await prisma.user.update({ where: { id: userId }, data: { password: await hashPassword(password) } });
+  // Clicking the reset link proves email ownership, so mark the email verified.
+  // This makes the new password immediately usable for login (the credentials
+  // path requires emailVerified) — important for Google accounts that were never
+  // verified via our own flow. Google linking is untouched, so both logins work.
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: await hashPassword(password), emailVerified: new Date() },
+  });
   return NextResponse.json({ ok: true, message: "Your password has been reset. You can now sign in." }, { status: 200 });
 }

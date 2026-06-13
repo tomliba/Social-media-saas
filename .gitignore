@@ -41,3 +41,6 @@ test-results/
 
 # Secrets / scratch (never commit)
 cookie.txt
+
+# Local Playwright production E2E run artifacts (session cookies, videos, frames)
+playwright_run/

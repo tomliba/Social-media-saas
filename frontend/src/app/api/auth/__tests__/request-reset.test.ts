@@ -22,11 +22,11 @@ describe("POST /api/auth/request-reset", () => {
     expect(res.status).toBe(200);
     expect(email.sendPasswordResetEmail).toHaveBeenCalledOnce();
   });
-  it("does NOT email a Google-only account (no password) but returns the same body", async () => {
+  it("emails a reset link to a Google-only account (no password yet) so they can add one", async () => {
     prisma.user.findUnique.mockResolvedValue({ id: "g1", password: null });
     const res = await POST(post({ email: "g@b.com" }));
     expect(res.status).toBe(200);
-    expect(email.sendPasswordResetEmail).not.toHaveBeenCalled();
+    expect(email.sendPasswordResetEmail).toHaveBeenCalledOnce();
   });
   it("returns identical generic body for unknown email (no enumeration)", async () => {
     prisma.user.findUnique.mockResolvedValueOnce({ id: "u1", password: "HASH" }).mockResolvedValueOnce(null);
