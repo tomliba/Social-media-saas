@@ -85,17 +85,20 @@ export default function ComparisonSection() {
               </li>
             ))}
           </ul>
+          <p className="mt-6 text-on-surface-variant text-sm">
+            Renders in the background. You don&apos;t wait around.
+          </p>
           <div className="mt-10 pt-6 border-t border-primary/10 flex justify-between items-center">
             <span className="font-bold text-lg text-on-surface">
               Total Time
             </span>
             <span className="text-primary font-black text-2xl tracking-tight">
-              2 MINUTES
+              UNDER 1 MINUTE
             </span>
           </div>
           <div className="mt-8 bg-primary/5 p-4 rounded-md text-center">
             <p className="text-primary font-bold text-sm">
-              Spend minutes, not hours — on every post.
+              Spend minutes, not hours, on every post.
             </p>
           </div>
         </div>
