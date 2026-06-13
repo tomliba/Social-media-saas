@@ -35,23 +35,25 @@ const CAROUSEL_IMAGES = Array.from(
   (_, i) => `/showcase-carousel/${String(i + 1).padStart(2, "0")}.png`
 );
 
-// Vertical auto-scrolling feed of one carousel's slides. Drifts UP so the slides
-// appear in order (01 → 09); downward motion would reveal them last-to-first.
+// Vertical auto-scrolling feed of one carousel's slides, drifting DOWN to match
+// the post feed. The slide list is reversed so they still appear in order
+// (01 → 09) despite the downward motion (down reveals new slides from the top).
 // List rendered twice for a seamless loop; pauses on hover; honours reduced-motion.
 function CarouselSlideshow() {
+  const slides = [...CAROUSEL_IMAGES].reverse();
   return (
     <div
-      className="showcase-carousel-viewport w-full h-full overflow-hidden"
+      className="showcase-feed-viewport w-full h-full overflow-hidden"
       style={{ backgroundColor: "#faf3d7" }}
     >
-      <div className="showcase-carousel-track flex flex-col">
-        {[...CAROUSEL_IMAGES, ...CAROUSEL_IMAGES].map((src, i) => (
+      <div className="showcase-feed-track flex flex-col">
+        {[...slides, ...slides].map((src, i) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={`${src}-${i}`}
             src={src}
             alt=""
-            aria-hidden={i >= CAROUSEL_IMAGES.length}
+            aria-hidden={i >= slides.length}
             loading="lazy"
             className="w-full h-auto block flex-none mb-2 px-2"
           />
@@ -167,20 +169,6 @@ export default function ContentShowcase() {
         }
         @media (prefers-reduced-motion: reduce) {
           .showcase-feed-track { animation: none; }
-        }
-        @keyframes showcase-carousel-up {
-          from { transform: translateY(0); }
-          to { transform: translateY(-50%); }
-        }
-        .showcase-carousel-track {
-          animation: showcase-carousel-up 36s linear infinite;
-          will-change: transform;
-        }
-        .showcase-carousel-viewport:hover .showcase-carousel-track {
-          animation-play-state: paused;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .showcase-carousel-track { animation: none; }
         }
       `}</style>
       <div className="mx-auto max-w-screen-2xl px-6 mb-12">
