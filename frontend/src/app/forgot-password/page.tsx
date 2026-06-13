@@ -22,9 +22,12 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md bg-surface-container-lowest rounded-2xl p-10 border border-outline-variant/10">
         <h1 className="text-2xl font-bold font-headline text-on-surface text-center mb-6">Reset your password</h1>
         {done ? (
-          <p className="text-on-surface-variant text-sm text-center">
-            If an account with that email exists, we&apos;ve sent a reset link. Check your inbox.
-          </p>
+          <>
+            <p className="text-on-surface-variant text-sm text-center">
+              If an account with that email exists, we&apos;ve sent a reset link. Check your inbox.
+            </p>
+            <p className="text-on-surface-variant/70 text-xs text-center mt-2">Don&apos;t see it? Check your spam folder.</p>
+          </>
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-3">
             <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"

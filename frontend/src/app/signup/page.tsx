@@ -82,6 +82,7 @@ export default function SignupPage() {
           {done ? (
             <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg text-primary text-sm text-center">
               Check your email for a verification link to finish signing up.
+              <span className="block mt-2 text-xs text-primary/60">Don&apos;t see it? Check your spam folder.</span>
             </div>
           ) : (
             <form onSubmit={handleSignup} className="flex flex-col gap-3">
