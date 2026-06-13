@@ -1,9 +1,9 @@
-// Image-post showcase images live in /public/showcase-posts (01.png … 09.png).
+// Image-post showcase images live in /public/showcase-posts (01.webp … 09.webp).
 // Shown at their native aspect ratio (mostly square, one tweet) — no padding or
 // cropping, so there are no blurred "filler" bands.
 const POST_IMAGES = Array.from(
   { length: 9 },
-  (_, i) => `/showcase-posts/${String(i + 1).padStart(2, "0")}.png`
+  (_, i) => `/showcase-posts/${String(i + 1).padStart(2, "0")}.webp`
 );
 
 // A vertical auto-scrolling feed of image posts. The list is rendered twice and
@@ -29,10 +29,10 @@ function PostFeed() {
   );
 }
 
-// One carousel's slides live in /public/showcase-carousel (01.png … 09.png).
+// One carousel's slides live in /public/showcase-carousel (01.webp … 09.webp).
 const CAROUSEL_IMAGES = Array.from(
   { length: 9 },
-  (_, i) => `/showcase-carousel/${String(i + 1).padStart(2, "0")}.png`
+  (_, i) => `/showcase-carousel/${String(i + 1).padStart(2, "0")}.webp`
 );
 
 // Vertical auto-scrolling feed of one carousel's slides, drifting DOWN to match
