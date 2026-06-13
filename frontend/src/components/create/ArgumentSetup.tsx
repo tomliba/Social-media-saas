@@ -463,6 +463,13 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
       };
 
       if (scriptMode === "topic") {
+        // A niche alone is enough (the backend falls back to it), but with no topic
+        // AND no niche there's nothing to generate from — show a clear message
+        // instead of firing a request that returns a raw 400.
+        const resolvedTopic = customTopic.trim() || selectedTopic || niche.trim();
+        if (!resolvedTopic) {
+          throw new Error("Pick a viral idea or enter a topic to generate a script.");
+        }
         body.mode = "topic";
         body.topic = customTopic.trim() || selectedTopic;
       } else if (scriptMode === "script") {
@@ -522,7 +529,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
     } finally {
       setGenerating(false);
     }
-  }, [characterA, characterB, tone, duration, scriptMode, customTopic, selectedTopic, pastedScript, customPrompt, uploadFile]);
+  }, [characterA, characterB, tone, duration, scriptMode, customTopic, selectedTopic, niche, pastedScript, customPrompt, uploadFile]);
 
   // ── Add line ──
   const handleAddLine = useCallback(() => {
