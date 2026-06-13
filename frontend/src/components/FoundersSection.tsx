@@ -29,7 +29,7 @@ export default function FoundersSection() {
       <p className="text-center text-on-surface-variant text-lg max-w-2xl mx-auto mb-12">
         Fluvio is built by the team behind two large short-form accounts that
         produce exactly the kind of content Fluvio makes. We built it to ship our
-        own posts faster — now it&apos;s yours.
+        own posts faster, now it&apos;s yours.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
         {accounts.map((a) => (
