@@ -26,6 +26,11 @@ const testimonials = [
     quote:
       "My engagement was starting to tank, so I tried their brainrot/meme templates just as a joke to see what would happen. Surprisingly, the algorithm loved it, so now I use it whenever I need a quick post to fill my content calendar.",
   },
+  {
+    name: "Chloe Evans",
+    quote:
+      "Juggling a full-time job and a growing affiliate marketing page was totally burning me out. I was ready to give up on daily uploads, but being able to generate matching B-roll and natural-sounding voiceovers in a few clicks changed the game. Now I can schedule a whole week of TikToks in a single evening, and they actually look like I spent hours editing them.",
+  },
 ];
 
 export default function TestimonialsSection() {
@@ -42,7 +47,7 @@ export default function TestimonialsSection() {
           {testimonials.map((t) => (
             <figure
               key={t.name}
-              className="bg-surface-container-lowest p-6 rounded-[1rem] border border-outline-variant/10 shadow-sm flex flex-col gap-4"
+              className="bg-surface-container-lowest p-6 rounded-[1rem] border border-outline-variant/10 shadow-sm flex flex-col gap-4 h-full"
             >
               <span
                 className="material-symbols-outlined text-primary/30 text-3xl leading-none"
@@ -51,6 +56,21 @@ export default function TestimonialsSection() {
               >
                 format_quote
               </span>
+              <div
+                className="flex gap-0.5 text-amber-400"
+                aria-label="Rated 5 out of 5 stars"
+              >
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <span
+                    key={i}
+                    className="material-symbols-outlined text-lg leading-none"
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                    aria-hidden="true"
+                  >
+                    star
+                  </span>
+                ))}
+              </div>
               <blockquote className="text-on-surface-variant text-sm leading-relaxed flex-1">
                 {t.quote}
               </blockquote>
