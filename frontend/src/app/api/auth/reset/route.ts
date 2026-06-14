@@ -10,8 +10,8 @@ export async function POST(req: Request) {
   const token = String(body.token ?? "");
   const password = String(body.password ?? "");
 
-  if (password.length < 8) {
-    return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
+  if (password.length < 10) {
+    return NextResponse.json({ error: "Password must be at least 10 characters." }, { status: 400 });
   }
   if (!(await allow("resetSubmitIp", ipFromRequest(req)))) {
     return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });

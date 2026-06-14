@@ -9,12 +9,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "path is required" }, { status: 400 });
   }
 
-  if (!path.startsWith("/vg/preview/")) {
+  // Resolve against the backend origin and confirm the normalized result stays
+  // under /vg/preview/ on the same host — blocks `../` traversal and host
+  // injection (e.g. path being an absolute URL).
+  let target: URL;
+  try {
+    target = new URL(path, FLASK_URL);
+  } catch {
+    return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+  }
+  if (
+    target.origin !== new URL(FLASK_URL).origin ||
+    !target.pathname.startsWith("/vg/preview/") ||
+    target.pathname.includes("..")
+  ) {
     return NextResponse.json({ error: "Forbidden path" }, { status: 403 });
   }
 
   try {
-    const res = await fetch(`${FLASK_URL}${path}`, {
+    const res = await fetch(target.toString(), {
       headers: API_KEY ? { "X-API-Key": API_KEY } : {},
     });
 

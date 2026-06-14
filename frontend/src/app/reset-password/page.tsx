@@ -12,7 +12,7 @@ function ResetForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
+    if (password.length < 10) { setError("Password must be at least 10 characters."); return; }
     setSubmitting(true); setError(null);
     const res = await fetch("/api/auth/reset", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, password }),
@@ -33,7 +33,7 @@ function ResetForm() {
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-3">
             {error && <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm text-center">{error}</div>}
-            <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New password (8+ characters)"
+            <input type="password" required minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New password (10+ characters)"
               className="px-4 py-3 bg-surface-container-low border border-outline-variant/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/40" />
             <button type="submit" disabled={submitting}
               className="px-6 py-3 bg-primary text-on-primary rounded-xl font-headline font-bold hover:opacity-90 transition disabled:opacity-50">

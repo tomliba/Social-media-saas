@@ -20,6 +20,9 @@ export const authConfig: NextAuthConfig = {
       const { pathname } = nextUrl;
 
       const publicPaths = ["/", "/pricing", "/privacy", "/terms", "/login", "/signup", "/forgot-password", "/reset-password"];
+      // Only genuine static assets are public by extension — not any path that
+      // happens to contain a dot (which previously made dotted routes public).
+      const STATIC_FILE = /\.(?:png|jpe?g|gif|svg|webp|avif|ico|css|js|mjs|map|txt|xml|json|woff2?|ttf|otf|eot|mp4|webm|mp3|wav|pdf)$/i;
       const isPublic =
         publicPaths.some((p) => pathname === p) ||
         pathname.startsWith("/api/auth") ||
@@ -27,9 +30,10 @@ export const authConfig: NextAuthConfig = {
         pathname.startsWith("/api/cron") ||
         pathname.startsWith("/_next") ||
         pathname === "/verify" ||
+        // Server-to-server render callbacks (secret-verified inside the route).
         pathname.endsWith("/complete") ||
         pathname.endsWith("/preview-ready") ||
-        pathname.includes(".");
+        STATIC_FILE.test(pathname);
 
       if (isPublic) return true;
       if (!isLoggedIn) return false;
