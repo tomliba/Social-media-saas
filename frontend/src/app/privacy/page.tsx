@@ -5,19 +5,13 @@ export const metadata = {
 };
 
 // Entity name and contact email are filled in. Counsel should still review
-// before relying on this Policy (DRAFT banner remains on the page).
+// before relying on this Policy.
 export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-20">
       <Link href="/" className="text-primary text-sm font-semibold hover:underline">
         ← Back home
       </Link>
-
-      <div className="mt-6 mb-8 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
-        <strong>DRAFT — for review.</strong> This is a starter template, not legal
-        advice. Fill in the bracketed details and have a lawyer review it before
-        relying on it.
-      </div>
 
       <h1 className="font-headline text-4xl font-bold mb-2">Privacy Policy</h1>
       <p className="text-on-surface-variant mb-10">Effective date: June 14, 2026</p>
