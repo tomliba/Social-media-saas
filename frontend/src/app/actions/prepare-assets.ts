@@ -1,6 +1,8 @@
 "use server";
 
 import { prepareAssetsViaFlask } from "@/lib/flask-render";
+import { auth } from "@/lib/auth";
+import { callbackHeaders } from "@/lib/callback-auth";
 import type { PrepareAssetsPayload } from "../../../trigger/prepare-assets";
 
 export interface PrepareAssetsHandle {
@@ -15,8 +17,15 @@ export async function triggerPrepareAssets(
   const useTrigger = !!process.env.TRIGGER_SECRET_KEY;
 
   if (useTrigger) {
+    // Tag the run with the owner so /api/prepare-status can scope status reads.
+    const session = await auth();
+    const userId = session?.user?.id;
     const { tasks } = await import("@trigger.dev/sdk");
-    const handle = await tasks.trigger("prepare-assets", payload);
+    const handle = await tasks.trigger(
+      "prepare-assets",
+      payload,
+      userId ? { tags: [`user:${userId}`] } : undefined
+    );
 
     return {
       runId: handle.id,
@@ -58,7 +67,7 @@ export async function triggerPrepareAssets(
     console.log("[prepare-assets] Calling preview-ready with libraryItemId:", payload.libraryItemId, "appUrl:", appUrl);
     const prRes = await fetch(`${appUrl}/api/library/${payload.libraryItemId}/preview-ready`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: callbackHeaders(),
       body: JSON.stringify({
         status: "preview",
         previewData: JSON.stringify(previewData),
