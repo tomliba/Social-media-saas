@@ -6,9 +6,13 @@ import type { PlanName } from "@/lib/credits/config";
 
 // Lemon Squeezy subscription variant IDs by plan (mirror of
 // LS_SUBSCRIPTION_VARIANTS). Free has no checkout — it routes to /signup.
+// Env-overridable so test mode can use the LS test-store variant IDs. Falls back
+// to the live-store IDs, so production behavior is unchanged when unset. These MUST
+// match LS_SUBSCRIPTION_VARIANTS (credits/config.ts) — same env names — so the
+// checkout link and the webhook's reverse plan lookup stay in sync.
 const VARIANT_BY_PLAN: Partial<Record<PlanName, string>> = {
-  creator: "1771372", // $24.99/mo
-  pro: "1771393", // $59.99/mo
+  creator: process.env.LEMONSQUEEZY_VARIANT_CREATOR ?? "1771372", // $24.99/mo
+  pro: process.env.LEMONSQUEEZY_VARIANT_PRO ?? "1771393", // $59.99/mo
 };
 
 // Public store subdomain (<slug>.lemonsqueezy.com). Override per environment;

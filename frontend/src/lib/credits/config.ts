@@ -146,16 +146,23 @@ export const FREE_TIER_ALLOTMENT = PLAN_MONTHLY_CREDITS.free;
 
 // ──────────────────────────────────────────────────────────────────────────
 // Lemon Squeezy mapping
-// Fill in the variant IDs from your LS dashboard. Leave as "" until created.
+// Subscription variant IDs are env-overridable so LS test mode can point at the
+// test-store variants; they fall back to the live-store IDs when unset (so prod
+// is unchanged). These env names MUST match VARIANT_BY_PLAN in actions/checkout.ts
+// so the checkout link and this reverse lookup agree.
+// Top-up pack IDs are still placeholders ("") — parked until top-ups ship.
 // ──────────────────────────────────────────────────────────────────────────
+
+const CREATOR_VARIANT = process.env.LEMONSQUEEZY_VARIANT_CREATOR ?? "1771372"; // $24.99/mo
+const PRO_VARIANT = process.env.LEMONSQUEEZY_VARIANT_PRO ?? "1771393";         // $59.99/mo
 
 /**
  * Subscription variant ID → plan name.
  * One entry per paid tier. Used by subscription_* webhook events.
  */
 export const LS_SUBSCRIPTION_VARIANTS: Record<string, PlanName> = {
-  "1771372": "creator", // $24.99/mo
-  "1771393": "pro",     // $59.99/mo
+  [CREATOR_VARIANT]: "creator",
+  [PRO_VARIANT]: "pro",
 };
 
 /**
