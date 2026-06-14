@@ -15,8 +15,8 @@ export async function POST(req: Request) {
   const email = String(body.email ?? "").toLowerCase().trim();
   const password = String(body.password ?? "");
 
-  if (!EMAIL_RE.test(email) || password.length < 8) {
-    return NextResponse.json({ error: "Enter a valid email and a password of at least 8 characters." }, { status: 400 });
+  if (!EMAIL_RE.test(email) || password.length < 10) {
+    return NextResponse.json({ error: "Enter a valid email and a password of at least 10 characters." }, { status: 400 });
   }
   if (!(await allow("signupIp", ipFromRequest(req)))) {
     return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
