@@ -55,5 +55,9 @@
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
     "vitest": "^2.1.9"
+  },
+  "overrides": {
+    "cookie": "^0.7.0",
+    "ws": "^8.18.0"
   }
 }
