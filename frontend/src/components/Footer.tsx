@@ -5,8 +5,7 @@ const links = [
   { label: "Pricing", href: "/#pricing" },
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms of Service", href: "/terms" },
-  // TODO: confirm the real support address (placeholder).
-  { label: "Contact", href: "mailto:hello@usefluvio.com" },
+  { label: "Contact", href: "mailto:usefluvio@gmail.com" },
 ];
 
 export default function Footer() {

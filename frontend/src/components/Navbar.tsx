@@ -25,7 +25,7 @@ export default function Navbar() {
             Pricing
           </Link>
           <Link
-            href="#testimonials"
+            href="/#testimonials"
             className="text-neutral-500 hover:text-violet-500 transition-all duration-300"
           >
             Testimonials
