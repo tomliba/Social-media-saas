@@ -44,3 +44,6 @@ cookie.txt
 
 # Local Playwright production E2E run artifacts (session cookies, videos, frames)
 playwright_run/
+
+# montage build scratch (local video assembly workspace)
+frontend/.montage-build/

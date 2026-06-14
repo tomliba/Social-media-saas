@@ -38,43 +38,21 @@ export default function HeroSection() {
         <div className="relative w-[320px] h-[640px] bg-inverse-surface rounded-[3rem] p-3 shadow-2xl ring-8 ring-surface-variant">
           {/* Notch */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-inverse-surface rounded-b-2xl z-20" />
-          {/* Screen */}
+          {/* Screen — auto-assembled showcase montage of every format */}
           <div className="w-full h-full rounded-[2.2rem] overflow-hidden bg-surface-container relative">
-            {/* Placeholder for hero image - gradient with character silhouette */}
-            <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary-container/30 to-secondary/20 flex items-center justify-center">
-              <div className="text-center p-6">
-                <span
-                  className="material-symbols-outlined text-primary"
-                  style={{
-                    fontSize: "80px",
-                    fontVariationSettings: "'FILL' 1",
-                  }}
-                >
-                  smart_display
-                </span>
-                <p className="text-on-surface-variant text-sm mt-4 font-medium">
-                  Stylized preview
-                </p>
-              </div>
-            </div>
-            {/* Overlay card */}
-            <div className="absolute bottom-6 left-6 right-6 p-4 glass-nav rounded-xl border border-white/20">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center">
-                  <span className="material-symbols-outlined text-on-primary-container text-lg">
-                    person
-                  </span>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-on-surface">
-                    Your AI character
-                  </p>
-                  <p className="text-[10px] text-on-surface-variant">
-                    Illustrative mockup
-                  </p>
-                </div>
-              </div>
-            </div>
+            <video
+              poster="/previews/hero-showcase-montage.jpg"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label="A montage of the videos, posts, and carousels you can create with Fluvio"
+              className="w-full h-full object-cover"
+            >
+              <source src="/previews/hero-showcase-montage.webm" type="video/webm" />
+              <source src="/previews/hero-showcase-montage.mp4" type="video/mp4" />
+            </video>
           </div>
         </div>
         {/* Decorative blobs */}
