@@ -7,13 +7,15 @@ import type { NextConfig } from "next";
 // add meaningful hardening. Shipped report-only first to catch real violations.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
+  // jsdelivr hosts the pdf.js worker used by the file-upload template flow.
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+  // Google Fonts stylesheet (Material Symbols icons).
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https://*.r2.dev https://*.pexels.com",
-  "font-src 'self' data:",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "connect-src 'self' https://*.r2.dev https://*.trigger.dev wss://*.trigger.dev https://api.trigger.dev wss://api.trigger.dev",
-  "worker-src 'self' blob:",
+  "worker-src 'self' blob: https://cdn.jsdelivr.net",
   "frame-ancestors 'self'",
   "frame-src 'self'",
   "object-src 'none'",
