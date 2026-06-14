@@ -1,6 +1,7 @@
 import { task, metadata, logger } from "@trigger.dev/sdk";
 import { defaultVoice } from "../src/lib/voices";
 import type { VisualSegment } from "../src/lib/video-types";
+import { callbackHeaders } from "../src/lib/callback-auth";
 
 export interface PrepareAssetsPayload {
   title: string;
@@ -405,7 +406,7 @@ export const prepareAssets = task({
         logger.log("Calling preview-ready webhook", { url: `${appUrl}/api/library/${payload.libraryItemId}/preview-ready`, hasPreviewData: !!previewData });
         const patchRes = await fetch(`${appUrl}/api/library/${payload.libraryItemId}/preview-ready`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: callbackHeaders(),
           body: JSON.stringify({
             status: "preview",
             previewData: JSON.stringify(previewData),

@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
 /**
  * GET /api/prepare-status?runId=xxx
  *
  * Polls Trigger.dev for the prepare-assets task status.
+ * Requires an authenticated session, and the run must be tagged with the
+ * caller's user id (set when triggered) so users can only read their own jobs.
  * Returns { status, stage, stageLabel, progress, output? }.
  */
 export async function GET(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const runId = req.nextUrl.searchParams.get("runId");
   if (!runId) {
     return NextResponse.json({ error: "runId is required" }, { status: 400 });
@@ -20,6 +28,11 @@ export async function GET(req: NextRequest) {
   try {
     const { runs } = await import("@trigger.dev/sdk");
     const run = await runs.retrieve(runId);
+
+    // Ownership: the run must carry this user's tag.
+    if (!run.tags?.includes(`user:${session.user.id}`)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
     const meta = (run.metadata ?? {}) as Record<string, unknown>;
 

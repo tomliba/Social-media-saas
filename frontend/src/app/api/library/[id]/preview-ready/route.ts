@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyCallbackSecret } from "@/lib/callback-auth";
 
 // POST /api/library/[id]/preview-ready — update item with preview data
-// Called by prepare-assets Trigger.dev task (server-to-server, uses item ID directly)
+// Called by prepare-assets Trigger.dev task (server-to-server). Authenticated by
+// the shared callback secret (same as /complete), since there is no user session.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!verifyCallbackSecret(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
-  console.log("[preview-ready] Called with id:", id, "method:", req.method);
   const body = await req.json();
   const { status, previewData, creativeSettings, resolvedSegments, durationSec } = body;
 
