@@ -23,9 +23,10 @@ const CSP = [
   "form-action 'self'",
 ].join("; ");
 
-// Toggle: report-only collects violations without blocking; flip to
-// "Content-Security-Policy" to enforce once the policy is clean on real pages.
-const CSP_HEADER_NAME = "Content-Security-Policy-Report-Only";
+// Enforcing. Shipped report-only first and verified 0 violations across all
+// authenticated pages + render flows, so the policy now blocks rather than just
+// reports. Flip back to "Content-Security-Policy-Report-Only" to soften.
+const CSP_HEADER_NAME = "Content-Security-Policy";
 
 // Safe baseline security headers applied to every response.
 const securityHeaders = [
