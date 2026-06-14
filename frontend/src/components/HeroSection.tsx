@@ -50,7 +50,6 @@ export default function HeroSection() {
               aria-label="A montage of the videos, posts, and carousels you can create with Fluvio"
               className="w-full h-full object-cover"
             >
-              <source src="/previews/hero-showcase-montage.webm" type="video/webm" />
               <source src="/previews/hero-showcase-montage.mp4" type="video/mp4" />
             </video>
           </div>
