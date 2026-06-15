@@ -96,30 +96,67 @@ async function handle(req: NextRequest) {
           refunded++;
         }
       } else {
-        // ── Non-Trigger path (bypass flows) ──
-        // No run to verify, but a non-terminal item past the cutoff is a dead
-        // render. The charge key == item.jobId, so refund whatever was charged
-        // under it. refundCredits is idempotent and returns a null transaction
-        // when there is no unrefunded spend — in which case we skip + log.
+        // ── Non-Trigger path (Flask backend renders; jobId == vg_job_id) ──
+        // No Trigger run to verify. But the backend uploads the finished video
+        // to a deterministic key videos/{jobId}.mp4. The common failure here is
+        // an OOM/worker death AFTER the upload but BEFORE the completion callback:
+        // the file is in R2, the row just never flipped. So check R2 before
+        // refunding — refunding a render that actually finished both claws back
+        // a completed video AND leaves the user without it.
         if (!item.jobId) {
           skipped++;
           console.warn(`Reconcile: stuck item ${item.id} has no jobId; skipping`);
           continue;
         }
-        const result = await refundCredits({
-          userId: item.userId,
-          jobId: item.jobId,
-          reason: "render stalled (reconcile)",
-        });
-        if (result.transaction && !result.idempotent) {
+
+        const base = (process.env.R2_PUBLIC_URL ?? "").replace(/\/$/, "");
+        if (!base) {
+          // Can't verify without the public base — never refund on uncertainty.
+          skipped++;
+          console.error(`Reconcile: R2_PUBLIC_URL not set; cannot verify item ${item.id} (jobId ${item.jobId}); skipping`);
+          continue;
+        }
+        const videoUrl = `${base}/videos/${item.jobId}.mp4`;
+
+        let exists: boolean;
+        try {
+          const head = await fetch(videoUrl, { method: "HEAD" });
+          exists = head.ok;
+        } catch (err) {
+          // Network/uncertainty — don't refund; a later sweep will retry.
+          skipped++;
+          console.error(`Reconcile: R2 HEAD failed for item ${item.id} (jobId ${item.jobId}); skipping:`, err);
+          continue;
+        }
+
+        if (exists) {
+          // Render finished and uploaded; only the callback was lost. Recover the
+          // row, attach the URL, and do NOT refund.
           await prisma.contentItem.update({
             where: { id: item.id },
-            data: { status: "failed", error: "render stalled" },
+            data: { status: "ready", videoUrl, error: null },
           });
-          refunded++;
+          recovered++;
+          console.log(`Reconcile: recovered-from-R2 item ${item.id} (jobId ${item.jobId}) -> ready ${videoUrl}`);
         } else {
-          skipped++;
-          console.warn(`Reconcile: no unrefunded charge for stuck item ${item.id} (jobId "${item.jobId}"); skipping`);
+          // No video in R2 — a genuinely dead render. Refund whatever was charged
+          // under this jobId (idempotent; null when nothing to refund → skip+log).
+          const result = await refundCredits({
+            userId: item.userId,
+            jobId: item.jobId,
+            reason: "render stalled (reconcile)",
+          });
+          if (result.transaction && !result.idempotent) {
+            await prisma.contentItem.update({
+              where: { id: item.id },
+              data: { status: "failed", error: "render stalled" },
+            });
+            refunded++;
+            console.log(`Reconcile: failed-and-refunded item ${item.id} (jobId ${item.jobId})`);
+          } else {
+            skipped++;
+            console.warn(`Reconcile: no video in R2 and no unrefunded charge for item ${item.id} (jobId "${item.jobId}"); skipping`);
+          }
         }
       }
     } catch (err) {
