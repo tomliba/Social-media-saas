@@ -95,3 +95,28 @@ Card-by-title is unsafe when titles collide. The robust fix is to give each stor
 2. **Add malformed-JSON recovery to script-gen.** Wrap the AI script output in a JSON-repair/retry (or a stricter response format) so a single bad generation degrades gracefully instead of a 500. This is the only hard user-facing failure the load surfaced.
 3. **Fish-TTS gate and Flux/Atlas need no action** — both had clear headroom at 10× concurrency.
 4. **Harness:** land the unique-title fix, then a story-completion re-run will exercise the render gate from the story side too.
+
+---
+
+## Re-run (post-fix, 2026-06-16 ~15:10 UTC) — deploy `d186b7a1`
+
+After landing three changes — backend `PREP_GATE` (concurrency cap 3) + script-gen JSON repair/regenerate, and the harness unique-title fix — N=10 was re-run.
+
+| Metric | First run | Re-run | 
+|---|---|---|
+| Dispatched | 9/10 | **9/10** |
+| Ready (verified video) | 5/10 | **9/10** ✅ |
+| Stuck | 4 | **0** ✅ |
+| Wall time | 46 min | **8.6 min** ✅ |
+| Credits charged | 90 | 90 (balance → 201) |
+| Orphans | 0 | 0 |
+
+**What the fixes proved:**
+- **Harness unique-title fix works** — all 4 dispatched stories drove their HD export to `ready` (0 stuck, vs 4 before). Story-side render-gate load is now actually exercised.
+- **`PREP_GATE` engaged under load** — `PREP gate WAITING: 5`, ACQUIRED 17, RELEASED 18. The cap throttled heavy prep as intended. Burst-peak memory **3.85 GB / 8 GB**.
+
+**Correction to the memory finding (important):** the "OOM-SIGKILLs" are **not** memory pressure. In the re-run the gunicorn worker **never respawned** (`Booting worker` count = 0; it booted once at 15:04 and stayed up), memory peaked at **3.85 GB** (well under the 8 GB limit), yet 36 `SIGKILL … Perhaps out of memory` lines appeared — in **clusters of 4 at each render boundary** (4 × 9 renders = 36; first run 4 × ~8 = 32). These are **Remotion/Chrome renderer child processes** recycling per render, which gunicorn's arbiter (pid 1) generically misreports as possible OOM. **The box is not memory-starved at N=10.** `PREP_GATE` is still worthwhile as defensive headroom, but "raise memory" is **not** needed.
+
+**Remaining gap — empty Gemini response (the 1 non-dispatch):** `story#5` failed `Script generation failed (500)` again, but for a *different* reason than before: Gemini returned **None/empty text** under load → `_parse_script_response(None)` → `None.strip()` → `AttributeError`. The new repair/regenerate loop only catches `ValueError` (malformed JSON), so the empty-response case isn't retried. One-line follow-up: treat a falsy `raw` as a regenerate-able failure (raise `ValueError` in `_parse_script_response` when `raw` is empty, so the existing loop regenerates).
+
+**Net:** functionally the system handles 10× concurrency well (9/10 dispatch, 9/9 of those render to a playable video in <9 min). The remaining 1/10 failure is an empty-LLM-response robustness gap, not memory and not malformed JSON.
