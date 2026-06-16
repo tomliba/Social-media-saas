@@ -120,3 +120,40 @@ After landing three changes — backend `PREP_GATE` (concurrency cap 3) + script
 **Remaining gap — empty Gemini response (the 1 non-dispatch):** `story#5` failed `Script generation failed (500)` again, but for a *different* reason than before: Gemini returned **None/empty text** under load → `_parse_script_response(None)` → `None.strip()` → `AttributeError`. The new repair/regenerate loop only catches `ValueError` (malformed JSON), so the empty-response case isn't retried. One-line follow-up: treat a falsy `raw` as a regenerate-able failure (raise `ValueError` in `_parse_script_response` when `raw` is empty, so the existing loop regenerates).
 
 **Net:** functionally the system handles 10× concurrency well (9/10 dispatch, 9/9 of those render to a playable video in <9 min). The remaining 1/10 failure is an empty-LLM-response robustness gap, not memory and not malformed JSON.
+
+---
+
+## Confirmation run (2026-06-16 ~15:55 UTC) — deploy `f3ef4078` (empty-response guard live)
+
+After landing the empty-response guard (`_parse_script_response` raises `ValueError` on empty/None so the regenerate loop retries), N=10 was re-run. **Fully clean:**
+
+| Metric | First run | Re-run | Confirmation |
+|---|---|---|---|
+| Dispatched | 9/10 | 9/10 | **10/10** ✅ |
+| Ready (verified video) | 5/10 | 9/10 | **10/10** ✅ |
+| Stuck | 4 | 0 | **0** ✅ |
+| Wall time | 46 min | 8.6 min | 9.9 min |
+| Credits charged | 90 | 90 | 100 (balance → 101) |
+| Orphans | 0 | 0 | 0 |
+
+**The guard fired and recovered under load** — direct proof, not a passive pass:
+```
+15:57:10 [WARNING] AI story script unparseable (attempt 1/2): AI returned an empty response. — regenerating
+```
+One story hit the exact empty-Gemini-response case that hard-500'd `story#5` in the prior run; this time it raised `ValueError` → the regenerate loop retried → succeeded → dispatched. That single recovery is why dispatch went 9/10 → **10/10**. No new ("third way") failure mode appeared.
+
+### Railway evidence (N=10 window)
+
+| Signal | Result |
+|---|---|
+| FISH-TTS gate | 10 ACQUIRED / 10 RELEASED / **0 WAITING** — no contention, no 429s |
+| Render gate | 10 ACQUIRED / 10 RELEASED — serialized, all released, no deadlock |
+| PREP gate | 19 ACQUIRED / 19 RELEASED / **8 WAITING** — cap engaged 8× under load |
+| Flux/Atlas image-gen | **100%** every batch (`X/X success, 0 fell back`); 0 real 429s, 0 provider fallbacks |
+| Script-gen recovery | empty-response guard fired **1×** → regenerated → recovered; repair-pass 0× |
+| Gemini 503 | 2× (on *visual-plan*, not script-gen) — recovered via retry |
+| Memory | peak **4.15 GB / 8 GB**; gunicorn worker **0 reboots** |
+| "OOM" SIGKILLs | 40 = exactly 4 × 10 renders → per-render Chrome renderer churn, **not** memory pressure |
+| Credits / cleanup | 100 charged (10/item); all 10 items auto-deleted by `afterAll` |
+
+**Verdict:** at 10× concurrency the pipeline is fully clean — every item dispatches and renders to a playable video. The three fixes each proved out under real load: unique-title (0 stuck), `PREP_GATE` (8 WAITING, memory bounded to 4.15 GB), and the empty-response guard (caught the 1 case that previously failed). A network-free regression test for the guard lives at `Contact_creator/tests/test_empty_response_recovery.py`.
