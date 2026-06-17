@@ -6,43 +6,42 @@ import {
   postBatchCost,
   canUseVideoFormat,
   videoFormatFromBackgroundMode,
-  ANIMATED_CREDITS_PER_SEC,
+  VIDEO_BASE,
 } from "@/lib/credits/config";
 
 // These assert the LOCKED pricing numbers actually fire. If a constant in
 // config.ts drifts, one of these breaks — that is the point.
+// Video pricing is per-second: cost = VIDEO_BASE + ceil(rate × seconds).
 
-describe("videoCost — flat formats", () => {
-  it("ai_story is 10 regardless of duration", () => {
-    expect(videoCost("ai_story", 30)).toBe(10);
-    expect(videoCost("ai_story", 90)).toBe(10);
+describe("videoCost — per-second (base + rate × seconds)", () => {
+  it("VIDEO_BASE is 5", () => {
+    expect(VIDEO_BASE).toBe(5);
   });
 
-  it("skeleton (Flux Dev) is 15", () => {
-    expect(videoCost("skeleton", 30)).toBe(15);
+  it("standard lane (0.1/s) = 5 + ceil(0.1 × seconds)", () => {
+    expect(videoCost("ai_story", 30)).toBe(8);   // 5 + ceil(3)
+    expect(videoCost("ai_story", 90)).toBe(14);  // 5 + ceil(9)
+    expect(videoCost("argument", 30)).toBe(8);
+    expect(videoCost("ai_images", 30)).toBe(8);
   });
 
-  it("the cheap lanes are 5", () => {
+  it("the cheap lanes share the standard rate", () => {
     for (const f of ["stock", "motion", "green", "smart_mix"] as const) {
-      expect(videoCost(f, 60)).toBe(5);
+      expect(videoCost(f, 60)).toBe(11);          // 5 + ceil(6)
     }
   });
 
-  it("argument and ai_images are 10", () => {
-    expect(videoCost("argument", 30)).toBe(10);
-    expect(videoCost("ai_images", 30)).toBe(10);
+  it("skeleton (0.35/s) = 5 + ceil(0.35 × seconds)", () => {
+    expect(videoCost("skeleton", 30)).toBe(16);   // 5 + ceil(10.5)
+    expect(videoCost("skeleton", 60)).toBe(26);   // 5 + ceil(21)
   });
 });
 
-describe("videoCost — animated (per-second)", () => {
-  it("animated_character at 90s is 135", () => {
-    expect(videoCost("animated_character", 90)).toBe(135);
-  });
-
-  it("animated_story tracks 1.5 credits/sec at 30s and 60s", () => {
-    expect(ANIMATED_CREDITS_PER_SEC).toBe(1.5);
-    expect(videoCost("animated_story", 30)).toBe(45);
-    expect(videoCost("animated_story", 60)).toBe(90);
+describe("videoCost — animated (2.4/s, Pro-only)", () => {
+  it("= 5 + ceil(2.4 × seconds)", () => {
+    expect(videoCost("animated_story", 30)).toBe(77);      // 5 + ceil(72)
+    expect(videoCost("animated_story", 60)).toBe(149);     // 5 + ceil(144)
+    expect(videoCost("animated_character", 90)).toBe(221); // 5 + ceil(216)
   });
 });
 
@@ -50,11 +49,11 @@ describe("videoBatchCost", () => {
   it("sums mixed formats", () => {
     expect(
       videoBatchCost([
-        { format: "skeleton", durationSeconds: 30 },        // 15
-        { format: "smart_mix", durationSeconds: 30 },       // 5
-        { format: "animated_character", durationSeconds: 90 }, // 135
+        { format: "skeleton", durationSeconds: 30 },           // 16
+        { format: "smart_mix", durationSeconds: 30 },          // 8
+        { format: "animated_character", durationSeconds: 90 }, // 221
       ])
-    ).toBe(155);
+    ).toBe(245);
   });
 });
 
@@ -75,30 +74,30 @@ describe("videoFormatFromBackgroundMode", () => {
 });
 
 describe("postCost", () => {
-  it("image_post_ai is 20 per idea", () => {
-    expect(postCost("image_post_ai", { ideas: 1 })).toBe(20);
-    expect(postCost("image_post_ai", { ideas: 3 })).toBe(60);
+  it("image_post_ai is 30 per idea", () => {
+    expect(postCost("image_post_ai", { ideas: 1 })).toBe(30);
+    expect(postCost("image_post_ai", { ideas: 3 })).toBe(90);
   });
 
-  it("a 5-slide gemini carousel is 40", () => {
-    expect(postCost("carousel_infographic", { slides: 5 })).toBe(40);
-    expect(postCost("carousel_handdrawn", { slides: 5 })).toBe(40);
-    expect(postCost("carousel_notebook", { slides: 5 })).toBe(40);
+  it("a 5-slide gemini carousel is 75", () => {
+    expect(postCost("carousel_infographic", { slides: 5 })).toBe(75);
+    expect(postCost("carousel_handdrawn", { slides: 5 })).toBe(75);
+    expect(postCost("carousel_notebook", { slides: 5 })).toBe(75);
   });
 
-  it("post_cloner is 12", () => {
-    expect(postCost("post_cloner")).toBe(12);
+  it("post_cloner is 15", () => {
+    expect(postCost("post_cloner")).toBe(15);
   });
 
-  it("free HTML formats are 5", () => {
+  it("free HTML formats are 2", () => {
     for (const f of ["image_post_template", "carousel_designed", "text"] as const) {
-      expect(postCost(f)).toBe(5);
+      expect(postCost(f)).toBe(2);
     }
   });
 
-  it("single gemini ads are 10", () => {
+  it("single gemini ads are 15", () => {
     for (const f of ["ad_creative", "ai_scene", "meme_ad", "ecommerce_ad"] as const) {
-      expect(postCost(f)).toBe(10);
+      expect(postCost(f)).toBe(15);
     }
   });
 });
@@ -107,11 +106,11 @@ describe("postBatchCost", () => {
   it("sums mixed post formats", () => {
     expect(
       postBatchCost([
-        { format: "image_post_ai", ideas: 2 },        // 40
-        { format: "carousel_notebook", slides: 5 },   // 40
-        { format: "text" },                           // 5
+        { format: "image_post_ai", ideas: 2 },        // 60
+        { format: "carousel_notebook", slides: 5 },   // 75
+        { format: "text" },                           // 2
       ])
-    ).toBe(85);
+    ).toBe(137);
   });
 });
 
@@ -132,8 +131,8 @@ describe("canUseVideoFormat — animation gating", () => {
   });
 
   // Matrix completion: stock + skeleton are covered above; assert the remaining
-  // non-animated formats across all plans. Note `ai_story` is flat-priced and
-  // NOT animation-gated despite the name — only animated_* are Pro-gated.
+  // non-animated formats across all plans. Note `ai_story` is per-second priced
+  // and NOT animation-gated despite the name — only animated_* are Pro-gated.
   it("allows the remaining non-animated formats on all three plans", () => {
     const remaining = [
       "motion",
@@ -158,14 +157,14 @@ describe("batch cost edge cases", () => {
   });
 
   it("a mixed free + paid post batch sums correctly", () => {
-    // image_post_template (free HTML, 5) + ad_creative (single Gemini ad, 10)
-    //   + image_post_ai{ideas:1} (20) = 35
+    // image_post_template (free HTML, 2) + ad_creative (single Gemini ad, 15)
+    //   + image_post_ai{ideas:1} (30) = 47
     expect(
       postBatchCost([
         { format: "image_post_template" },
         { format: "ad_creative" },
         { format: "image_post_ai", ideas: 1 },
       ])
-    ).toBe(35);
+    ).toBe(47);
   });
 });

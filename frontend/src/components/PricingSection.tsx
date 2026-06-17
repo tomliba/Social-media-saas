@@ -138,7 +138,7 @@ export default function PricingSection() {
           ))}
         </div>
         <p className="text-center text-on-surface-variant text-xs mt-8">
-          Paid checkout opens after you sign in. One-off credit top-ups are coming soon.
+          Paid checkout opens after you sign in.
         </p>
       </div>
     </section>

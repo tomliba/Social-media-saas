@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCreditBalance } from "@/lib/credits";
+import CreditPacks from "@/components/credits/CreditPacks";
 
 // Always render fresh — plan/status/balance change out of band (webhooks, renders).
 export const dynamic = "force-dynamic";
@@ -166,16 +167,7 @@ export default async function AccountsPage() {
             Credits are used each time you create a video or post.
           </p>
 
-          {/* TODO: point this at a dedicated credit-pack checkout once the
-              TOPUP_PACKS variant IDs are configured (src/lib/credits/config.ts).
-              No credit-pack checkout route exists yet, so we link to /pricing. */}
-          <Link
-            href="/pricing"
-            className="inline-flex items-center justify-center gap-2 w-full py-3.5 rounded-full border-2 border-primary text-primary font-label font-bold hover:bg-primary/5 transition-colors active:scale-95"
-          >
-            <span className="material-symbols-outlined text-lg">add</span>
-            Buy More Credits
-          </Link>
+          <CreditPacks />
         </section>
       </div>
     </div>
