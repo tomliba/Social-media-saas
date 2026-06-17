@@ -5,6 +5,8 @@ export interface RenderPreviewPayload {
   /** Library item ID — used to update status on completion */
   libraryItemId: string;
   title: string;
+  /** Free tier → backend renders the HD export with watermark + 720p (set server-side). */
+  isFreeTier?: boolean;
   previewData: {
     audioUrl: string;
     backgroundPaths: string[];
@@ -123,6 +125,7 @@ export const renderPreview = task({
           shake_effect: creativeSettings.shakeEffect ?? false,
           transition_style: creativeSettings.transitionStyle,
           scale: 1.0,
+          is_free: payload.isFreeTier ?? false,
           ...(previewData.imageDurations && { image_durations: previewData.imageDurations }),
           ...(payload.visualSegments && { visual_segments: payload.visualSegments }),
         }),

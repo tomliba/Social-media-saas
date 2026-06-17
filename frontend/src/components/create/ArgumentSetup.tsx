@@ -6,6 +6,8 @@ import Link from "next/link";
 import type { UserPrefs } from "@/lib/createOptions";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { chargeVideo, refundRender } from "@/app/actions/charge-render";
+import { videoCost } from "@/lib/credits/config";
+import CostBadge from "@/components/credits/CostBadge";
 
 // ── Tone options (shared with AIStorySetup) ──
 
@@ -1415,6 +1417,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
                 <span className="material-symbols-outlined text-sm">arrow_back</span>
                 Back to Script
               </button>
+              <CostBadge credits={videoCost("argument", duration)} />
               <button
                 onClick={handleStartRender}
                 disabled={lines.length === 0}

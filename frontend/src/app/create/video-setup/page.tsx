@@ -4,7 +4,9 @@ import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
-import { videoFormatFromBackgroundMode } from "@/lib/credits/config";
+import { videoFormatFromBackgroundMode, videoCost, canUseVideoFormat } from "@/lib/credits/config";
+import { usePlan } from "@/lib/usePlan";
+import CostBadge from "@/components/credits/CostBadge";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
@@ -306,6 +308,12 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
   const [niche, setNiche] = useState(prefs?.characterNiche ?? "health and wellness");
   const [tone, setTone] = useState(prefs?.characterTone ?? "Funny");
   const [duration, setDuration] = useState(prefs?.characterDuration ?? "30s");
+  const { plan } = usePlan();
+  // Live credit cost for the current background mode + duration.
+  const currentVideoCost = videoCost(
+    videoFormatFromBackgroundMode(backgroundMode),
+    parseInt(duration) || 0,
+  );
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   // ── Idea generation ──
@@ -1056,12 +1064,22 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
                   Background Mode
                 </div>
                 <div className="space-y-2">
-                  {backgroundModes.map((opt) => (
+                  {backgroundModes.map((opt) => {
+                    // Plan gate: animated backgrounds are Pro-only. Surface the
+                    // lock here instead of only erroring at charge time.
+                    const locked = !canUseVideoFormat(plan, videoFormatFromBackgroundMode(opt.label));
+                    return (
                     <button
                       key={opt.label}
-                      onClick={() => { setBackgroundMode(opt.label); setBgModeOpen(false); }}
+                      onClick={() => {
+                        if (locked) { window.location.href = "/pricing"; return; }
+                        setBackgroundMode(opt.label); setBgModeOpen(false);
+                      }}
+                      aria-disabled={locked}
                       className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors text-left ${
-                        backgroundMode === opt.label
+                        locked
+                          ? "opacity-60 cursor-not-allowed bg-surface-container-low"
+                          : backgroundMode === opt.label
                           ? "bg-primary/10 ring-1 ring-primary/30"
                           : "bg-surface-container-low hover:bg-surface-container-high"
                       }`}
@@ -1070,14 +1088,21 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
                         <span>{opt.emoji}</span>
                         <div>
                           <span className="text-sm font-semibold block">{opt.label}</span>
-                          <span className="text-xs text-on-surface-variant/60 block">{opt.desc}</span>
+                          <span className="text-xs text-on-surface-variant/60 block">
+                            {locked ? "Upgrade to Pro to use animation" : opt.desc}
+                          </span>
                         </div>
                       </div>
-                      {backgroundMode === opt.label && (
+                      {locked ? (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/15 text-primary">
+                          <span className="material-symbols-outlined text-xs">lock</span> Pro
+                        </span>
+                      ) : backgroundMode === opt.label ? (
                         <span className="material-symbols-outlined text-primary text-sm">check</span>
-                      )}
+                      ) : null}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1857,7 +1882,10 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
 
       {/* ── Bottom action bar ── */}
       {activeMode && (
-        <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex justify-center">
+        <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center gap-2">
+          {activeMode !== "revoice" && (
+            <CostBadge credits={currentVideoCost} />
+          )}
           <button
             onClick={handleBottomAction}
             disabled={bottomDisabled}

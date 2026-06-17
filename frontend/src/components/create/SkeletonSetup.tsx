@@ -10,6 +10,8 @@ import type { Voice } from "@/lib/voices";
 import type { UserPrefs } from "@/lib/createOptions";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { chargeVideo, refundRender } from "@/app/actions/charge-render";
+import { videoCost } from "@/lib/credits/config";
+import CostBadge from "@/components/credits/CostBadge";
 
 // ── Script source modes (same accordion pattern as Argument) ──
 
@@ -1187,7 +1189,9 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
         </div>
 
         {/* Bottom bar */}
-        <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex justify-center gap-4">
+        <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center gap-3">
+          <CostBadge credits={videoCost(sceneMode === "animated" ? "animated_skeleton" : "skeleton", duration)} />
+          <div className="flex justify-center gap-4 w-full">
           <button
             onClick={handleGenerate}
             disabled={generating}
@@ -1229,6 +1233,7 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
             Preview video
             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
           </button>
+          </div>
         </footer>
 
         <VoicePickerModal open={voiceModalOpen} onClose={() => setVoiceModalOpen(false)} onSelect={handleVoiceSelect} currentVoiceId={selectedVoice?.fishAudioId || defaultVoice.fishAudioId} />

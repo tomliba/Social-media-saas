@@ -32,6 +32,9 @@ export interface VideoRenderRequest {
     backgroundMode?: string;
     duration: string;
     layout: string;
+    /** Free tier → backend renders with watermark + 720p. Set server-side from
+     *  the user's plan (source of truth); never trusted from the client. */
+    isFreeTier?: boolean;
     speed?: number;
     animate?: boolean;
     artStyle?: string;
@@ -105,6 +108,9 @@ export async function triggerVideoRenders(
     select: { plan: true },
   });
   const plan = (user?.plan as PlanName) ?? "free";
+  // Free tier gets watermark + 720p in the backend render. Derived from the
+  // plan here (server-side, authoritative) and threaded into the render payload.
+  const isFreeTier = plan === "free";
   const blocked = videos.find((v) => !canUseVideoFormat(plan, v.format));
   if (blocked) {
     return { ok: false, error: "plan_not_allowed", format: blocked.format };
@@ -133,7 +139,7 @@ export async function triggerVideoRenders(
           title: video.title,
           script: video.script,
           template: video.template,
-          settings: video.settings,
+          settings: { ...video.settings, isFreeTier },
         });
 
         // Charge immediately, keyed on the run id (== ContentItem.jobId).
@@ -193,7 +199,7 @@ export async function triggerVideoRenders(
     }
 
     try {
-      const result = await renderVideoViaFlask(video);
+      const result = await renderVideoViaFlask({ ...video, settings: { ...video.settings, isFreeTier } });
       handles.push({
         runId: jobId,
         publicAccessToken: "",

@@ -3,6 +3,8 @@
 import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { postCost } from "@/lib/credits/config";
+import CostBadge from "@/components/credits/CostBadge";
 
 // ── Style prompt prefixes ──
 
@@ -398,6 +400,14 @@ function AICarouselContent() {
             <div className="flex justify-between text-xs text-on-surface-variant mt-1">
               <span>3</span>
               <span>10</span>
+            </div>
+            <div className="mt-3">
+              <CostBadge
+                credits={postCost(
+                  isNotebook ? "carousel_notebook" : isHanddrawn ? "carousel_handdrawn" : "carousel_infographic",
+                  { slides: slideCount },
+                )}
+              />
             </div>
           </div>
 
