@@ -1423,7 +1423,7 @@ export const Video: React.FC<VideoProps> = ({
             zIndex: 30,
           }}
         >
-          ContentCreator Free
+          Made with Fluvio
         </div>
       )}
     </AbsoluteFill>
