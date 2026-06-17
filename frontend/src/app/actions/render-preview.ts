@@ -1,5 +1,8 @@
 "use server";
 
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import type { PlanName } from "@/lib/credits/config";
 import type { RenderPreviewPayload } from "../../../trigger/render-preview";
 
 export interface RenderPreviewHandle {
@@ -9,6 +12,16 @@ export interface RenderPreviewHandle {
 export async function triggerRenderPreview(
   payload: RenderPreviewPayload
 ): Promise<RenderPreviewHandle> {
+  // Free tier → backend renders the HD export with watermark + 720p. Derived
+  // from the user's plan server-side (source of truth), never from the client.
+  const session = await auth();
+  const userId = session?.user?.id;
+  const user = userId
+    ? await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } })
+    : null;
+  const isFreeTier = (((user?.plan as PlanName) ?? "free") === "free");
+  payload = { ...payload, isFreeTier };
+
   const useTrigger = !!process.env.TRIGGER_SECRET_KEY;
 
   if (useTrigger) {
@@ -49,6 +62,7 @@ export async function triggerRenderPreview(
       shake_effect: creativeSettings.shakeEffect ?? false,
       transition_style: creativeSettings.transitionStyle,
       scale: 1.0,
+      is_free: isFreeTier,
       ...(payload.visualSegments && { visual_segments: payload.visualSegments }),
     }),
   });

@@ -121,6 +121,8 @@ export interface DirectVideoRequest {
     backgroundMode?: string;
     duration: string;
     layout: string;
+    /** Free tier → backend renders with watermark + 720p (set server-side). */
+    isFreeTier?: boolean;
     speed?: number;
     animate?: boolean;
     artStyle?: string;
@@ -466,6 +468,7 @@ export async function renderVideoViaFlask(
     layout,
     speed,
     visualSegments: resolvedData.segments,
+    is_free: payload.settings.isFreeTier ?? false,
   };
 
   if (aiStory) {

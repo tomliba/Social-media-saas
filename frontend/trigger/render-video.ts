@@ -15,6 +15,8 @@ export interface RenderVideoPayload {
     backgroundMode?: string;
     duration: string;
     layout: string;
+    /** Free tier → backend renders with watermark + 720p (set server-side). */
+    isFreeTier?: boolean;
     speed?: number;
     animate?: boolean;
     artStyle?: string;
@@ -512,6 +514,7 @@ export const renderVideo = task({
           background_mode: backgroundMode,
           layout,
           speed,
+          is_free: payload.settings.isFreeTier ?? false,
           visual_segments: (isGreenScreen || isRevoice) ? [] : resolvedData.segments,
           ...(isRevoice ? {
             revoice_video_url: payload.settings.revoiceVideoUrl,

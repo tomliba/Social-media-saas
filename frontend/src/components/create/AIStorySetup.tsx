@@ -11,6 +11,9 @@ import { ART_STYLES as artStyles, type ArtStyle, artPreviewSrc } from "@/lib/art
 import type { UserPrefs } from "@/lib/createOptions";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { chargeVideo, refundRender } from "@/app/actions/charge-render";
+import { videoCost, canUseVideoFormat } from "@/lib/credits/config";
+import { usePlan } from "@/lib/usePlan";
+import CostBadge from "@/components/credits/CostBadge";
 
 // ── Topic presets (29 topics) ──
 
@@ -284,6 +287,9 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
   const [artStyle, setArtStyle] = useState(prefs?.storyArtStyle ?? "anime");
   const [artModalOpen, setArtModalOpen] = useState(false);
   const [sceneMode, setSceneMode] = useState<"static" | "animated">((prefs?.storySceneMode as "static" | "animated") ?? "static");
+  const { plan } = usePlan();
+  // Animation (animated scenes → Seedance) is Pro-only.
+  const animationLocked = !canUseVideoFormat(plan, "animated_story");
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [captionStyle, setCaptionStyle] = useState(prefs?.captionStyle ?? "regular");
   const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">((prefs?.captionFontSize as "small" | "medium" | "large") ?? "medium");
@@ -1392,7 +1398,9 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
         </div>
 
         {/* Bottom bar */}
-        <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex justify-center gap-4">
+        <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center gap-3">
+          <CostBadge credits={videoCost(sceneMode === "animated" ? "animated_story" : "ai_story", duration)} />
+          <div className="flex justify-center gap-4 w-full">
           <button
             onClick={handleGenerate}
             disabled={generating}
@@ -1438,6 +1446,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
                 play_circle
               </span>
           </button>
+          </div>
         </footer>
 
         {/* Voice Picker Modal (keep available on review step) */}
@@ -1680,26 +1689,38 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
             </div>
           </button>
 
-          {/* Animated */}
+          {/* Animated (Pro-only) */}
           <button
-            onClick={() => setSceneMode("animated")}
+            onClick={() => {
+              if (animationLocked) { window.location.href = "/pricing"; return; }
+              setSceneMode("animated");
+            }}
+            aria-disabled={animationLocked}
             className={`rounded-2xl overflow-hidden text-left transition-all border ${
-              sceneMode === "animated"
+              animationLocked
+                ? "border-outline-variant/30 opacity-70"
+                : sceneMode === "animated"
                 ? "border-2 border-primary shadow-[0px_10px_30px_rgba(111,51,213,0.1)]"
                 : "border-outline-variant/30 hover:border-outline-variant"
             }`}
           >
             <div className="h-28 bg-gradient-to-br from-purple-900/80 to-indigo-900/80 flex items-center justify-center relative">
-              <span className="material-symbols-outlined text-4xl text-white/60">play_circle</span>
+              <span className="material-symbols-outlined text-4xl text-white/60">
+                {animationLocked ? "lock" : "play_circle"}
+              </span>
               <div className="absolute inset-0 border-2 border-primary/20 rounded-t-2xl" />
             </div>
             <div className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-bold font-headline text-sm text-on-surface">Animated</span>
-                <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">Premium</span>
+                <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  {animationLocked ? "Pro" : "Premium"}
+                </span>
               </div>
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                Each scene becomes a 3-5s AI animated clip
+                {animationLocked
+                  ? "Upgrade to Pro to unlock animated scenes"
+                  : "Each scene becomes a 3-5s AI animated clip"}
               </p>
             </div>
           </button>
