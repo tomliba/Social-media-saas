@@ -230,10 +230,10 @@ describe("charge path", () => {
     const res = await triggerVideoRenders([videoReq({ format: "skeleton", durationSeconds: 30 })]);
 
     expect(res).toMatchObject({ ok: true });
-    expect(balanceOf("u1")).toBe(85); // skeleton = 15
+    expect(balanceOf("u1")).toBe(84); // skeleton 30s = 16
     const spends = txsByType("render_spend");
     expect(spends).toHaveLength(1);
-    expect(spends[0].delta).toBe(-15);
+    expect(spends[0].delta).toBe(-16);
     expect(mockedRenderVideo).toHaveBeenCalledTimes(1);
   });
 
@@ -266,7 +266,7 @@ describe("charge path", () => {
 
     const res = await triggerVideoRenders([videoReq({ format: "skeleton", durationSeconds: 30 })]);
 
-    expect(res).toMatchObject({ ok: false, error: "insufficient_credits", needed: 15, balance: 5 });
+    expect(res).toMatchObject({ ok: false, error: "insufficient_credits", needed: 16, balance: 5 });
     expect(balanceOf("u3")).toBe(5);
     expect(store.txs).toHaveLength(0);
     expect(mockedRenderVideo).not.toHaveBeenCalled();
@@ -280,10 +280,10 @@ describe("charge path", () => {
     const res = await triggerVideoRenders([videoReq({ format: "skeleton", durationSeconds: 30 })]);
 
     expect(res).toMatchObject({ ok: true });
-    expect(balanceOf("u4")).toBe(100); // spent 15, refunded 15
+    expect(balanceOf("u4")).toBe(100); // spent 16, refunded 16
     expect(txsByType("render_spend")).toHaveLength(1);
     expect(txsByType("refund")).toHaveLength(1);
-    expect(txsByType("refund")[0].delta).toBe(15);
+    expect(txsByType("refund")[0].delta).toBe(16);
   });
 
   // Bonus (covers create-posts.ts new cost API; remove if you want to keep to the five).
@@ -292,13 +292,13 @@ describe("charge path", () => {
     mockedAuth.mockResolvedValue(asSession("p1"));
     mockedRenderPost.mockResolvedValue({ results: [], succeeded: 2, failed: 0 });
 
-    const res = await triggerPostRenders(postReq()); // image_post_ai, 2 ideas → 40
+    const res = await triggerPostRenders(postReq()); // image_post_ai, 2 ideas → 60
 
     expect(res).toMatchObject({ ok: true });
-    expect(balanceOf("p1")).toBe(60);
+    expect(balanceOf("p1")).toBe(40);
     const spends = txsByType("post_spend");
     expect(spends).toHaveLength(1);
-    expect(spends[0].delta).toBe(-40);
+    expect(spends[0].delta).toBe(-60);
     expect(mockedRenderPost).toHaveBeenCalledTimes(1);
   });
 });
@@ -332,7 +332,7 @@ describe("lemonsqueezy webhook grants", () => {
   it("grants pack credits on a top-up order_created, idempotent on event id", async () => {
     seedUser("w2", 0);
     const original = TOPUP_PACKS.length;
-    TOPUP_PACKS.push({ credits: 500, lemonSqueezyVariantId: "test_topup_500", label: "Test 500" });
+    TOPUP_PACKS.push({ credits: 500, priceUsd: 24.99, lemonSqueezyVariantId: "test_topup_500", label: "Test 500" });
     try {
       const payload = {
         meta: { event_name: "order_created", custom_data: { user_id: "w2" } },
@@ -370,10 +370,10 @@ describe("charge-render actions", () => {
     const res = await chargeVideo({ jobId: "j-skel", format: "skeleton", durationSeconds: 30 });
 
     expect(res).toMatchObject({ ok: true });
-    expect(balanceOf("c1")).toBe(85); // skeleton = 15
+    expect(balanceOf("c1")).toBe(84); // skeleton 30s = 5 + ceil(0.35*30) = 16
     const spends = txsByType("render_spend");
     expect(spends).toHaveLength(1);
-    expect(spends[0].delta).toBe(-15);
+    expect(spends[0].delta).toBe(-16);
   });
 
   it("animated_story is Pro-gated: free/creator blocked with no spend, pro charged per second", async () => {
@@ -390,7 +390,7 @@ describe("charge-render actions", () => {
       expect(store.txs).toHaveLength(0);
     }
 
-    // Pro: charged ceil(1.5 * 60) = 90
+    // Pro: charged 5 + ceil(2.4 * 60) = 149
     store.users.clear();
     store.txs.length = 0;
     vi.clearAllMocks();
@@ -399,8 +399,8 @@ describe("charge-render actions", () => {
 
     const res = await chargeVideo({ jobId: "j-story", format: "animated_story", durationSeconds: 60 });
     expect(res).toMatchObject({ ok: true });
-    expect(balanceOf("c2")).toBe(910);
-    expect(txsByType("render_spend")[0].delta).toBe(-90);
+    expect(balanceOf("c2")).toBe(851);
+    expect(txsByType("render_spend")[0].delta).toBe(-149);
   });
 
   it("animated_skeleton is Pro-gated: free/creator blocked with no spend, pro charged per second", async () => {
@@ -417,7 +417,7 @@ describe("charge-render actions", () => {
       expect(store.txs).toHaveLength(0);
     }
 
-    // Pro: charged ceil(1.5 * 90) = 135
+    // Pro: charged 5 + ceil(2.4 * 90) = 221
     store.users.clear();
     store.txs.length = 0;
     vi.clearAllMocks();
@@ -426,8 +426,8 @@ describe("charge-render actions", () => {
 
     const res = await chargeVideo({ jobId: "j-askel", format: "animated_skeleton", durationSeconds: 90 });
     expect(res).toMatchObject({ ok: true });
-    expect(balanceOf("c3")).toBe(865);
-    expect(txsByType("render_spend")[0].delta).toBe(-135);
+    expect(balanceOf("c3")).toBe(779);
+    expect(txsByType("render_spend")[0].delta).toBe(-221);
   });
 
   it("chargePost deducts the post cost and writes one post_spend row", async () => {
@@ -437,22 +437,22 @@ describe("charge-render actions", () => {
     const res = await chargePost({ jobId: "j-meme", format: "meme_ad" });
 
     expect(res).toMatchObject({ ok: true });
-    expect(balanceOf("c4")).toBe(90); // meme_ad = 10
+    expect(balanceOf("c4")).toBe(85); // meme_ad = 15
     expect(txsByType("post_spend")).toHaveLength(1);
-    expect(txsByType("post_spend")[0].delta).toBe(-10);
+    expect(txsByType("post_spend")[0].delta).toBe(-15);
   });
 
   it("refundRender restores a charge, netting back to the original balance", async () => {
     seedUser("c5", 100, "free");
     mockedAuth.mockResolvedValue(asSession("c5"));
 
-    await chargePost({ jobId: "j-refund", format: "ai_scene" }); // 10
-    expect(balanceOf("c5")).toBe(90);
+    await chargePost({ jobId: "j-refund", format: "ai_scene" }); // 15
+    expect(balanceOf("c5")).toBe(85);
 
     await refundRender({ jobId: "j-refund" });
     expect(balanceOf("c5")).toBe(100);
     expect(txsByType("refund")).toHaveLength(1);
-    expect(txsByType("refund")[0].delta).toBe(10);
+    expect(txsByType("refund")[0].delta).toBe(15);
   });
 
   it("insufficient balance is rejected with no spend", async () => {
@@ -460,7 +460,7 @@ describe("charge-render actions", () => {
     mockedAuth.mockResolvedValue(asSession("c6"));
 
     const res = await chargeVideo({ jobId: "j-skel2", format: "skeleton", durationSeconds: 30 });
-    expect(res).toMatchObject({ ok: false, error: "insufficient_credits", needed: 15, balance: 5 });
+    expect(res).toMatchObject({ ok: false, error: "insufficient_credits", needed: 16, balance: 5 });
     expect(balanceOf("c6")).toBe(5);
     expect(store.txs).toHaveLength(0);
   });
@@ -482,8 +482,8 @@ describe("reconcile cron — bypass flows", () => {
   it("refunds a stuck non-Trigger item older than the cutoff and marks it failed", async () => {
     seedUser("r1", 100, "pro");
     mockedAuth.mockResolvedValue(asSession("r1"));
-    await chargeVideo({ jobId: "prepare-old", format: "skeleton", durationSeconds: 30 }); // spend 15
-    expect(balanceOf("r1")).toBe(85);
+    await chargeVideo({ jobId: "prepare-old", format: "skeleton", durationSeconds: 30 }); // spend 16
+    expect(balanceOf("r1")).toBe(84);
 
     store.items.push({
       id: "item-old",
@@ -505,8 +505,8 @@ describe("reconcile cron — bypass flows", () => {
   it("leaves a stuck item younger than the cutoff untouched", async () => {
     seedUser("r2", 100, "pro");
     mockedAuth.mockResolvedValue(asSession("r2"));
-    await chargeVideo({ jobId: "prepare-new", format: "skeleton", durationSeconds: 30 }); // spend 15
-    expect(balanceOf("r2")).toBe(85);
+    await chargeVideo({ jobId: "prepare-new", format: "skeleton", durationSeconds: 30 }); // spend 16
+    expect(balanceOf("r2")).toBe(84);
 
     store.items.push({
       id: "item-new",
@@ -520,7 +520,7 @@ describe("reconcile cron — bypass flows", () => {
     const json = await res.json();
 
     expect(json.refunded).toBe(0);
-    expect(balanceOf("r2")).toBe(85); // not refunded
+    expect(balanceOf("r2")).toBe(84); // not refunded
     expect(txsByType("refund")).toHaveLength(0);
     expect(store.items.find((i) => i.id === "item-new")!.status).toBe("preparing");
   });

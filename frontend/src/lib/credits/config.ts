@@ -46,30 +46,26 @@ export type PlanName = "free" | "creator" | "pro";
 // Video costs (credits)
 // ──────────────────────────────────────────────────────────────────────────
 
-const FLAT_VIDEO: Partial<Record<VideoFormat, number>> = {
-  stock: 5,
-  motion: 5,
-  green: 5,
-  smart_mix: 5,    // 2 to 3 schnell, ~2.45x at the floor
-  ai_story: 10,
-  ai_images: 10,   // schnell-priced. If a fresh render shows Flux Dev at long durations, set this to 15.
-  argument: 10,
-  skeleton: 15,    // Flux Dev
-};
+// Unified per-second video pricing: a flat base plus a per-second rate that
+// depends on the render's cost bucket.
+//   cost(format, seconds) = VIDEO_BASE + ceil(rate × seconds)
+export const VIDEO_BASE = 5;
 
-// Animated is per-second. 1.5 * seconds gives 30s=45, 60s=90, 90s=135.
-// Pro-only (see PLAN_FEATURES). Bump to 1.65 if you want a wider cushion.
-export const ANIMATED_CREDITS_PER_SEC = 1.5;
+// Per-second rate by bucket.
+const VIDEO_RATE_STANDARD = 0.1;   // stock, motion, green, smart_mix, ai_story, ai_images, argument
+const VIDEO_RATE_SKELETON = 0.35;  // skeleton (static, Flux Dev)
+const VIDEO_RATE_ANIMATED = 2.4;   // animated_* (Flux Dev + Seedance, Pro-only)
 
 const ANIMATED_FORMATS: VideoFormat[] = ['animated_character', 'animated_story', 'animated_skeleton'];
 
+function videoRate(format: VideoFormat): number {
+  if (ANIMATED_FORMATS.includes(format)) return VIDEO_RATE_ANIMATED;
+  if (format === 'skeleton') return VIDEO_RATE_SKELETON;
+  return VIDEO_RATE_STANDARD;
+}
+
 export function videoCost(format: VideoFormat, durationSeconds: number): number {
-  if (ANIMATED_FORMATS.includes(format)) {
-    return Math.ceil(ANIMATED_CREDITS_PER_SEC * durationSeconds);
-  }
-  const flat = FLAT_VIDEO[format];
-  if (flat == null) throw new Error(`videoCost: unknown format "${format}"`);
-  return flat;
+  return VIDEO_BASE + Math.ceil(videoRate(format) * durationSeconds);
 }
 
 // Sums a batch of videos (mixed formats allowed). Mirrors postBatchCost.
@@ -105,11 +101,11 @@ const FREE_POST_FORMATS: PostFormat[] = ['image_post_template', 'carousel_design
 const GEMINI_CAROUSELS: PostFormat[] = ['carousel_infographic', 'carousel_handdrawn', 'carousel_notebook'];
 const SINGLE_GEMINI_ADS: PostFormat[] = ['ad_creative', 'ai_scene', 'meme_ad', 'ecommerce_ad'];
 
-const FREE_POST_CREDITS = 5;          // HTML render, Gemini text only
-const IMAGE_POST_AI_PER_IDEA = 20;    // 2 Gemini images per idea, ~1.75x
-const GEMINI_CAROUSEL_PER_SLIDE = 8;  // 1 Gemini image per slide, ~1.5x
-const SINGLE_GEMINI_AD = 10;          // 1 Gemini image, ~1.63x
-const POST_CLONER = 12;               // break-even at the $0.30 worst case. Bump to 15 once the vision-call count is confirmed.
+const FREE_POST_CREDITS = 2;          // HTML render, Gemini text only
+const IMAGE_POST_AI_PER_IDEA = 30;    // 2 Gemini images per idea
+const GEMINI_CAROUSEL_PER_SLIDE = 15; // 1 Gemini image per slide
+const SINGLE_GEMINI_AD = 15;          // 1 Gemini image
+const POST_CLONER = 15;               // vision read + 1 generated image
 
 export interface PostCostOpts {
   ideas?: number;   // image_post_ai
@@ -138,7 +134,7 @@ export function postBatchCost(items: Array<{ format: PostFormat } & PostCostOpts
 export const PLAN_MONTHLY_CREDITS: Record<PlanName, number> = {
   free: 30,      // taste tier, watermarked — granted at signup (see FREE_TIER_ALLOTMENT)
   creator: 600,  // $24
-  pro: 2000,     // $59
+  pro: 3000,     // $59
 };
 
 /** Credits granted once when a user first signs up (free tier). */
@@ -164,20 +160,28 @@ export const LS_SUBSCRIPTION_VARIANTS: Record<string, PlanName> = {
  */
 export interface TopUpPack {
   credits: number;
+  priceUsd: number;
   lemonSqueezyVariantId: string;
   label: string;
 }
 
+// Lemon Squeezy variant id per pack. These map an order_created event's
+// variant back to the credit grant (topUpPackForVariant) and drive checkout.
 export const TOPUP_PACKS: TopUpPack[] = [
-  { credits: 100, lemonSqueezyVariantId: "", label: "100 credits" },   // $7  — TODO: real LS variant ID
-  { credits: 500, lemonSqueezyVariantId: "", label: "500 credits" },   // $30 — TODO: real LS variant ID
-  { credits: 1200, lemonSqueezyVariantId: "", label: "1,200 credits" }, // $60 — TODO: real LS variant ID
+  { credits: 200,  priceUsd: 9.99,  lemonSqueezyVariantId: "1802153", label: "200 credits" },
+  { credits: 450,  priceUsd: 19.99, lemonSqueezyVariantId: "1802177", label: "450 credits" },
+  { credits: 1000, priceUsd: 44.99, lemonSqueezyVariantId: "1802178", label: "1,000 credits" },
 ];
 
 /** Look up a top-up pack by its LS variant id (from order_created events). */
 export function topUpPackForVariant(variantId: string): TopUpPack | undefined {
   if (!variantId) return undefined;
   return TOPUP_PACKS.find((p) => p.lemonSqueezyVariantId === variantId);
+}
+
+/** Look up a top-up pack by its credit amount (stable UI/checkout key). */
+export function topUpPackByCredits(credits: number): TopUpPack | undefined {
+  return TOPUP_PACKS.find((p) => p.credits === credits);
 }
 
 /** Look up the plan a subscription variant maps to. */
