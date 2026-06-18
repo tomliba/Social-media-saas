@@ -257,6 +257,29 @@ export function canUsePostFormat(_plan: PlanName, _format: PostFormat): boolean 
   return true;   // all posts allowed on every plan, metered by the credit pool
 }
 
+// ── Paid image carousels (Nano Banana Pro, per-slide image baking) ──
+// These are the expensive carousel formats produced by /create/ai-carousel.
+// Gated to Creator+ (Free tier gets the free HTML carousel `carousel_designed`
+// only) and slide-capped per plan as a server-side cost guard. See COST_AUDIT.md.
+export const PAID_IMAGE_CAROUSEL_FORMATS: PostFormat[] = [
+  'carousel_infographic', 'carousel_handdrawn', 'carousel_notebook',
+];
+
+/** Max slides per paid image carousel, by plan. free = 0 (not allowed). */
+export const CAROUSEL_SLIDE_CAP: Record<PlanName, number> = { free: 0, creator: 10, pro: 15 };
+
+export function isPaidImageCarousel(format: PostFormat): boolean {
+  return PAID_IMAGE_CAROUSEL_FORMATS.includes(format);
+}
+
+export function canUseImageCarousel(plan: PlanName): boolean {
+  return plan === 'creator' || plan === 'pro';
+}
+
+export function maxCarouselSlides(plan: PlanName): number {
+  return CAROUSEL_SLIDE_CAP[plan];
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // Misc
 // ──────────────────────────────────────────────────────────────────────────

@@ -3,8 +3,14 @@
 import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { postCost } from "@/lib/credits/config";
+import { postCost, maxCarouselSlides, type PostFormat } from "@/lib/credits/config";
 import CostBadge from "@/components/credits/CostBadge";
+import { usePlan } from "@/lib/usePlan";
+import { chargePost, refundRender } from "@/app/actions/charge-render";
+
+function newCarouselJobId() {
+  return `aic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 // ── Style prompt prefixes ──
 
@@ -55,6 +61,16 @@ function AICarouselContent() {
   const isHanddrawn = styleParam === "handdrawn";
   const isNotebook = styleParam === "notebook";
 
+  const { plan, loading: planLoading } = usePlan();
+  // Plan-aware slide cap (server enforces too): Creator 10, Pro 15. Free is
+  // gated out of this flow entirely, so fall back to 10 for the slider bounds.
+  const sliderMax = maxCarouselSlides(plan) || 10;
+  const carouselFormat: PostFormat = isNotebook
+    ? "carousel_notebook"
+    : isHanddrawn
+      ? "carousel_handdrawn"
+      : "carousel_infographic";
+
   // Input state
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("Friendly");
@@ -64,6 +80,10 @@ function AICarouselContent() {
   // Flow state
   const [step, setStep] = useState<Step>("input");
   const [error, setError] = useState<string | null>(null);
+  // Billing/gating state for the paid image carousel.
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
+  const [planLocked, setPlanLocked] = useState(false);
 
   // Plan state
   const [plannedSlides, setPlannedSlides] = useState<PlannedSlide[]>([]);
@@ -115,8 +135,28 @@ function AICarouselContent() {
 
   // ── Step 4: Generate all slides ──
   const handleGenerate = useCallback(async () => {
-    setStep("generating");
     setError(null);
+    setCreditError(null);
+    setPlanLocked(false);
+
+    // Charge once for the whole carousel BEFORE generating; refund on failure.
+    // Server-side this also enforces Creator+ gate + slide cap.
+    const carouselJobId = newCarouselJobId();
+    const charge = await chargePost({
+      jobId: carouselJobId,
+      format: carouselFormat,
+      slides: plannedSlides.length,
+    });
+    if (!charge.ok) {
+      if (charge.error === "insufficient_credits") setCreditError({ needed: charge.needed, balance: charge.balance });
+      else if (charge.error === "plan_not_allowed_post") setPlanLocked(true);
+      else if (charge.error === "slide_cap_exceeded") setError(`Your plan allows up to ${charge.max} slides — reduce the slide count.`);
+      else setError("Please sign in to create.");
+      return; // stay on the review-plan step
+    }
+    setJobId(carouselJobId);
+
+    setStep("generating");
     setGeneratedSlides([]);
     setGeneratingIndex(0);
 
@@ -130,6 +170,7 @@ function AICarouselContent() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            jobId: carouselJobId,
             prompt: prefix + plannedSlides[i].prompt,
             slide_number: plannedSlides[i].number,
             slide_type: plannedSlides[i].type,
@@ -164,8 +205,14 @@ function AICarouselContent() {
       }
     }
 
+    // Nothing usable came back → refund the charge so the user isn't billed.
+    if (!results.some((s) => s.image)) {
+      await refundRender({ jobId: carouselJobId });
+      setJobId(null);
+    }
+
     setStep("review-slides");
-  }, [plannedSlides, topic, tone, getPromptPrefix]);
+  }, [plannedSlides, topic, tone, getPromptPrefix, carouselFormat]);
 
   // ── Regenerate a single slide ──
   const handleRegenerateSlide = useCallback(async (index: number) => {
@@ -174,12 +221,24 @@ function AICarouselContent() {
 
     const prefix = getPromptPrefix();
 
+    // Regenerating produces another paid image — charge 1 slide, refund on fail.
+    const regenJobId = newCarouselJobId();
+    const charge = await chargePost({ jobId: regenJobId, format: carouselFormat, slides: 1 });
+    if (!charge.ok) {
+      if (charge.error === "insufficient_credits") setCreditError({ needed: charge.needed, balance: charge.balance });
+      else if (charge.error === "plan_not_allowed_post") setPlanLocked(true);
+      else setError("Could not charge for regeneration.");
+      setRegeneratingIndex(null);
+      return;
+    }
+
     try {
       const planned = plannedSlides[index];
       const res = await fetch("/api/ai-carousel/generate-slide", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          jobId: regenJobId,
           prompt: prefix + planned.prompt,
           slide_number: planned.number,
           slide_type: planned.type,
@@ -202,11 +261,13 @@ function AICarouselContent() {
         return next;
       });
     } catch (err) {
+      // Refund the regen charge on any failure (idempotent).
+      await refundRender({ jobId: regenJobId });
       setError(err instanceof Error ? err.message : "Regeneration failed");
     } finally {
       setRegeneratingIndex(null);
     }
-  }, [plannedSlides, topic, tone, getPromptPrefix]);
+  }, [plannedSlides, topic, tone, getPromptPrefix, carouselFormat]);
 
   // ── Step 6: Save to library ──
   const handleSave = useCallback(async () => {
@@ -255,6 +316,9 @@ function AICarouselContent() {
 
   const validSlideCount = generatedSlides.filter((s) => s.image).length;
 
+  // Paid image carousels are Creator+. Free tier is routed to the HTML carousel.
+  const carouselLocked = planLocked || (!planLoading && plan === "free");
+
   const pageTitle = isNotebook ? "Notebook Carousel" : isHanddrawn ? "Hand-Drawn Carousel" : "AI Infographic Carousel";
   const pageDescription = isNotebook
     ? "Spiral-bound notebook pages with doodles, speech bubbles, and highlighters"
@@ -293,8 +357,39 @@ function AICarouselContent() {
         </div>
       )}
 
+      {/* Insufficient-credits banner */}
+      {creditError && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm font-medium flex items-center gap-2">
+          <span className="material-symbols-outlined text-lg">toll</span>
+          Not enough credits — this carousel needs {creditError.needed}, you have {creditError.balance}.
+          <Link href="/pricing" className="ml-auto font-bold text-primary hover:underline">Get credits</Link>
+        </div>
+      )}
+
+      {/* ── Creator+ gate: Free tier is offered the free HTML carousel instead ── */}
+      {carouselLocked && (step === "input" || step === "planning") && (
+        <section className="max-w-xl rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-8 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-primary">workspace_premium</span>
+            <h2 className="text-lg font-bold font-headline text-on-surface">Image carousels are a Creator feature</h2>
+          </div>
+          <p className="text-on-surface-variant text-sm mb-6">
+            AI image carousels (each slide rendered by Nano Banana Pro) are available on Creator and Pro.
+            On the Free plan you can make a free HTML-designed carousel instead.
+          </p>
+          <div className="flex gap-3">
+            <Link href="/pricing" className="px-5 py-2.5 rounded-full bg-primary text-on-primary font-bold text-sm shadow-md hover:bg-primary/90">
+              Upgrade
+            </Link>
+            <Link href="/create/templates" className="px-5 py-2.5 rounded-full bg-surface-container text-on-surface font-bold text-sm hover:bg-surface-container-high">
+              Use the free HTML carousel
+            </Link>
+          </div>
+        </section>
+      )}
+
       {/* ── Step 1: Input ── */}
-      {(step === "input" || step === "planning") && (
+      {!carouselLocked && (step === "input" || step === "planning") && (
         <section className="max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Hand-drawn style picker */}
           {isHanddrawn && (
@@ -392,14 +487,14 @@ function AICarouselContent() {
             <input
               type="range"
               min={3}
-              max={10}
-              value={slideCount}
+              max={sliderMax}
+              value={Math.min(slideCount, sliderMax)}
               onChange={(e) => setSlideCount(Number(e.target.value))}
               className="w-full accent-primary"
             />
             <div className="flex justify-between text-xs text-on-surface-variant mt-1">
               <span>3</span>
-              <span>10</span>
+              <span>{sliderMax}</span>
             </div>
             <div className="mt-3">
               <CostBadge

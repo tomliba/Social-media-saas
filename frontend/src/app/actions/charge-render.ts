@@ -10,6 +10,9 @@ import {
   videoCost,
   postCost,
   canUseVideoFormat,
+  isPaidImageCarousel,
+  canUseImageCarousel,
+  maxCarouselSlides,
   type VideoFormat,
   type PostFormat,
   type PlanName,
@@ -25,6 +28,8 @@ export type ChargeResult =
   | { ok: true; balance: number }
   | { ok: false; error: "insufficient_credits"; needed: number; balance: number }
   | { ok: false; error: "plan_not_allowed"; format: VideoFormat }
+  | { ok: false; error: "plan_not_allowed_post"; format: PostFormat }
+  | { ok: false; error: "slide_cap_exceeded"; max: number }
   | { ok: false; error: "unauthenticated" };
 
 export async function chargeVideo(args: {
@@ -72,6 +77,20 @@ export async function chargePost(args: {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false, error: "unauthenticated" };
+
+  // Paid image carousels (Nano Banana Pro) are Creator+ and slide-capped per
+  // plan. Other post formats stay available on every plan.
+  if (isPaidImageCarousel(args.format)) {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+    const plan = (user?.plan as PlanName) ?? "free";
+    if (!canUseImageCarousel(plan)) {
+      return { ok: false, error: "plan_not_allowed_post", format: args.format };
+    }
+    const max = maxCarouselSlides(plan);
+    if ((args.slides ?? 0) > max) {
+      return { ok: false, error: "slide_cap_exceeded", max };
+    }
+  }
 
   const cost = postCost(args.format, { ideas: args.ideas, slides: args.slides });
   const balance = await getCreditBalance(userId);

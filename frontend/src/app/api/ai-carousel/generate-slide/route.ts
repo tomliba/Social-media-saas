@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { canUseImageCarousel, maxCarouselSlides, type PlanName } from "@/lib/credits/config";
 
 // High-quality gpt-image-1 fallback can take ~60s/slide; allow up to the Pro cap.
 export const maxDuration = 300;
@@ -9,6 +11,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = session.user.id;
 
   try {
     const body = await req.json();
@@ -17,6 +20,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "prompt is required" },
         { status: 400 }
+      );
+    }
+
+    // ── Server-side gate (defense-in-depth; the page charges up front) ──
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+    const plan = (user?.plan as PlanName) ?? "free";
+    if (!canUseImageCarousel(plan)) {
+      return NextResponse.json(
+        { error: "Image carousels require a Creator or Pro plan" },
+        { status: 403 }
+      );
+    }
+    if (typeof body.slide_number === "number" && body.slide_number > maxCarouselSlides(plan)) {
+      return NextResponse.json(
+        { error: `Slide ${body.slide_number} exceeds the ${maxCarouselSlides(plan)}-slide cap for your plan` },
+        { status: 403 }
+      );
+    }
+    // Require a matching up-front charge for this carousel job (closes the
+    // direct-API bypass): the page debits once via chargePost(jobId) before
+    // generating, so a post_spend row must exist for this jobId + user.
+    if (!body.jobId || typeof body.jobId !== "string") {
+      return NextResponse.json({ error: "jobId is required" }, { status: 400 });
+    }
+    const charge = await prisma.creditTransaction.findFirst({
+      where: { jobId: body.jobId, type: "post_spend", userId, delta: { lt: 0 } },
+      select: { id: true },
+    });
+    if (!charge) {
+      return NextResponse.json(
+        { error: "No charge found for this carousel — generate through the app" },
+        { status: 402 }
       );
     }
 
