@@ -41,11 +41,16 @@ export default function RootLayout({
             low priority via media="print", then promoted to apply once it has
             downloaded (and immediately if it was already cached). Falls back to
             a plain stylesheet when JS is disabled. */}
+        {/* The inline script below flips media "print" → "all" once the sheet
+            loads, so the client DOM intentionally diverges from the SSR markup.
+            suppressHydrationWarning stops React from warning about (and
+            reverting) that expected attribute difference. */}
         <link
           id="ms-icons"
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           media="print"
+          suppressHydrationWarning
         />
         <script
           dangerouslySetInnerHTML={{
