@@ -11,6 +11,7 @@ const fakeUser = {
   lemonSqueezyCustomerId: "cust_1",
   lemonSqueezySubscriptionId: "sub_1",
   customerPortalUrl: "https://portal.example/abc",
+  currentPeriodEnd: new Date("2050-06-01T00:00:00Z"),
 };
 
 vi.mock("@/lib/prisma", () => ({
@@ -40,10 +41,14 @@ vi.mock("@/lib/lemonsqueezy", () => ({
 
 import { POST } from "@/app/api/webhooks/lemonsqueezy/route";
 
-function makeReq(eventName: string, attributes: Record<string, unknown>) {
+function makeReq(
+  eventName: string,
+  attributes: Record<string, unknown>,
+  resource: { type: string; id: string } = { type: "subscriptions", id: "sub_1" },
+) {
   const body = JSON.stringify({
     meta: { event_name: eventName, custom_data: { user_id: "u1" } },
-    data: { id: "sub_1", type: "subscriptions", attributes },
+    data: { id: resource.id, type: resource.type, attributes },
   });
   return new Request("http://localhost/api/webhooks/lemonsqueezy", {
     method: "POST",
@@ -75,6 +80,14 @@ describe("lemonsqueezy webhook — lifecycle events", () => {
     expect(data.currentPeriodEnd).toEqual(new Date("2099-01-01T00:00:00Z"));
   });
 
+  it("subscription_cancelled with no date falls back to the existing period end", async () => {
+    await POST(makeReq("subscription_cancelled", { customer_id: "cust_1", status: "cancelled" }));
+    const data = lastUpdateData();
+    expect(data.plan).toBeUndefined();
+    expect(data.subscriptionStatus).toBe("cancelled");
+    expect(data.currentPeriodEnd).toEqual(new Date("2050-06-01T00:00:00Z"));
+  });
+
   it("subscription_expired drops the plan to free", async () => {
     await POST(makeReq("subscription_expired", { customer_id: "cust_1", status: "expired" }));
     const data = lastUpdateData();
@@ -90,7 +103,7 @@ describe("lemonsqueezy webhook — lifecycle events", () => {
   });
 
   it("subscription_payment_failed sets past_due, keeps the plan", async () => {
-    await POST(makeReq("subscription_payment_failed", { customer_id: "cust_1" }));
+    await POST(makeReq("subscription_payment_failed", { customer_id: "cust_1" }, { type: "subscription-invoices", id: "inv_99" }));
     const data = lastUpdateData();
     expect(data.plan).toBeUndefined();
     expect(data.subscriptionStatus).toBe("past_due");
