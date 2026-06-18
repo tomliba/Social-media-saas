@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { PLAN_MONTHLY_CREDITS } from "@/lib/credits/config";
 import { startSubscriptionCheckout } from "@/app/actions/checkout";
-import CreditEstimator from "@/components/credits/CreditEstimator";
 
 // Three real tiers from config.ts / PLAN_FEATURES. Credit counts come from
 // PLAN_MONTHLY_CREDITS so they stay in sync. Display prices mirror the Lemon
@@ -138,10 +137,6 @@ export default function PricingSection() {
             </div>
           ))}
         </div>
-        <CreditEstimator />
-        <p className="text-center text-on-surface-variant text-xs mt-8">
-          Paid checkout opens after you sign in.
-        </p>
       </div>
     </section>
   );

@@ -5,6 +5,7 @@ import {
 } from "@/lib/admin/queries";
 import { adminGrantCredits, adminForceRefund, adminSetBan } from "./actions";
 import { Panel, Stat, Est, CoverageBadge, fmtUsd, fmtNum, fmtPct, fmtDate } from "./_components";
+import CreditEstimator from "@/components/credits/CreditEstimator";
 
 // Reads session + DB on every request — always dynamic.
 export const dynamic = "force-dynamic";
@@ -551,6 +552,9 @@ export default async function AdminPage({
           ))}
         </div>
       </Panel>
+
+      {/* ── CREDIT COST REFERENCE (internal tool — self-contained card with its own heading) ── */}
+      <CreditEstimator />
     </div>
   );
 }

@@ -36,9 +36,9 @@ export default function CreditEstimator() {
 
   return (
     <div className="mt-16 mx-auto max-w-2xl bg-surface-container-lowest rounded-[1rem] p-8 border border-surface-variant">
-      <h3 className="font-bold text-lg mb-1 text-center">How far do your credits go?</h3>
+      <h3 className="font-bold text-lg mb-1 text-center">Credit cost reference</h3>
       <p className="text-center text-on-surface-variant text-sm mb-6">
-        Pick a create type to see its credit cost and how many you get per plan.
+        Pick a create type to see its credit cost and how many each plan affords.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-6">
