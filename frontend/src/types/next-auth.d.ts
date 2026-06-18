@@ -16,5 +16,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     role?: "admin" | "user";
+    banCheckedAt?: number; // ms epoch of last ban re-check (throttle)
   }
 }

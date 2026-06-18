@@ -59,6 +59,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     ...authConfig.callbacks,
+    // Block banned users from establishing a session (covers OAuth, and is a
+    // second guard for Credentials which already rejects in authorize()).
+    async signIn({ user }) {
+      const email = user?.email?.toLowerCase();
+      if (!email) return true;
+      const dbUser = await prisma.user.findUnique({
+        where: { email },
+        select: { bannedAt: true },
+      });
+      if (dbUser?.bannedAt) return false;
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         await prisma.user.upsert({
@@ -71,6 +83,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = user.email; // ensure email is on the token for role resolution
       }
       if (token.email) token.role = roleForEmail(token.email as string);
+
+      // Ban enforcement for live sessions: re-check at most once per minute (a
+      // single PK lookup) and invalidate the token if the user has been banned
+      // since they signed in. Returning null clears the session.
+      if (token.id) {
+        const now = Date.now();
+        const last = (token.banCheckedAt as number | undefined) ?? 0;
+        if (now - last > 60_000) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { bannedAt: true },
+          });
+          if (dbUser?.bannedAt) return null;
+          token.banCheckedAt = now;
+        }
+      }
       return token;
     },
     session({ session, token }) {

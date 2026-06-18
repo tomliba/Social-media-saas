@@ -137,6 +137,40 @@ export const PLAN_MONTHLY_CREDITS: Record<PlanName, number> = {
   pro: 3000,     // $59
 };
 
+/**
+ * Monthly subscription price (USD) per plan. Source of truth for prices is Lemon
+ * Squeezy; these mirror the LS variant prices for in-app MRR math only.
+ */
+export const PLAN_PRICES: Record<PlanName, number> = {
+  free: 0,
+  creator: 24.99,
+  pro: 59.99,
+};
+
+/**
+ * Per-credit dollar value by plan (revenue side). Creator credits are priced at
+ * $0.040, Pro at $0.0295. Pro is the margin floor.
+ */
+export const CREDIT_VALUE_USD: Record<PlanName, number> = {
+  free: 0,            // free credits are not sold
+  creator: 0.040,
+  pro: 0.0295,
+};
+
+/**
+ * ESTIMATED provider cost basis per credit (USD). We do not store real provider
+ * invoices, so cost is approximated at the Pro margin-floor value ($0.0295/credit):
+ * anything that clears at the Pro rate clears everywhere, so this is a
+ * conservative (high) cost estimate. Every figure derived from this MUST be
+ * labeled "est." in the UI — it is inferred, not measured.
+ */
+export const EST_CREDIT_COST_USD = 0.0295;
+
+/** Estimated dollar cost of a number of credits consumed (see EST_CREDIT_COST_USD). */
+export function estDollarsForCredits(credits: number): number {
+  return credits * EST_CREDIT_COST_USD;
+}
+
 /** Credits granted once when a user first signs up (free tier). */
 export const FREE_TIER_ALLOTMENT = PLAN_MONTHLY_CREDITS.free;
 

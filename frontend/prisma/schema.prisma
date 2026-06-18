@@ -65,6 +65,9 @@ model User {
   currentPeriodEnd   DateTime? // end of current paid billing period
   customerPortalUrl  String?   // Lemon Squeezy customer portal URL (from subscription webhook urls.customer_portal)
 
+  // Moderation — set to ban; blocks sign-in and invalidates the session (see auth.ts).
+  bannedAt      DateTime?
+
   // User defaults / preferences
   niche         String?
   tone          String    @default("Funny")
@@ -170,6 +173,27 @@ model CreditTransaction {
   @@index([userId])
   @@unique([jobId, type])        // idempotency: one charge + one refund per job
   @@unique([externalEventId])    // idempotency: one grant per webhook event
+}
+
+// Append-only log of every Lemon Squeezy webhook delivery (written after the
+// signature check, including unknown-user and unhandled events). This is what
+// makes "paid but no credits" detectable: a subscription_payment_success /
+// order_created row with no grantedCreditTxId is a billing-health alert.
+// Only covers events received after this table was deployed.
+model WebhookEvent {
+  id                String   @id @default(cuid())
+  eventName         String
+  resourceId        String?  // LS resource id (data.id)
+  userId            String?  // resolved app user, when known
+  rawPayload        Json     // parsed payload ({} when unparseable / bad signature)
+  signatureValid    Boolean
+  handled           Boolean  @default(false) // true once a known case ran without error
+  grantedCreditTxId String?  // CreditTransaction.id when this event granted credits
+  error             String?
+  createdAt         DateTime @default(now())
+
+  @@index([eventName])
+  @@index([createdAt])
 }
 
 model ContentItem {
