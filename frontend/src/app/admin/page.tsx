@@ -1,7 +1,7 @@
 import {
   getOverview, getTodayCreditFlow, getRenderHealth, getFailedRenders,
   getCostByMode, getCreditLiability, getBillingHealth, getDisposableEmailUsers,
-  getDailySpend, lookupUser,
+  getDailySpend, lookupUser, getCustomers, type CustomerSort,
 } from "@/lib/admin/queries";
 import { adminGrantCredits, adminForceRefund, adminSetBan } from "./actions";
 import { Panel, Stat, Est, fmtUsd, fmtNum, fmtPct, fmtDate } from "./_components";
@@ -12,12 +12,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string }>;
+  searchParams: Promise<{ email?: string; sort?: string; dir?: string; real?: string }>;
 }) {
-  const { email } = await searchParams;
+  const { email, sort, dir, real } = await searchParams;
+  const realOnly = real === "1";
 
   const [
-    overview, today, health, failed, cost, liability, billing, disposable, daily, lookup,
+    overview, today, health, failed, cost, liability, billing, disposable, daily, customers, lookup,
   ] = await Promise.all([
     getOverview(),
     getTodayCreditFlow(),
@@ -28,10 +29,39 @@ export default async function AdminPage({
     getBillingHealth(),
     getDisposableEmailUsers(),
     getDailySpend(),
+    getCustomers({ sort, dir, realOnly }),
     email ? lookupUser(email) : Promise.resolve(null),
   ]);
 
   const maxDaily = Math.max(1, ...daily.map((d) => d.credits));
+
+  // Build a /admin query string from the current params plus overrides. Empty
+  // values drop the param. Used for sortable headers, the realOnly toggle, and
+  // row → detail links (which reuse the existing ?email= lookup panel).
+  const current: Record<string, string | undefined> = { email, sort, dir, real };
+  const href = (overrides: Record<string, string | undefined>, hash = "") => {
+    const merged = { ...current, ...overrides };
+    const sp = new URLSearchParams();
+    for (const [k, v] of Object.entries(merged)) if (v) sp.set(k, String(v));
+    const q = sp.toString();
+    return `${q ? `?${q}` : "?"}${hash}`;
+  };
+  const customerCols: { key: CustomerSort; label: string }[] = [
+    { key: "name", label: "Customer" },
+    { key: "tier", label: "Tier" },
+    { key: "status", label: "Status" },
+    { key: "credits", label: "Credits left" },
+    { key: "used", label: "Credits used" },
+    { key: "renders", label: "Renders" },
+    { key: "joined", label: "Joined" },
+    { key: "renews", label: "Renews" },
+    { key: "price", label: "Price" },
+  ];
+  const tierBadge: Record<string, string> = {
+    free: "bg-zinc-100 text-zinc-600",
+    creator: "bg-sky-100 text-sky-700",
+    pro: "bg-violet-100 text-violet-700",
+  };
 
   return (
     <div className="space-y-6">
@@ -50,6 +80,94 @@ export default async function AdminPage({
             value={fmtPct(overview.conversionPct)}
             sub={`${fmtNum(overview.paidUsers)} / ${fmtNum(overview.totalUsers)} users`}
           />
+        </div>
+      </Panel>
+
+      {/* ── CUSTOMERS ── */}
+      <Panel title="Customers" icon="group">
+        {/* Summary strip: active subs + paying customers by tier (always all users) */}
+        <div className="mb-4 rounded-xl bg-zinc-50 p-4 text-sm">
+          <span className="font-bold text-zinc-900">
+            {customers.activeTotal} active subscription{customers.activeTotal === 1 ? "" : "s"}
+          </span>
+          <span className="text-zinc-600">
+            {" — "}Creator ({customers.activeByTier.creator.length}):{" "}
+            {customers.activeByTier.creator.length ? customers.activeByTier.creator.join(", ") : "—"}
+            {"  ·  "}Pro ({customers.activeByTier.pro.length}):{" "}
+            {customers.activeByTier.pro.length ? customers.activeByTier.pro.join(", ") : "—"}
+          </span>
+        </div>
+
+        {/* Count + Real-customers-only toggle (view-only) */}
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-xs text-zinc-500">
+            Showing {customers.totalShown}
+            {customers.realOnly && customers.totalShown !== customers.totalAll
+              ? ` of ${customers.totalAll}` : ""} customer{customers.totalShown === 1 ? "" : "s"}
+          </span>
+          <a
+            href={href({ real: customers.realOnly ? "" : "1" })}
+            className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+              customers.realOnly ? "bg-primary text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm">
+              {customers.realOnly ? "toggle_on" : "toggle_off"}
+            </span>
+            Real customers only: {customers.realOnly ? "ON" : "OFF"}
+          </a>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-200 text-left text-xs uppercase text-zinc-500">
+                {customerCols.map((c) => {
+                  const active = customers.sort === c.key;
+                  const nextDir = active && customers.dir === "desc" ? "asc" : "desc";
+                  const arrow = active ? (customers.dir === "desc" ? " ▼" : " ▲") : "";
+                  return (
+                    <th key={c.key} className="py-2 pr-4">
+                      <a href={href({ sort: c.key, dir: nextDir })} className={`hover:text-primary ${active ? "text-primary" : ""}`}>
+                        {c.label}{arrow}
+                      </a>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {customers.rows.map((r) => (
+                <tr key={r.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                  <td className="py-2 pr-4">
+                    <a href={href({ email: r.email }, "#user-detail")} className="block hover:text-primary">
+                      <span className="font-bold text-zinc-900">{r.displayName}</span>
+                      <span className="block text-xs text-zinc-500">{r.email}</span>
+                    </a>
+                  </td>
+                  <td className="py-2 pr-4">
+                    <span className={`rounded px-2 py-0.5 text-xs font-bold ${tierBadge[r.plan] ?? tierBadge.free}`}>
+                      {r.plan}
+                    </span>
+                  </td>
+                  <td className="py-2 pr-4">{r.subscriptionStatus ?? "—"}</td>
+                  <td className="py-2 pr-4 tabular-nums">{fmtNum(r.creditBalance)}</td>
+                  <td className="py-2 pr-4 tabular-nums">{fmtNum(r.creditsUsed)}</td>
+                  <td className="py-2 pr-4 tabular-nums">{fmtNum(r.renders)}</td>
+                  <td className="py-2 pr-4 whitespace-nowrap text-zinc-500">
+                    {new Date(r.createdAt).toLocaleDateString("en-US")}
+                  </td>
+                  <td className="py-2 pr-4 whitespace-nowrap text-zinc-500">
+                    {r.isPaid && r.currentPeriodEnd ? new Date(r.currentPeriodEnd).toLocaleDateString("en-US") : "—"}
+                  </td>
+                  <td className="py-2 pr-4 tabular-nums">{r.isPaid ? fmtUsd(r.planPrice) : "—"}</td>
+                </tr>
+              ))}
+              {customers.rows.length === 0 && (
+                <tr><td colSpan={9} className="py-4 text-zinc-400">No customers match this view.</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </Panel>
 
@@ -214,6 +332,7 @@ export default async function AdminPage({
       </Panel>
 
       {/* ── USER LOOKUP + ACTIONS ── */}
+      <div id="user-detail" />
       <Panel title="User lookup" icon="person_search">
         <form method="get" className="mb-4 flex gap-2">
           <input

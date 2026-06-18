@@ -5,6 +5,7 @@ import {
   estDollarsForCredits,
   type PlanName,
 } from "@/lib/credits/config";
+import { isAdminEmail } from "@/lib/admin";
 import { deriveRenderMode } from "./render-mode";
 
 const PLANS: PlanName[] = ["free", "creator", "pro"];
@@ -468,4 +469,136 @@ export async function lookupUser(email: string): Promise<UserLookupResult | null
     })),
     transactions,
   };
+}
+
+// ── CUSTOMERS TABLE ───────────────────────────────────────────────────────────
+
+export type CustomerSort =
+  | "name" | "tier" | "status" | "credits" | "used" | "renders" | "joined" | "renews" | "price";
+
+const CUSTOMER_SORTS: CustomerSort[] =
+  ["name", "tier", "status", "credits", "used", "renders", "joined", "renews", "price"];
+
+export interface CustomerRow {
+  id: string;
+  name: string | null;
+  email: string;
+  displayName: string;       // name, else email prefix
+  plan: PlanName;
+  subscriptionStatus: string | null;
+  creditBalance: number;     // credits remaining
+  creditsUsed: number;       // |Σ negative render_spend + post_spend| (positive)
+  renders: number;           // ContentItem count
+  createdAt: Date;           // joined
+  currentPeriodEnd: Date | null; // renews (paid only)
+  planPrice: number;         // PLAN_PRICES[plan]
+  isPaid: boolean;
+}
+
+export interface CustomersData {
+  rows: CustomerRow[];
+  totalAll: number;          // before realOnly filter
+  totalShown: number;        // after filter
+  activeTotal: number;       // active subs (all users, not affected by realOnly)
+  activeByTier: { creator: string[]; pro: string[] }; // paying customers' names
+  sort: CustomerSort;
+  dir: "asc" | "desc";
+  realOnly: boolean;
+}
+
+/**
+ * A row is a "test/non-real" customer when its email is an example.com address,
+ * carries a +fluvioqa / qa+ QA tag, or is an admin (ADMIN_EMAILS). The realOnly
+ * toggle hides these from the table VIEW only — nothing is deleted, and the
+ * active-subscription summary is computed from all users regardless.
+ */
+function isNonRealCustomer(email: string): boolean {
+  const e = email.toLowerCase();
+  return (
+    e.includes("@example.com") ||
+    e.includes("+fluvioqa") ||
+    e.includes("qa+") ||
+    isAdminEmail(e)
+  );
+}
+
+export async function getCustomers(opts: {
+  sort?: string;
+  dir?: string;
+  realOnly?: boolean;
+}): Promise<CustomersData> {
+  const sort: CustomerSort = CUSTOMER_SORTS.includes(opts.sort as CustomerSort)
+    ? (opts.sort as CustomerSort)
+    : "joined";
+  const dir: "asc" | "desc" = opts.dir === "asc" ? "asc" : "desc";
+  const realOnly = !!opts.realOnly;
+
+  const [users, usedAgg, renderAgg] = await Promise.all([
+    prisma.user.findMany({
+      select: {
+        id: true, name: true, email: true, plan: true, subscriptionStatus: true,
+        creditBalance: true, createdAt: true, currentPeriodEnd: true,
+      },
+    }),
+    prisma.creditTransaction.groupBy({
+      by: ["userId"],
+      where: { type: { in: ["render_spend", "post_spend"] }, delta: { lt: 0 } },
+      _sum: { delta: true },
+    }),
+    prisma.contentItem.groupBy({ by: ["userId"], _count: { _all: true } }),
+  ]);
+
+  const usedByUser = new Map(usedAgg.map((u) => [u.userId, Math.abs(u._sum.delta ?? 0)]));
+  const rendersByUser = new Map(renderAgg.map((r) => [r.userId, r._count._all]));
+
+  let rows: CustomerRow[] = users.map((u) => {
+    const plan = (u.plan as PlanName) ?? "free";
+    const isPaid = plan === "creator" || plan === "pro";
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      displayName: u.name?.trim() || u.email.split("@")[0],
+      plan,
+      subscriptionStatus: u.subscriptionStatus,
+      creditBalance: u.creditBalance,
+      creditsUsed: usedByUser.get(u.id) ?? 0,
+      renders: rendersByUser.get(u.id) ?? 0,
+      createdAt: u.createdAt,
+      currentPeriodEnd: u.currentPeriodEnd,
+      planPrice: PLAN_PRICES[plan],
+      isPaid,
+    };
+  });
+
+  const totalAll = rows.length;
+
+  // Active-subscription summary — from ALL users (toggle doesn't affect it).
+  const activeByTier: { creator: string[]; pro: string[] } = { creator: [], pro: [] };
+  for (const r of rows) {
+    if (r.subscriptionStatus === "active" && (r.plan === "creator" || r.plan === "pro")) {
+      activeByTier[r.plan].push(r.displayName);
+    }
+  }
+  const activeTotal = activeByTier.creator.length + activeByTier.pro.length;
+
+  if (realOnly) rows = rows.filter((r) => !isNonRealCustomer(r.email));
+  const totalShown = rows.length;
+
+  const planRank: Record<PlanName, number> = { free: 0, creator: 1, pro: 2 };
+  const cmp: Record<CustomerSort, (a: CustomerRow, b: CustomerRow) => number> = {
+    name: (a, b) => a.displayName.localeCompare(b.displayName),
+    tier: (a, b) => planRank[a.plan] - planRank[b.plan],
+    status: (a, b) => (a.subscriptionStatus ?? "").localeCompare(b.subscriptionStatus ?? ""),
+    credits: (a, b) => a.creditBalance - b.creditBalance,
+    used: (a, b) => a.creditsUsed - b.creditsUsed,
+    renders: (a, b) => a.renders - b.renders,
+    joined: (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    renews: (a, b) => (a.currentPeriodEnd?.getTime() ?? 0) - (b.currentPeriodEnd?.getTime() ?? 0),
+    price: (a, b) => a.planPrice - b.planPrice,
+  };
+  rows.sort(cmp[sort]);
+  if (dir === "desc") rows.reverse();
+
+  return { rows, totalAll, totalShown, activeTotal, activeByTier, sort, dir, realOnly };
 }
