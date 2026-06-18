@@ -83,6 +83,9 @@ export function perPlanEstimate(entry: EstimatorEntry, value: number): PlanCell[
       const label = entry.group === "Video" ? "Pro only" : "—";
       return { plan, available: false, label };
     }
-    return { plan, available: true, count: Math.floor(PLAN_MONTHLY_CREDITS[plan] / cost) };
+    // Guard against a zero cost (unreachable with the current catalog, but a
+    // future free format would otherwise divide to Infinity in the UI).
+    const count = cost > 0 ? Math.floor(PLAN_MONTHLY_CREDITS[plan] / cost) : 0;
+    return { plan, available: true, count };
   });
 }
