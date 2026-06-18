@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canUseImageCarousel, maxCarouselSlides, type PlanName } from "@/lib/credits/config";
+import { canUseImageCarousel, effectivePlan, maxCarouselSlides, type PlanName } from "@/lib/credits/config";
 
 // High-quality gpt-image-1 fallback can take ~60s/slide; allow up to the Pro cap.
 export const maxDuration = 300;
@@ -24,8 +24,11 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Server-side gate (defense-in-depth; the page charges up front) ──
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
-    const plan = (user?.plan as PlanName) ?? "free";
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, subscriptionStatus: true },
+    });
+    const plan = effectivePlan((user?.plan as PlanName) ?? "free", user?.subscriptionStatus);
     if (!canUseImageCarousel(plan)) {
       return NextResponse.json(
         { error: "Image carousels require a Creator or Pro plan" },

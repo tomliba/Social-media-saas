@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canUseImageCarousel, type PlanName } from "@/lib/credits/config";
+import { canUseImageCarousel, effectivePlan, type PlanName } from "@/lib/credits/config";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -10,8 +10,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Paid image carousels are Creator+ (Free tier uses the HTML carousel).
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { plan: true } });
-  if (!canUseImageCarousel((user?.plan as PlanName) ?? "free")) {
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { plan: true, subscriptionStatus: true },
+  });
+  const plan = effectivePlan((user?.plan as PlanName) ?? "free", user?.subscriptionStatus);
+  if (!canUseImageCarousel(plan)) {
     return NextResponse.json(
       { error: "Image carousels require a Creator or Pro plan" },
       { status: 403 }

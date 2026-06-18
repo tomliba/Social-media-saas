@@ -61,7 +61,7 @@ function AICarouselContent() {
   const isHanddrawn = styleParam === "handdrawn";
   const isNotebook = styleParam === "notebook";
 
-  const { plan, loading: planLoading } = usePlan();
+  const { entitledPlan: plan, loading: planLoading } = usePlan();
   // Plan-aware slide cap (server enforces too): Creator 10, Pro 15. Free is
   // gated out of this flow entirely, so fall back to 10 for the slider bounds.
   const sliderMax = maxCarouselSlides(plan) || 10;

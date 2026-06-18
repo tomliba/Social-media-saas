@@ -69,16 +69,22 @@ export default async function AccountsPage() {
   const status = user?.subscriptionStatus ?? null;
   const statusMeta = status ? STATUS_META[status] : null;
   const periodEnd = user?.currentPeriodEnd ?? null;
-  const canManage = isPaid && !!user?.customerPortalUrl;
+  // Show the portal to anyone who has a portal URL — cancelled, paused, and
+  // past_due users still need it to un-cancel or fix payment.
+  const canManage = !!user?.customerPortalUrl;
 
   // Renewal / expiry line derived from currentPeriodEnd + status.
   let periodLine: string | null = null;
-  if (isPaid && periodEnd) {
-    if (status === "cancelled" || status === "expired") {
-      periodLine = `Access until ${formatDate(periodEnd)}`;
+  if (isPaid) {
+    if (status === "paused") {
+      periodLine = "Subscription paused — resume to restore access";
+    } else if (status === "cancelled" || status === "expired") {
+      periodLine = periodEnd ? `Access until ${formatDate(periodEnd)}` : "Subscription ending";
     } else if (status === "past_due") {
-      periodLine = `Payment past due · renews ${formatDate(periodEnd)}`;
-    } else {
+      periodLine = periodEnd
+        ? `Payment past due · access until ${formatDate(periodEnd)}`
+        : "Payment past due";
+    } else if (periodEnd) {
       periodLine = `Renews ${formatDate(periodEnd)}`;
     }
   }
@@ -118,7 +124,7 @@ export default async function AccountsPage() {
           </div>
 
           <p className="text-sm text-on-surface-variant min-h-[1.25rem] mb-8">
-            {periodLine ?? (isPaid ? "" : "No active subscription")}
+            {periodLine ?? (isPaid ? "" : canManage ? "Subscription ended" : "No active subscription")}
           </p>
 
           {canManage ? (
@@ -129,7 +135,7 @@ export default async function AccountsPage() {
               className="inline-flex items-center justify-center gap-2 w-full py-3.5 rounded-full bg-primary text-on-primary font-label font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
             >
               <span className="material-symbols-outlined text-lg">settings</span>
-              Manage Subscription
+              {isPaid ? "Manage Subscription" : "Reactivate Subscription"}
             </a>
           ) : (
             <Link

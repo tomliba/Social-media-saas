@@ -257,6 +257,31 @@ export function canUsePostFormat(_plan: PlanName, _format: PostFormat): boolean 
   return true;   // all posts allowed on every plan, metered by the credit pool
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Subscription entitlement
+// A user may use their paid plan's features while the subscription is active,
+// on trial, cancelled-but-not-yet-expired, or in past_due dunning. Paused,
+// expired, unpaid, or unknown/absent statuses are NOT entitled. This is the
+// single source of truth for feature gating — gates use effectivePlan(), never
+// the raw stored plan, so a cancelled user keeps access until expiry and a
+// paused user is suspended immediately.
+// ──────────────────────────────────────────────────────────────────────────
+
+export const ENTITLED_STATUSES = ["active", "on_trial", "cancelled", "past_due"] as const;
+
+export function isEntitled(status: string | null | undefined): boolean {
+  return !!status && (ENTITLED_STATUSES as readonly string[]).includes(status);
+}
+
+/**
+ * The plan whose features the user may actually use right now. Equals the
+ * stored plan while entitled (see isEntitled); otherwise "free".
+ */
+export function effectivePlan(plan: PlanName, status: string | null | undefined): PlanName {
+  if (plan === "free") return "free";
+  return isEntitled(status) ? plan : "free";
+}
+
 // ── Paid image carousels (Nano Banana Pro, per-slide image baking) ──
 // These are the expensive carousel formats produced by /create/ai-carousel.
 // Gated to Creator+ (Free tier gets the free HTML carousel `carousel_designed`

@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { PlanName } from "@/lib/credits/config";
+import { effectivePlan, type PlanName } from "@/lib/credits/config";
 import type { RenderPreviewPayload } from "../../../trigger/render-preview";
 
 export interface RenderPreviewHandle {
@@ -17,9 +17,13 @@ export async function triggerRenderPreview(
   const session = await auth();
   const userId = session?.user?.id;
   const user = userId
-    ? await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } })
+    ? await prisma.user.findUnique({
+        where: { id: userId },
+        select: { plan: true, subscriptionStatus: true },
+      })
     : null;
-  const isFreeTier = (((user?.plan as PlanName) ?? "free") === "free");
+  const plan = effectivePlan((user?.plan as PlanName) ?? "free", user?.subscriptionStatus);
+  const isFreeTier = plan === "free";
   payload = { ...payload, isFreeTier };
 
   const useTrigger = !!process.env.TRIGGER_SECRET_KEY;
