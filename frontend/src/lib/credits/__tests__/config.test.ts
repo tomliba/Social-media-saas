@@ -7,6 +7,8 @@ import {
   canUseVideoFormat,
   videoFormatFromBackgroundMode,
   VIDEO_BASE,
+  isEntitled,
+  effectivePlan,
 } from "@/lib/credits/config";
 
 // These assert the LOCKED pricing numbers actually fire. If a constant in
@@ -166,5 +168,34 @@ describe("batch cost edge cases", () => {
         { format: "image_post_ai", ideas: 1 },
       ])
     ).toBe(47);
+  });
+});
+
+describe("isEntitled", () => {
+  it("entitles active, on_trial, cancelled, past_due", () => {
+    for (const s of ["active", "on_trial", "cancelled", "past_due"]) {
+      expect(isEntitled(s)).toBe(true);
+    }
+  });
+  it("does not entitle paused, expired, unpaid, null, unknown", () => {
+    for (const s of ["paused", "expired", "unpaid", null, undefined, "weird"]) {
+      expect(isEntitled(s)).toBe(false);
+    }
+  });
+});
+
+describe("effectivePlan", () => {
+  it("keeps the paid plan while entitled (incl. cancelled + past_due)", () => {
+    expect(effectivePlan("pro", "active")).toBe("pro");
+    expect(effectivePlan("pro", "cancelled")).toBe("pro");
+    expect(effectivePlan("creator", "past_due")).toBe("creator");
+  });
+  it("suspends to free when paused or expired", () => {
+    expect(effectivePlan("pro", "paused")).toBe("free");
+    expect(effectivePlan("creator", "expired")).toBe("free");
+  });
+  it("is always free for the free plan regardless of status", () => {
+    expect(effectivePlan("free", "active")).toBe("free");
+    expect(effectivePlan("free", null)).toBe("free");
   });
 });
