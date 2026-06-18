@@ -124,7 +124,7 @@ export default async function AccountsPage() {
           </div>
 
           <p className="text-sm text-on-surface-variant min-h-[1.25rem] mb-8">
-            {periodLine ?? (isPaid ? "" : "No active subscription")}
+            {periodLine ?? (isPaid ? "" : canManage ? "Subscription ended" : "No active subscription")}
           </p>
 
           {canManage ? (
@@ -135,7 +135,7 @@ export default async function AccountsPage() {
               className="inline-flex items-center justify-center gap-2 w-full py-3.5 rounded-full bg-primary text-on-primary font-label font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
             >
               <span className="material-symbols-outlined text-lg">settings</span>
-              Manage Subscription
+              {isPaid ? "Manage Subscription" : "Reactivate Subscription"}
             </a>
           ) : (
             <Link
