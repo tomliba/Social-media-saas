@@ -235,8 +235,30 @@ export async function POST(req: NextRequest) {
         break;
       }
 
-      case "subscription_cancelled":
+      case "subscription_cancelled": {
+        // Cancellation is scheduled: the user keeps their paid plan and features
+        // until the period actually ends (subscription_expired). Only mark status
+        // and record the access-until date so the account page can show it.
+        const user = await findUser(attrs.customer_id, customData);
+        if (!user) {
+          handlerError = "user not found";
+          break;
+        }
+        resolvedUserId = user.id;
+        const endsAt = attrs.ends_at ?? attrs.renews_at;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            subscriptionStatus: "cancelled",
+            currentPeriodEnd: endsAt ? new Date(String(endsAt)) : user.currentPeriodEnd,
+          },
+        });
+        handled = true;
+        break;
+      }
+
       case "subscription_expired": {
+        // The real end of access — now drop to free.
         const user = await findUser(attrs.customer_id, customData);
         if (!user) {
           handlerError = "user not found";
@@ -245,12 +267,43 @@ export async function POST(req: NextRequest) {
         resolvedUserId = user.id;
         await prisma.user.update({
           where: { id: user.id },
-          data: {
-            plan: "free",
-            subscriptionStatus: attrs.status ? String(attrs.status) : eventName,
-          },
+          data: { plan: "free", subscriptionStatus: "expired" },
         });
-        // Leave existing balance untouched.
+        handled = true;
+        break;
+      }
+
+      case "subscription_paused": {
+        // Paused: keep the plan record so resuming restores access, but suspend
+        // entitlement via status (effectivePlan treats "paused" as not entitled).
+        const user = await findUser(attrs.customer_id, customData);
+        if (!user) {
+          handlerError = "user not found";
+          break;
+        }
+        resolvedUserId = user.id;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { subscriptionStatus: "paused" },
+        });
+        handled = true;
+        break;
+      }
+
+      case "subscription_payment_failed": {
+        // Dunning: keep access (still entitled) but flag past_due so the account
+        // page reflects it. If dunning ultimately fails, subscription_expired
+        // (handled above) drops the user to free.
+        const user = await findUser(attrs.customer_id, customData);
+        if (!user) {
+          handlerError = "user not found";
+          break;
+        }
+        resolvedUserId = user.id;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { subscriptionStatus: "past_due" },
+        });
         handled = true;
         break;
       }
