@@ -12,6 +12,7 @@ import {
   videoCost,
   videoBatchCost,
   canUseVideoFormat,
+  effectivePlan,
   type VideoFormat,
   type PlanName,
 } from "@/lib/credits";
@@ -105,9 +106,9 @@ export async function triggerVideoRenders(
   //    any credits are charged. ──
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true },
+    select: { plan: true, subscriptionStatus: true },
   });
-  const plan = (user?.plan as PlanName) ?? "free";
+  const plan = effectivePlan((user?.plan as PlanName) ?? "free", user?.subscriptionStatus);
   // Free tier gets watermark + 720p in the backend render. Derived from the
   // plan here (server-side, authoritative) and threaded into the render payload.
   const isFreeTier = plan === "free";

@@ -16,6 +16,7 @@ const store = vi.hoisted(() => ({
       id: string;
       creditBalance: number;
       plan: string;
+      subscriptionStatus?: string | null;
       customerPortalUrl?: string | null;
       lemonSqueezyCustomerId?: string | null;
     }
@@ -150,8 +151,13 @@ const mockedRenderVideo = vi.mocked(renderVideoViaFlask);
 const mockedRenderPost = vi.mocked(renderPostViaFlask);
 
 // ── helpers ──
-function seedUser(id: string, creditBalance: number, plan = "free") {
-  store.users.set(id, { id, creditBalance, plan });
+function seedUser(id: string, creditBalance: number, plan = "free", subscriptionStatus?: string | null) {
+  // Default paid plans to "active" so effectivePlan() sees them as entitled;
+  // free-plan users have no subscription status.
+  const status = subscriptionStatus !== undefined
+    ? subscriptionStatus
+    : plan === "free" ? null : "active";
+  store.users.set(id, { id, creditBalance, plan, subscriptionStatus: status });
 }
 function balanceOf(id: string) {
   return store.users.get(id)!.creditBalance;

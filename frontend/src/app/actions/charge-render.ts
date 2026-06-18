@@ -13,6 +13,7 @@ import {
   isPaidImageCarousel,
   canUseImageCarousel,
   maxCarouselSlides,
+  effectivePlan,
   type VideoFormat,
   type PostFormat,
   type PlanName,
@@ -41,8 +42,11 @@ export async function chargeVideo(args: {
   const userId = session?.user?.id;
   if (!userId) return { ok: false, error: "unauthenticated" };
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
-  const plan = (user?.plan as PlanName) ?? "free";
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { plan: true, subscriptionStatus: true },
+  });
+  const plan = effectivePlan((user?.plan as PlanName) ?? "free", user?.subscriptionStatus);
   if (!canUseVideoFormat(plan, args.format)) {
     return { ok: false, error: "plan_not_allowed", format: args.format };
   }
@@ -81,8 +85,11 @@ export async function chargePost(args: {
   // Paid image carousels (Nano Banana Pro) are Creator+ and slide-capped per
   // plan. Other post formats stay available on every plan.
   if (isPaidImageCarousel(args.format)) {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
-    const plan = (user?.plan as PlanName) ?? "free";
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, subscriptionStatus: true },
+    });
+    const plan = effectivePlan((user?.plan as PlanName) ?? "free", user?.subscriptionStatus);
     if (!canUseImageCarousel(plan)) {
       return { ok: false, error: "plan_not_allowed_post", format: args.format };
     }
