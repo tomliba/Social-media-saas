@@ -123,7 +123,15 @@ function VoiceButton({ voiceId, voiceName, onOpen }: { voiceId: string | null; v
 
 interface ArgChar { id: string; name: string }
 
-export default function PreferencesForm({ initial }: { initial: UserPrefs | null }) {
+export default function PreferencesForm({
+  initial,
+  initialVoiceNames,
+  initialArgChars,
+}: {
+  initial: UserPrefs | null;
+  initialVoiceNames?: Record<string, string>;
+  initialArgChars?: ArgChar[];
+}) {
   const p = initial;
   // Global
   const [captionStyle, setCaptionStyle] = useState(p?.captionStyle ?? D.global.captionStyle);
@@ -163,38 +171,47 @@ export default function PreferencesForm({ initial }: { initial: UserPrefs | null
 
   // Voice modals
   const [voiceModal, setVoiceModal] = useState<null | "character" | "story" | "skeleton">(null);
-  const [voiceNames, setVoiceNames] = useState<Record<string, string>>({});
+  const [voiceNames, setVoiceNames] = useState<Record<string, string>>(initialVoiceNames ?? {});
   const [characterModalOpen, setCharacterModalOpen] = useState(false);
 
   // Dynamic argument data (same endpoint the Argument flow uses)
-  const [argChars, setArgChars] = useState<ArgChar[]>([]);
+  const [argChars, setArgChars] = useState<ArgChar[]>(initialArgChars ?? []);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    // Resolve voice ids → names for the voice buttons (same catalog the modal uses).
-    fetch("/api/voices").then((r) => r.ok ? r.json() : null).then((d) => {
-      if (!d?.voices) return;
-      const map: Record<string, string> = {};
-      for (const v of d.voices) map[v.fishAudioId] = v.name;
-      setVoiceNames(map);
-    }).catch(() => {});
-    fetch("/api/argument/characters").then((r) => r.ok ? r.json() : null).then((d) => {
-      // The API returns { characters: { id: {...} } } (a keyed object), but can
-      // also be a plain array — normalize both to a list for the dropdowns.
-      const raw = d?.characters ?? d;
-      const list: { id?: string; name?: string }[] = Array.isArray(raw)
-        ? raw
-        : raw && typeof raw === "object"
-          ? Object.values(raw)
-          : [];
-      setArgChars(
-        list
-          .map((c) => ({ id: c.id ?? c.name ?? "", name: c.name ?? c.id ?? "" }))
-          .filter((c) => c.id)
-      );
-    }).catch(() => {});
+    // These lists are normally supplied server-side (initialVoiceNames /
+    // initialArgChars) so there is no fetch on mount. Fall back to the client
+    // fetch only if the server didn't provide them (e.g. the Flask backend was
+    // unreachable during SSR).
+    if (Object.keys(initialVoiceNames ?? {}).length === 0) {
+      // Resolve voice ids → names for the voice buttons (same catalog the modal uses).
+      fetch("/api/voices").then((r) => r.ok ? r.json() : null).then((d) => {
+        if (!d?.voices) return;
+        const map: Record<string, string> = {};
+        for (const v of d.voices) map[v.fishAudioId] = v.name;
+        setVoiceNames(map);
+      }).catch(() => {});
+    }
+    if ((initialArgChars ?? []).length === 0) {
+      fetch("/api/argument/characters").then((r) => r.ok ? r.json() : null).then((d) => {
+        // The API returns { characters: { id: {...} } } (a keyed object), but can
+        // also be a plain array — normalize both to a list for the dropdowns.
+        const raw = d?.characters ?? d;
+        const list: { id?: string; name?: string }[] = Array.isArray(raw)
+          ? raw
+          : raw && typeof raw === "object"
+            ? Object.values(raw)
+            : [];
+        setArgChars(
+          list
+            .map((c) => ({ id: c.id ?? c.name ?? "", name: c.name ?? c.id ?? "" }))
+            .filter((c) => c.id)
+        );
+      }).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onVoiceSelect = (v: Voice) => {

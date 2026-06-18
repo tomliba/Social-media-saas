@@ -47,3 +47,6 @@ playwright_run/
 
 # montage build scratch (local video assembly workspace)
 frontend/.montage-build/
+
+# Load-test artifacts (local only)
+load-logs/

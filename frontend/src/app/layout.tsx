@@ -28,10 +28,38 @@ export default function RootLayout({
   return (
     <html lang="en" className="light">
       <head>
+        {/* Warm up the Google Fonts connections before the icon stylesheet is
+            requested, so the TLS/DNS handshake isn't on the critical path. This
+            shaves the connection setup (often 100-300ms) off first paint. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-          rel="stylesheet"
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
         />
+        {/* Non-blocking load of the Material Symbols icon stylesheet: fetched at
+            low priority via media="print", then promoted to apply once it has
+            downloaded (and immediately if it was already cached). Falls back to
+            a plain stylesheet when JS is disabled. */}
+        <link
+          id="ms-icons"
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          media="print"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "var l=document.getElementById('ms-icons');if(l){l.onload=function(){this.media='all'};if(l.sheet)l.media='all';}",
+          }}
+        />
+        <noscript>
+          {/* eslint-disable-next-line @next/next/no-css-tags */}
+          <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          />
+        </noscript>
       </head>
       <body
         className={`${plusJakarta.variable} ${beVietnam.variable} bg-surface font-body text-on-surface antialiased`}
