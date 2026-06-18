@@ -149,6 +149,9 @@ interface FlaskSSEEvent {
     video_url?: string;
     thumbnail_url?: string;
     fatal?: boolean;
+    /** Measured USD provider cost for the job + per-step breakdown (observability). */
+    provider_cost_usd?: number;
+    cost_breakdown?: Record<string, unknown>;
   };
 }
 
@@ -574,6 +577,8 @@ export const renderVideo = task({
     let videoFilename = "";
     let outputDir = "";
     let r2VideoUrl = "";
+    let providerCostUsd: number | undefined;
+    let costBreakdown: Record<string, unknown> | undefined;
 
     try {
       console.log(`[render-video] ▶ STAGE: sse_streaming | jobId="${jobId}"`);
@@ -627,7 +632,9 @@ export const renderVideo = task({
               videoFilename = evt.data.video_filename || "final_video.mp4";
               outputDir = evt.data.output_dir || "";
               r2VideoUrl = evt.data.video_url || "";
-              logger.log("Pipeline complete", { videoFilename, outputDir, r2VideoUrl });
+              providerCostUsd = evt.data.provider_cost_usd;
+              costBreakdown = evt.data.cost_breakdown;
+              logger.log("Pipeline complete", { videoFilename, outputDir, r2VideoUrl, providerCostUsd });
               break;
             } else if (evt.event === "error") {
               const msg = evt.data.message || "Unknown pipeline error";
@@ -693,6 +700,9 @@ export const renderVideo = task({
       status: "ready",
       videoUrl,
       thumbnailUrl: thumbnailUrl ?? videoUrl,
+      // Observability only; present once the Flask backend reports it.
+      ...(providerCostUsd !== undefined && { providerCostUsd }),
+      ...(costBreakdown !== undefined && { costBreakdown }),
     });
 
     return {

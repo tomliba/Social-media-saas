@@ -65,14 +65,16 @@ export async function getOverview(): Promise<OverviewStats> {
   };
 }
 
-// ── TODAY: credits granted vs spent + free-user burn (est. $) ────────────────
+// ── TODAY: credits granted vs spent + free-user burn ($ measured where avail) ─
 
 export interface TodayCreditFlow {
   granted: number;
-  spent: number;
-  freeBurn: number;
-  estSpentUsd: number;
-  estFreeBurnUsd: number;
+  spent: number;            // credits
+  freeBurn: number;         // credits
+  spentUsd: number;         // measured providerCostUsd where present, else estimate
+  freeBurnUsd: number;
+  spendsTotal: number;      // # of spend rows today
+  spendsMeasured: number;   // # with a real providerCostUsd (for coverage badge)
 }
 
 export async function getTodayCreditFlow(): Promise<TodayCreditFlow> {
@@ -84,25 +86,35 @@ export async function getTodayCreditFlow(): Promise<TodayCreditFlow> {
     }),
     prisma.creditTransaction.findMany({
       where: { delta: { lt: 0 }, createdAt: { gte: today } },
-      select: { delta: true, user: { select: { plan: true } } },
+      select: { delta: true, jobId: true, user: { select: { plan: true } } },
     }),
   ]);
 
+  // Join today's spends to their ContentItem for the measured provider cost.
+  const jobIds = [...new Set(todaysSpends.map((s) => s.jobId).filter((j): j is string => !!j))];
+  const items = jobIds.length
+    ? await prisma.contentItem.findMany({
+        where: { jobId: { in: jobIds } },
+        select: { jobId: true, providerCostUsd: true },
+      })
+    : [];
+  const measuredByJob = new Map(items.map((i) => [i.jobId, i.providerCostUsd]));
+
   const granted = grantAgg._sum.delta ?? 0;
-  let spent = 0;
-  let freeBurn = 0;
+  let spent = 0, freeBurn = 0, spentUsd = 0, freeBurnUsd = 0, spendsMeasured = 0;
   for (const t of todaysSpends) {
     const abs = Math.abs(t.delta);
+    const measured = t.jobId ? measuredByJob.get(t.jobId) ?? null : null;
+    const usd = measured !== null && measured !== undefined ? measured : estDollarsForCredits(abs);
+    if (measured !== null && measured !== undefined) spendsMeasured += 1;
     spent += abs;
-    if (t.user.plan === "free") freeBurn += abs;
+    spentUsd += usd;
+    if (t.user.plan === "free") { freeBurn += abs; freeBurnUsd += usd; }
   }
 
   return {
-    granted,
-    spent,
-    freeBurn,
-    estSpentUsd: estDollarsForCredits(spent),
-    estFreeBurnUsd: estDollarsForCredits(freeBurn),
+    granted, spent, freeBurn, spentUsd, freeBurnUsd,
+    spendsTotal: todaysSpends.length, spendsMeasured,
   };
 }
 
@@ -218,21 +230,28 @@ export async function getFailedRenders(limit = 100): Promise<FailedRender[]> {
   }));
 }
 
-// ── COST / MARGIN by mode (all est.) ─────────────────────────────────────────
+// ── COST / MARGIN by mode (measured where available, else est.) ──────────────
 
 export interface ModeCost {
   mode: string;
   renders: number;
+  rendersMeasured: number;     // how many had a real providerCostUsd
   credits: number;
-  estRevenueUsd: number;
-  estCostUsd: number;
-  estMarginUsd: number;
+  estRevenueUsd: number;       // revenue is always derived from credit value
+  measuredCostUsd: number;     // Σ providerCostUsd (real)
+  fallbackCostUsd: number;     // Σ estimate for renders lacking real cost
+  costUsd: number;             // measured + fallback
+  marginUsd: number;           // estRevenue − costUsd
 }
 
 export interface CostByMode {
   windowDays: number;
   rows: ModeCost[];
-  totals: { renders: number; credits: number; estRevenueUsd: number; estCostUsd: number; estMarginUsd: number };
+  totals: {
+    renders: number; rendersMeasured: number; credits: number;
+    estRevenueUsd: number; measuredCostUsd: number; fallbackCostUsd: number;
+    costUsd: number; marginUsd: number;
+  };
 }
 
 export async function getCostByMode(windowDays = 30): Promise<CostByMode> {
@@ -247,7 +266,8 @@ export async function getCostByMode(windowDays = 30): Promise<CostByMode> {
   const [items, users] = await Promise.all([
     prisma.contentItem.findMany({
       where: { jobId: { in: jobIds } },
-      select: { jobId: true, format: true, backgroundMode: true, templateId: true },
+      // providerCostUsd is the measured cost; null → fall back to estimate.
+      select: { jobId: true, format: true, backgroundMode: true, templateId: true, providerCostUsd: true },
     }),
     prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, plan: true } }),
   ]);
@@ -261,16 +281,22 @@ export async function getCostByMode(windowDays = 30): Promise<CostByMode> {
     const mode = item ? deriveRenderMode(item) : "unknown";
     const plan = planByUser.get(s.userId) ?? "free";
     const estRevenueUsd = credits * CREDIT_VALUE_USD[plan];
-    const estCostUsd = estDollarsForCredits(credits);
+
+    const measured = item?.providerCostUsd ?? null;
+    const hasMeasured = measured !== null;
+    const costUsd = hasMeasured ? measured : estDollarsForCredits(credits);
 
     const row = map.get(mode) ?? {
-      mode, renders: 0, credits: 0, estRevenueUsd: 0, estCostUsd: 0, estMarginUsd: 0,
+      mode, renders: 0, rendersMeasured: 0, credits: 0, estRevenueUsd: 0,
+      measuredCostUsd: 0, fallbackCostUsd: 0, costUsd: 0, marginUsd: 0,
     };
     row.renders += 1;
+    if (hasMeasured) { row.rendersMeasured += 1; row.measuredCostUsd += measured; }
+    else { row.fallbackCostUsd += costUsd; }
     row.credits += credits;
     row.estRevenueUsd += estRevenueUsd;
-    row.estCostUsd += estCostUsd;
-    row.estMarginUsd += estRevenueUsd - estCostUsd;
+    row.costUsd += costUsd;
+    row.marginUsd += estRevenueUsd - costUsd;
     map.set(mode, row);
   }
 
@@ -278,12 +304,15 @@ export async function getCostByMode(windowDays = 30): Promise<CostByMode> {
   const totals = rows.reduce(
     (t, r) => ({
       renders: t.renders + r.renders,
+      rendersMeasured: t.rendersMeasured + r.rendersMeasured,
       credits: t.credits + r.credits,
       estRevenueUsd: t.estRevenueUsd + r.estRevenueUsd,
-      estCostUsd: t.estCostUsd + r.estCostUsd,
-      estMarginUsd: t.estMarginUsd + r.estMarginUsd,
+      measuredCostUsd: t.measuredCostUsd + r.measuredCostUsd,
+      fallbackCostUsd: t.fallbackCostUsd + r.fallbackCostUsd,
+      costUsd: t.costUsd + r.costUsd,
+      marginUsd: t.marginUsd + r.marginUsd,
     }),
-    { renders: 0, credits: 0, estRevenueUsd: 0, estCostUsd: 0, estMarginUsd: 0 }
+    { renders: 0, rendersMeasured: 0, credits: 0, estRevenueUsd: 0, measuredCostUsd: 0, fallbackCostUsd: 0, costUsd: 0, marginUsd: 0 }
   );
 
   return { windowDays, rows, totals };

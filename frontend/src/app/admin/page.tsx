@@ -4,7 +4,7 @@ import {
   getDailySpend, lookupUser, getCustomers, type CustomerSort,
 } from "@/lib/admin/queries";
 import { adminGrantCredits, adminForceRefund, adminSetBan } from "./actions";
-import { Panel, Stat, Est, fmtUsd, fmtNum, fmtPct, fmtDate } from "./_components";
+import { Panel, Stat, Est, CoverageBadge, fmtUsd, fmtNum, fmtPct, fmtDate } from "./_components";
 
 // Reads session + DB on every request — always dynamic.
 export const dynamic = "force-dynamic";
@@ -175,12 +175,12 @@ export default async function AdminPage({
       <Panel
         title="Today — credit flow"
         icon="today"
-        note={<>Dollar figures are estimated from credit rates (Pro margin-floor basis $0.0295/credit).</>}
+        note={<>Dollar cost uses the measured provider cost where the render has it; otherwise the credit-rate estimate ($0.0295/credit). Coverage: {today.spendsMeasured}/{today.spendsTotal} of today&apos;s charges measured.</>}
       >
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <Stat label="Credits granted" value={fmtNum(today.granted)} />
-          <Stat label="Credits spent" value={fmtNum(today.spent)} sub={<>{fmtUsd(today.estSpentUsd)}<Est /></>} />
-          <Stat label="Free-user burn" value={fmtNum(today.freeBurn)} sub={<>{fmtUsd(today.estFreeBurnUsd)}<Est /></>} />
+          <Stat label="Credits spent" value={fmtNum(today.spent)} sub={<>{fmtUsd(today.spentUsd)}<CoverageBadge measured={today.spendsMeasured} total={today.spendsTotal} /></>} />
+          <Stat label="Free-user burn" value={fmtNum(today.freeBurn)} sub={<>{fmtUsd(today.freeBurnUsd)}<CoverageBadge measured={today.spendsMeasured} total={today.spendsTotal} /></>} />
           <Stat label="Net credits" value={fmtNum(today.granted - today.spent)} />
         </div>
       </Panel>
@@ -270,11 +270,11 @@ export default async function AdminPage({
         </div>
       </Panel>
 
-      {/* ── COST / MARGIN (all est.) ── */}
+      {/* ── COST / MARGIN (measured where available) ── */}
       <Panel
-        title={<>Cost / margin by mode <Est /></>}
+        title="Cost / margin by mode"
         icon="payments"
-        note={<>All figures estimated over the last {cost.windowDays} days. Revenue = credits × plan credit value (Creator $0.040, Pro $0.0295); cost = credits × $0.0295 (Pro floor). Not measured provider spend.</>}
+        note={<>Last {cost.windowDays} days. <b>Cost</b> uses the measured provider cost when the render has it (badge <span className="text-emerald-700 font-bold">measured</span>), otherwise the credit-rate estimate (<span className="text-amber-700 font-bold">est.</span>); mixed shows the ratio. <b>Revenue</b> is always estimated from credit value (Creator $0.040, Pro $0.0295). Overall: {cost.totals.rendersMeasured}/{cost.totals.renders} renders measured.</>}
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -284,8 +284,8 @@ export default async function AdminPage({
                 <th className="py-2 pr-4">Renders</th>
                 <th className="py-2 pr-4">Credits</th>
                 <th className="py-2 pr-4">Est. revenue</th>
-                <th className="py-2 pr-4">Est. cost</th>
-                <th className="py-2 pr-4">Est. margin</th>
+                <th className="py-2 pr-4">Cost</th>
+                <th className="py-2 pr-4">Margin</th>
               </tr>
             </thead>
             <tbody>
@@ -295,9 +295,11 @@ export default async function AdminPage({
                   <td className="py-2 pr-4">{fmtNum(r.renders)}</td>
                   <td className="py-2 pr-4">{fmtNum(r.credits)}</td>
                   <td className="py-2 pr-4">{fmtUsd(r.estRevenueUsd)}</td>
-                  <td className="py-2 pr-4">{fmtUsd(r.estCostUsd)}</td>
-                  <td className={`py-2 pr-4 font-bold ${r.estMarginUsd < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                    {fmtUsd(r.estMarginUsd)}
+                  <td className="py-2 pr-4 whitespace-nowrap">
+                    {fmtUsd(r.costUsd)}<CoverageBadge measured={r.rendersMeasured} total={r.renders} />
+                  </td>
+                  <td className={`py-2 pr-4 font-bold ${r.marginUsd < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                    {fmtUsd(r.marginUsd)}
                   </td>
                 </tr>
               ))}
@@ -307,9 +309,11 @@ export default async function AdminPage({
                   <td className="py-2 pr-4">{fmtNum(cost.totals.renders)}</td>
                   <td className="py-2 pr-4">{fmtNum(cost.totals.credits)}</td>
                   <td className="py-2 pr-4">{fmtUsd(cost.totals.estRevenueUsd)}</td>
-                  <td className="py-2 pr-4">{fmtUsd(cost.totals.estCostUsd)}</td>
-                  <td className={`py-2 pr-4 ${cost.totals.estMarginUsd < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                    {fmtUsd(cost.totals.estMarginUsd)}
+                  <td className="py-2 pr-4 whitespace-nowrap">
+                    {fmtUsd(cost.totals.costUsd)}<CoverageBadge measured={cost.totals.rendersMeasured} total={cost.totals.renders} />
+                  </td>
+                  <td className={`py-2 pr-4 ${cost.totals.marginUsd < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                    {fmtUsd(cost.totals.marginUsd)}
                   </td>
                 </tr>
               )}

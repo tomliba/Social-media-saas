@@ -214,6 +214,14 @@ model ContentItem {
   previewData     String?  // JSON: audioUrl, backgroundPaths, captions, volumePerFrame, durationInFrames, fps, backgroundType, showCaptions
   creativeSettings String? // JSON: captionStyle, music, musicUrl, filmGrain, shakeEffect, transitionStyle, hookText, etc.
   resolvedSegments String? // JSON: resolved visual segments for render-export
+
+  // Observability only (NOT part of credit charging/refund). Measured USD
+  // provider cost for this render, reported by the backend at completion.
+  // null = not captured (old renders / backend not yet instrumented) → the
+  // admin dashboard falls back to the credit-rate estimate for those.
+  providerCostUsd Float?
+  costBreakdown   Json?    // { flux:{model,images,usd}, seedance:{seconds,usd}, tts:{chars,usd}, llm:{inTok,outTok,usd}, transcribe:{minutes,model,usd}, estimated?:bool }
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

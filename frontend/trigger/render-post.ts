@@ -60,6 +60,9 @@ interface FlaskPGEvent {
     succeeded?: number;
     failed?: number;
     pg_job_id?: string;
+    /** Measured USD provider cost for the job + per-step breakdown (observability). */
+    provider_cost_usd?: number;
+    cost_breakdown?: Record<string, unknown>;
   };
 }
 
@@ -170,6 +173,8 @@ export const renderPost = task({
     let finalResults: PostResult[] = [];
     let succeeded = 0;
     let failed = 0;
+    let providerCostUsd: number | undefined;
+    let costBreakdown: Record<string, unknown> | undefined;
 
     try {
       while (true) {
@@ -204,6 +209,8 @@ export const renderPost = task({
           } else if (evt.event === "complete") {
             succeeded = evt.data.succeeded ?? 0;
             failed = evt.data.failed ?? 0;
+            providerCostUsd = evt.data.provider_cost_usd;
+            costBreakdown = evt.data.cost_breakdown;
 
             if (evt.data.results) {
               finalResults = evt.data.results.map((r) => ({
@@ -262,6 +269,9 @@ export const renderPost = task({
     await postCompletionCallback(appUrl, runId, {
       status: "ready",
       thumbnailUrl: thumbnailUrl ?? firstImage,
+      // Observability only; present once the Flask backend reports it.
+      ...(providerCostUsd !== undefined && { providerCostUsd }),
+      ...(costBreakdown !== undefined && { costBreakdown }),
     });
 
     return { results: finalResults, succeeded, failed };

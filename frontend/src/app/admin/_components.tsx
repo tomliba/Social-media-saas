@@ -27,6 +27,18 @@ export function Est() {
   );
 }
 
+/** Badge showing how much of a cost figure is measured vs estimated. */
+export function CoverageBadge({ measured, total }: { measured: number; total: number }) {
+  if (total === 0) return null;
+  if (measured === total) {
+    return <span className="ml-1 inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700" title="All renders have a measured provider cost.">measured</span>;
+  }
+  if (measured === 0) {
+    return <span className="ml-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-700" title="No measured cost yet — credit-rate estimate.">est.</span>;
+  }
+  return <span className="ml-1 inline-block rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold text-sky-700" title={`${measured} of ${total} renders measured; the rest estimated.`}>{measured}/{total} meas.</span>;
+}
+
 export function Panel({
   title, icon, children, note,
 }: {

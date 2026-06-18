@@ -17,7 +17,10 @@ export async function POST(
 
   const { id } = await params;
   const body = await req.json();
-  const { status, videoUrl, thumbnailUrl, renderTimeSec, error, previewData } = body;
+  const {
+    status, videoUrl, thumbnailUrl, renderTimeSec, error, previewData,
+    providerCostUsd, costBreakdown,
+  } = body;
 
   if (!status || !["ready", "failed", "preview"].includes(status)) {
     return NextResponse.json(
@@ -45,6 +48,11 @@ export async function POST(
       renderTimeSec: renderTimeSec ?? null,
       error: error ?? null,
       ...(previewData !== undefined && { previewData }),
+      // Observability only — store measured provider cost when the backend
+      // reports it. Only write when provided so a callback without cost data
+      // (e.g. failure, or pre-instrumentation backend) doesn't clobber it.
+      ...(typeof providerCostUsd === "number" && { providerCostUsd }),
+      ...(costBreakdown !== undefined && costBreakdown !== null && { costBreakdown }),
     },
   });
 

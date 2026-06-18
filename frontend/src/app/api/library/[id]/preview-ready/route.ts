@@ -14,7 +14,10 @@ export async function POST(
   }
   const { id } = await params;
   const body = await req.json();
-  const { status, previewData, creativeSettings, resolvedSegments, durationSec } = body;
+  const {
+    status, previewData, creativeSettings, resolvedSegments, durationSec,
+    providerCostUsd, costBreakdown,
+  } = body;
 
   const item = await prisma.contentItem.findUnique({ where: { id } });
   console.log("[preview-ready] Prisma result:", item ? "found" : "not found", "id:", id);
@@ -30,6 +33,10 @@ export async function POST(
       creativeSettings: creativeSettings ?? null,
       resolvedSegments: resolvedSegments ?? null,
       ...(durationSec !== undefined && { durationSec }),
+      // Preview-phase provider cost (TTS + any AI images). The final /complete
+      // callback later overwrites with the full job total. Observability only.
+      ...(typeof providerCostUsd === "number" && { providerCostUsd }),
+      ...(costBreakdown !== undefined && costBreakdown !== null && { costBreakdown }),
     },
   });
 
