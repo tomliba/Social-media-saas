@@ -69,16 +69,22 @@ export default async function AccountsPage() {
   const status = user?.subscriptionStatus ?? null;
   const statusMeta = status ? STATUS_META[status] : null;
   const periodEnd = user?.currentPeriodEnd ?? null;
-  const canManage = isPaid && !!user?.customerPortalUrl;
+  // Show the portal to anyone who has a portal URL — cancelled, paused, and
+  // past_due users still need it to un-cancel or fix payment.
+  const canManage = !!user?.customerPortalUrl;
 
   // Renewal / expiry line derived from currentPeriodEnd + status.
   let periodLine: string | null = null;
-  if (isPaid && periodEnd) {
-    if (status === "cancelled" || status === "expired") {
-      periodLine = `Access until ${formatDate(periodEnd)}`;
+  if (isPaid) {
+    if (status === "paused") {
+      periodLine = "Subscription paused — resume to restore access";
+    } else if (status === "cancelled" || status === "expired") {
+      periodLine = periodEnd ? `Access until ${formatDate(periodEnd)}` : "Subscription ending";
     } else if (status === "past_due") {
-      periodLine = `Payment past due · renews ${formatDate(periodEnd)}`;
-    } else {
+      periodLine = periodEnd
+        ? `Payment past due · access until ${formatDate(periodEnd)}`
+        : "Payment past due";
+    } else if (periodEnd) {
       periodLine = `Renews ${formatDate(periodEnd)}`;
     }
   }
