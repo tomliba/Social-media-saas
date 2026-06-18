@@ -8,6 +8,7 @@ import {
   topUpPackForVariant,
   type PlanName,
 } from "@/lib/credits/config";
+import type { Prisma } from "@prisma/client";
 
 // Lemon Squeezy posts raw JSON and signs it with HMAC-SHA256 (hex) in the
 // `X-Signature` header. We must read the RAW body to verify the signature.
@@ -39,45 +40,103 @@ async function findUser(customerId: unknown, customData?: LSCustomData) {
   return null;
 }
 
+/** Best-effort append to the webhook log; never let logging break the ack. */
+async function logWebhookEvent(row: {
+  eventName: string;
+  resourceId: string | null;
+  userId: string | null;
+  rawPayload: Prisma.InputJsonValue;
+  signatureValid: boolean;
+  handled: boolean;
+  grantedCreditTxId: string | null;
+  error: string | null;
+}) {
+  try {
+    await prisma.webhookEvent.create({ data: row });
+  } catch (err) {
+    console.error("Failed to write WebhookEvent log row:", err);
+  }
+}
+
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const signature = req.headers.get("x-signature");
 
-  if (
-    !verifyLemonSqueezySignature(
-      rawBody,
-      signature,
-      process.env.LEMONSQUEEZY_WEBHOOK_SECRET
-    )
-  ) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-  }
+  const signatureValid = verifyLemonSqueezySignature(
+    rawBody,
+    signature,
+    process.env.LEMONSQUEEZY_WEBHOOK_SECRET
+  );
 
-  let payload: LSPayload;
+  // Try to parse for logging purposes regardless of signature/handling outcome.
+  let payload: LSPayload | null = null;
   try {
     payload = JSON.parse(rawBody) as LSPayload;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    payload = null;
   }
 
-  const eventName = payload.meta?.event_name;
-  const customData = payload.meta?.custom_data;
-  const data = payload.data;
+  const eventName = payload?.meta?.event_name;
+  const customData = payload?.meta?.custom_data;
+  const data = payload?.data;
   const attrs = (data?.attributes ?? {}) as Record<string, unknown>;
+  const resourceId = data?.id ?? null;
   // Unique per delivery resource; prefix with event name to avoid id collisions
   // across resource types (subscription vs order vs invoice).
   const externalEventId = `${eventName}:${data?.id ?? "unknown"}`;
 
+  // ── Bad signature: reject without logging. The webhook URL is public, so
+  // logging unsigned hits would just let anyone spam the table with useless,
+  // payload-less rows. Only signature-verified events are recorded below.
+  if (!signatureValid) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
+  if (!payload) {
+    await logWebhookEvent({
+      eventName: "(unparseable)",
+      resourceId: null,
+      userId: null,
+      rawPayload: {},
+      signatureValid: true,
+      handled: false,
+      grantedCreditTxId: null,
+      error: "invalid JSON",
+    });
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
   if (!eventName) {
+    await logWebhookEvent({
+      eventName: "(missing)",
+      resourceId,
+      userId: null,
+      rawPayload: payload as unknown as Prisma.InputJsonValue,
+      signatureValid: true,
+      handled: false,
+      grantedCreditTxId: null,
+      error: "missing event_name",
+    });
     return NextResponse.json({ error: "Missing event_name" }, { status: 400 });
   }
+
+  // Outcome captured for the log row. The existing grant/update logic is
+  // unchanged — we only record what happened around it.
+  let handled = false;
+  let handlerError: string | null = null;
+  let grantedCreditTxId: string | null = null;
+  let resolvedUserId: string | null = null;
 
   try {
     switch (eventName) {
       case "subscription_created":
       case "subscription_updated": {
         const user = await findUser(attrs.customer_id, customData);
-        if (!user) break; // unknown user — ack so LS stops retrying
+        if (!user) {
+          handlerError = "user not found";
+          break; // unknown user — ack so LS stops retrying
+        }
+        resolvedUserId = user.id;
 
         const variantId = attrs.variant_id != null ? String(attrs.variant_id) : "";
         const plan: PlanName = planForSubscriptionVariant(variantId) ?? "free";
@@ -102,12 +161,17 @@ export async function POST(req: NextRequest) {
           },
         });
         // NOTE: no credit grant here — grants happen on payment_success only.
+        handled = true;
         break;
       }
 
       case "subscription_payment_success": {
         const user = await findUser(attrs.customer_id, customData);
-        if (!user) break;
+        if (!user) {
+          handlerError = "user not found";
+          break;
+        }
+        resolvedUserId = user.id;
 
         // Grant the user's current plan allotment. The plan is set by the
         // subscription_created/updated event. Fires on first + recurring
@@ -115,13 +179,14 @@ export async function POST(req: NextRequest) {
         const plan = (user.plan as PlanName) ?? "free";
         const amount = PLAN_MONTHLY_CREDITS[plan] ?? 0;
         if (amount > 0) {
-          await grantCredits({
+          const result = await grantCredits({
             userId: user.id,
             amount,
             type: "subscription_grant",
             externalEventId,
             reason: `${plan} monthly credits`,
           });
+          grantedCreditTxId = result.transaction.id;
         }
         // Backstop: capture the portal URL if the invoice payload includes one
         // and we don't have it yet (normally set by subscription_created/updated).
@@ -132,12 +197,17 @@ export async function POST(req: NextRequest) {
             data: { customerPortalUrl: String(invoiceUrls.customer_portal) },
           });
         }
+        handled = true;
         break;
       }
 
       case "order_created": {
         const user = await findUser(attrs.customer_id, customData);
-        if (!user) break;
+        if (!user) {
+          handlerError = "user not found";
+          break;
+        }
+        resolvedUserId = user.id;
 
         // Only credit packs grant here; subscription orders are handled above.
         const variantId =
@@ -151,21 +221,28 @@ export async function POST(req: NextRequest) {
               : "";
         const pack = topUpPackForVariant(variantId);
         if (pack) {
-          await grantCredits({
+          const result = await grantCredits({
             userId: user.id,
             amount: pack.credits,
             type: "topup",
             externalEventId,
             reason: pack.label,
           });
+          grantedCreditTxId = result.transaction.id;
         }
+        // No pack match → a subscription order; grant happens on payment_success.
+        handled = true;
         break;
       }
 
       case "subscription_cancelled":
       case "subscription_expired": {
         const user = await findUser(attrs.customer_id, customData);
-        if (!user) break;
+        if (!user) {
+          handlerError = "user not found";
+          break;
+        }
+        resolvedUserId = user.id;
         await prisma.user.update({
           where: { id: user.id },
           data: {
@@ -174,16 +251,33 @@ export async function POST(req: NextRequest) {
           },
         });
         // Leave existing balance untouched.
+        handled = true;
         break;
       }
 
       default:
-        // Unhandled event — acknowledge so LS doesn't retry.
+        // Unhandled event — acknowledge so LS doesn't retry. handled stays false.
         break;
     }
   } catch (err) {
     console.error("Lemon Squeezy webhook handler error:", err);
-    // 500 so LS retries — our grants are idempotent on externalEventId.
+    handlerError = err instanceof Error ? err.message : String(err);
+  }
+
+  await logWebhookEvent({
+    eventName,
+    resourceId,
+    userId: resolvedUserId,
+    rawPayload: payload as unknown as Prisma.InputJsonValue,
+    signatureValid: true,
+    handled,
+    grantedCreditTxId,
+    error: handlerError,
+  });
+
+  if (handlerError && handlerError !== "user not found") {
+    // A genuine processing failure — 500 so LS retries (grants are idempotent
+    // on externalEventId). "user not found" is not retryable, so we ack it 200.
     return NextResponse.json({ error: "Handler error" }, { status: 500 });
   }
 
