@@ -308,7 +308,7 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
   const [niche, setNiche] = useState(prefs?.characterNiche ?? "health and wellness");
   const [tone, setTone] = useState(prefs?.characterTone ?? "Funny");
   const [duration, setDuration] = useState(prefs?.characterDuration ?? "30s");
-  const { plan } = usePlan();
+  const { entitledPlan: plan } = usePlan();
   // Live credit cost for the current background mode + duration.
   const currentVideoCost = videoCost(
     videoFormatFromBackgroundMode(backgroundMode),

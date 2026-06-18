@@ -287,7 +287,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
   const [artStyle, setArtStyle] = useState(prefs?.storyArtStyle ?? "anime");
   const [artModalOpen, setArtModalOpen] = useState(false);
   const [sceneMode, setSceneMode] = useState<"static" | "animated">((prefs?.storySceneMode as "static" | "animated") ?? "static");
-  const { plan } = usePlan();
+  const { entitledPlan: plan } = usePlan();
   // Animation (animated scenes → Seedance) is Pro-only.
   const animationLocked = !canUseVideoFormat(plan, "animated_story");
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
