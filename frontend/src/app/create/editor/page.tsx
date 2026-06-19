@@ -1329,7 +1329,7 @@ function EditorContent() {
       )}
 
       {/* Sticky Bottom Bar */}
-      <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center">
+      <footer className="fixed bottom-0 left-0 w-full md:left-64 md:w-[calc(100%-16rem)] z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center">
         <button
           onClick={isCarousel ? handleCreateCarousels : isText ? handleCreateTexts : isTemplateImage ? handleCreateImagePosts : isImage ? handleCreatePosts : handleCreateVideos}
           disabled={(loading || carouselLoading || imagePostLoading) || creating || !hasContent}
