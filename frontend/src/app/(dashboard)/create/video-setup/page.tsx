@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
@@ -903,7 +904,7 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
             >
               {creating ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                  <Spinner size="md" />
                   Launching render jobs...
                 </>
               ) : (
@@ -1507,7 +1508,7 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
 
                         {revoiceTranscribing && (
                           <div className="flex items-center justify-center gap-3 p-8 border-2 border-dashed border-outline-variant/40 rounded-2xl">
-                            <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+                            <Spinner size="md" className="text-primary" />
                             <span className="text-sm text-on-surface-variant font-medium">Transcribing audio...</span>
                           </div>
                         )}
@@ -1893,7 +1894,7 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
           >
             {ideasLoading ? (
               <>
-                <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                <Spinner size="md" />
                 Generating ideas...
               </>
             ) : (

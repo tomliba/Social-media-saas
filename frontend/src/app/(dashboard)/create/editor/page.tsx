@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
@@ -1341,16 +1342,12 @@ function EditorContent() {
         >
           {(loading || carouselLoading || imagePostLoading) ? (
             <>
-              <span className="material-symbols-outlined animate-spin">
-                progress_activity
-              </span>
+              <Spinner size="md" />
               {isCarousel || isTemplateImage ? "Generating content..." : "Generating scripts..."}
             </>
           ) : creating ? (
             <>
-              <span className="material-symbols-outlined animate-spin">
-                progress_activity
-              </span>
+              <Spinner size="md" />
               {isCarousel ? "Rendering slides..." : isTemplateImage ? "Rendering image posts..." : isText ? "Preparing posts..." : isImage ? "Launching post generation..." : "Launching render jobs..."}
             </>
           ) : (

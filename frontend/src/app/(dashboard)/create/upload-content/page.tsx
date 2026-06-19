@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -289,9 +290,7 @@ export default function UploadContentPage() {
         >
           {isWorking ? (
             <>
-              <span className="material-symbols-outlined animate-spin text-sm">
-                progress_activity
-              </span>
+              <Spinner size="sm" />
               {extracting ? "Extracting text..." : "Generating script..."}
             </>
           ) : (

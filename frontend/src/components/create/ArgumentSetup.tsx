@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { UserPrefs } from "@/lib/createOptions";
@@ -800,7 +801,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
                         >
                           {loadingTopics ? (
                             <>
-                              <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                              <Spinner size="sm" />
                               Generating viral ideas...
                             </>
                           ) : (
@@ -814,7 +815,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
                         {/* Topic pills */}
                         {loadingTopics ? (
                           <div className="flex items-center gap-2 py-4">
-                            <span className="material-symbols-outlined animate-spin text-primary text-sm">progress_activity</span>
+                            <Spinner size="sm" className="text-primary" />
                             <span className="text-xs text-on-surface-variant">Generating viral ideas...</span>
                           </div>
                         ) : suggestedTopics.length > 0 ? (
@@ -1031,7 +1032,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
             >
               {generating ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+                  <Spinner size="md" />
                   Generating script...
                 </>
               ) : (
@@ -1514,7 +1515,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
             >
               {uploadingBg ? (
                 <>
-                  <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                  <Spinner size="sm" />
                   Uploading...
                 </>
               ) : (

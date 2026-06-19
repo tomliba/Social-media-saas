@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import CarouselTemplatesSection from "./carousel-templates-section";
@@ -384,7 +385,7 @@ function TemplatesContent() {
               >
                 {loading ? (
                   <>
-                    <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                    <Spinner size="sm" />
                     Generating ideas...
                   </>
                 ) : (

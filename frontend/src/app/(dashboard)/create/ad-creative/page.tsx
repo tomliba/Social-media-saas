@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, Suspense } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
@@ -244,7 +245,7 @@ function AdCreativeContent() {
           >
             {submitting ? (
               <>
-                <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                <Spinner size="sm" />
                 Submitting...
               </>
             ) : (
@@ -313,7 +314,7 @@ function AdCreativeContent() {
             >
               {submitting ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  <Spinner size="sm" />
                   Submitting...
                 </>
               ) : (

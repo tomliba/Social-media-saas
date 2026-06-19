@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import VoicePickerModal from "@/components/create/VoicePickerModal";
@@ -1408,7 +1409,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
           >
             {generating ? (
               <span className="flex items-center gap-2">
-                <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                <Spinner size="sm" />
                 Regenerating...
               </span>
             ) : (
@@ -1424,7 +1425,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
             >
               {animating ? (
                 <span className="flex items-center gap-2">
-                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  <Spinner size="sm" />
                   Animating… {Object.values(animationStatus).filter((s) => s.status === "done").length}/{editScenes.length}
                 </span>
               ) : (
@@ -2156,7 +2157,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
         >
           {generating ? (
             <>
-              <span className="material-symbols-outlined animate-spin">progress_activity</span>
+              <Spinner size="md" />
               Generating story...
             </>
           ) : (

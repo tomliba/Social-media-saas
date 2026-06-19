@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, Suspense } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { postCost, maxCarouselSlides, type PostFormat } from "@/lib/credits/config";
@@ -515,7 +516,7 @@ function AICarouselContent() {
           >
             {step === "planning" ? (
               <>
-                <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                <Spinner size="sm" />
                 Planning your carousel...
               </>
             ) : (
@@ -621,7 +622,7 @@ function AICarouselContent() {
               {generatedSlides.length < plannedSlides.length && (
                 <div className="rounded-xl overflow-hidden bg-surface-container-low">
                   <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-3">
-                    <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
+                    <Spinner size="lg" className="text-primary" />
                     <span className="text-xs text-on-surface-variant font-medium">Generating...</span>
                   </div>
                   <div className="p-3">
@@ -676,7 +677,7 @@ function AICarouselContent() {
                     className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
                   >
                     {isRegenerating ? (
-                      <span className="material-symbols-outlined animate-spin text-white text-3xl">progress_activity</span>
+                      <Spinner size="lg" className="text-white" />
                     ) : (
                       <div className="flex flex-col items-center gap-1">
                         <span className="material-symbols-outlined text-white text-3xl">refresh</span>
