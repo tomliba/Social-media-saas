@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { chargePost, refundRender } from "@/app/actions/charge-render";
+import { GeneratingOverlay } from "@/components/ui/GeneratingOverlay";
 
 // ── Ad styles ──
 
@@ -439,11 +440,7 @@ ${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference imag
 
       {/* ── Phase 2: Researching ── */}
       {phase === "researching" && (
-        <section className="max-w-md mx-auto text-center animate-in fade-in duration-300">
-          <span className="material-symbols-outlined animate-spin text-primary text-5xl mb-4">progress_activity</span>
-          <h2 className="text-xl font-bold font-headline mb-2">Researching your product...</h2>
-          <p className="text-on-surface-variant text-sm">Analyzing market positioning, audience psychology, and creative angles</p>
-        </section>
+        <GeneratingOverlay title="Researching your product…" />
       )}
 
       {/* ── Phase 3: Review Brief ── */}

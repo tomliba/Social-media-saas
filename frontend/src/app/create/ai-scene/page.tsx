@@ -7,6 +7,7 @@ import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsD
 import CostBadge from "@/components/credits/CostBadge";
 import { chargePost, refundRender } from "@/app/actions/charge-render";
 import { postCost } from "@/lib/credits/config";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 // ── Scene templates ──
 
@@ -785,11 +786,10 @@ function AISceneContent() {
 
       {/* ── Step 5: Saving ── */}
       {step === "saving" && (
-        <section className="max-w-md mx-auto text-center animate-in fade-in duration-300">
-          <span className="material-symbols-outlined animate-spin text-primary text-5xl mb-4">progress_activity</span>
-          <h2 className="text-xl font-bold font-headline mb-2">Saving to library...</h2>
-          <p className="text-on-surface-variant text-sm">You&apos;ll be redirected in a moment</p>
-        </section>
+        <LoadingState
+          title="Saving to library…"
+          subtext="You'll be redirected in a moment"
+        />
       )}
       {creditError && (
         <InsufficientCreditsDialog

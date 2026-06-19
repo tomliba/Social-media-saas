@@ -7,6 +7,7 @@ import { postCost, maxCarouselSlides, type PostFormat } from "@/lib/credits/conf
 import CostBadge from "@/components/credits/CostBadge";
 import { usePlan } from "@/lib/usePlan";
 import { chargePost, refundRender } from "@/app/actions/charge-render";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 function newCarouselJobId() {
   return `aic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -717,11 +718,10 @@ function AICarouselContent() {
 
       {/* ── Step 6: Saving ── */}
       {step === "saving" && (
-        <section className="max-w-md mx-auto text-center animate-in fade-in duration-300">
-          <span className="material-symbols-outlined animate-spin text-primary text-5xl mb-4">progress_activity</span>
-          <h2 className="text-xl font-bold font-headline mb-2">Saving to library...</h2>
-          <p className="text-on-surface-variant text-sm">You&apos;ll be redirected in a moment</p>
-        </section>
+        <LoadingState
+          title="Saving to library…"
+          subtext="You'll be redirected in a moment"
+        />
       )}
     </main>
   );
