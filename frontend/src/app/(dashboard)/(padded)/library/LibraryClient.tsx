@@ -880,8 +880,10 @@ export default function LibraryClient({
         <>
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            {/* Format pills */}
-            <div className="flex items-center gap-1.5 bg-zinc-100 rounded-xl p-1">
+            {/* Format pills — scroll sideways on narrow screens instead of
+                overflowing the page; stay one tidy line. */}
+            <div className="w-full md:w-auto min-w-0 overflow-x-auto no-scrollbar">
+            <div className="flex w-max items-center gap-1.5 bg-zinc-100 rounded-xl p-1">
               {formatFilters.map((f) => (
                 <button
                   key={f.key}
@@ -901,9 +903,11 @@ export default function LibraryClient({
                 </button>
               ))}
             </div>
+            </div>
 
-            {/* Status pills */}
-            <div className="flex items-center gap-1.5 bg-zinc-100 rounded-xl p-1">
+            {/* Status pills — same horizontal-scroll treatment. */}
+            <div className="w-full md:w-auto min-w-0 overflow-x-auto no-scrollbar">
+            <div className="flex w-max items-center gap-1.5 bg-zinc-100 rounded-xl p-1">
               {statusFilters.map((f) => (
                 <button
                   key={f.key}
@@ -922,6 +926,7 @@ export default function LibraryClient({
                   {f.label}
                 </button>
               ))}
+            </div>
             </div>
 
             {/* Select all / Count */}
