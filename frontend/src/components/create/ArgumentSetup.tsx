@@ -1023,7 +1023,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
           </section>
 
           {/* ── Generate button ── */}
-          <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
+          <div className="fixed bottom-0 left-0 w-full md:left-64 md:w-[calc(100%-16rem)] bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
             <button
               onClick={handleGenerateScript}
               disabled={generating}
@@ -1146,7 +1146,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
           </button>
 
           {/* Navigation */}
-          <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
+          <div className="fixed bottom-0 left-0 w-full md:left-64 md:w-[calc(100%-16rem)] bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
             <div className="max-w-2xl w-full flex justify-between items-center">
               <button
                 onClick={() => setStep(0)}
@@ -1408,7 +1408,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
           </section>
 
           {/* Navigation */}
-          <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
+          <div className="fixed bottom-0 left-0 w-full md:left-64 md:w-[calc(100%-16rem)] bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
             <div className="max-w-2xl w-full flex justify-between items-center">
               <button
                 onClick={() => setStep(1)}

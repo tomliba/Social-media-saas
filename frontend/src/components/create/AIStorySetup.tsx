@@ -1398,7 +1398,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
         </div>
 
         {/* Bottom bar */}
-        <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center gap-3">
+        <footer className="fixed bottom-0 left-0 w-full md:left-64 md:w-[calc(100%-16rem)] z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center gap-3">
           <CostBadge credits={videoCost(sceneMode === "animated" ? "animated_story" : "ai_story", duration)} />
           <div className="flex justify-center gap-4 w-full">
           <button
@@ -2144,7 +2144,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
       )}
 
       {/* ── Generate Button ── */}
-      <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex justify-center">
+      <footer className="fixed bottom-0 left-0 w-full md:left-64 md:w-[calc(100%-16rem)] z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex justify-center">
         <button
           onClick={handleGenerate}
           disabled={generating}

@@ -371,7 +371,7 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
 
       {/* Bottom Action Bar */}
       {selectedIdeas.size > 0 && (
-        <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
+        <div className="fixed bottom-0 left-0 w-full md:left-64 md:w-[calc(100%-16rem)] bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
           <div className="max-w-6xl w-full flex justify-end items-center">
             <button
               onClick={handleContinue}
