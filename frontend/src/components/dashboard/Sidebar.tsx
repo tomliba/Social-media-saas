@@ -29,12 +29,19 @@ const PLAN_LABELS: Record<string, string> = {
   pro: "Pro",
 };
 
+// Module-level cache of the last fetched balance/plan. The Sidebar is mounted
+// fresh inside each route-group layout, so it remounts on cross-group
+// navigation. Seeding state from this cache shows the last-known value
+// immediately (instead of blanking to "—") while the poll revalidates.
+let cachedBalance: number | null = null;
+let cachedPlan = "free";
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [readyCount, setReadyCount] = useState(0);
   const [renderingCount, setRenderingCount] = useState(0);
-  const [plan, setPlan] = useState<string>("free");
-  const [balance, setBalance] = useState<number | null>(null);
+  const [plan, setPlan] = useState<string>(cachedPlan);
+  const [balance, setBalance] = useState<number | null>(cachedBalance);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,8 +60,10 @@ export default function Sidebar() {
         }
         if (balRes.ok) {
           const bal = await balRes.json();
-          setPlan(bal.plan ?? "free");
-          setBalance(bal.balance ?? 0);
+          cachedPlan = bal.plan ?? "free";
+          cachedBalance = bal.balance ?? 0;
+          setPlan(cachedPlan);
+          setBalance(cachedBalance);
         }
       } catch {}
     };
