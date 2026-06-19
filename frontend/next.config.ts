@@ -9,11 +9,12 @@ const CSP = [
   "default-src 'self'",
   // jsdelivr hosts the pdf.js worker used by the file-upload template flow.
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-  // Google Fonts stylesheet (Material Symbols icons).
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  // All fonts (UI fonts + Material Symbols icons) are self-hosted via
+  // next/font, so no remote Google Fonts origins are needed.
+  "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https://*.r2.dev https://*.pexels.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
+  "font-src 'self' data:",
   "connect-src 'self' https://*.r2.dev https://*.trigger.dev wss://*.trigger.dev https://api.trigger.dev wss://api.trigger.dev",
   "worker-src 'self' blob: https://cdn.jsdelivr.net",
   "frame-ancestors 'self'",
