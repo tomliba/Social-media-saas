@@ -1,23 +1,21 @@
-import DashboardNav from "@/components/dashboard/DashboardNav";
-import Sidebar from "@/components/dashboard/Sidebar";
+import { auth } from "@/lib/auth";
+import DashboardShell from "@/components/dashboard/DashboardShell";
 
 // Shared chrome for the whole logged-in app (Create, Library, Accounts,
-// Preferences, Autopilot, the /dashboard redirect). Because DashboardNav and
-// Sidebar live in this single parent layout, they mount ONCE and persist across
-// navigations between any of those routes — only the page content below swaps.
-// Previously each segment had its own identical layout, so the entire shell
-// (and the Sidebar's balance/library polling) was torn down and rebuilt on every
-// click. The inner content wrapper differs per segment, so it stays in the
-// nested layouts ((padded) for the standard pages, create/ for full-bleed).
-export default function DashboardLayout({
+// Preferences, Autopilot, the /dashboard redirect). DashboardShell renders the
+// top nav, the desktop sidebar, and the mobile drawer, and owns the single
+// balance/library poll + drawer state. It mounts ONCE here and persists across
+// navigations; only the page content below swaps. The per-segment content
+// wrappers ((padded), create/) keep the md:ml-64 offset for the fixed sidebar.
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
   return (
     <>
-      <DashboardNav />
-      <Sidebar />
+      <DashboardShell email={session?.user?.email ?? null} />
       {children}
     </>
   );
