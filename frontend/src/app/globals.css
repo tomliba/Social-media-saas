@@ -68,6 +68,29 @@
   --radius-full: 9999px;
 }
 
+/* Material Symbols icon font. Defined locally (not pulled from a remote Google
+   Fonts stylesheet) so the ligature ALWAYS forms: any icon span with a name
+   like "progress_activity" renders as its glyph rather than raw text. The font
+   itself is self-hosted via next/font/local in layout.tsx and exposed as
+   --font-material-symbols. font-size is intentionally omitted so Tailwind
+   text-* utilities continue to control icon size. */
+.material-symbols-outlined {
+  font-family: var(--font-material-symbols), "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: "liga";
+  -webkit-font-feature-settings: "liga";
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+}
+
 /* Custom utilities */
 @layer utilities {
   .text-gradient {
