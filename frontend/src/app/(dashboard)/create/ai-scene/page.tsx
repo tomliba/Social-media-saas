@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, Suspense } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
@@ -589,7 +590,7 @@ function AISceneContent() {
               >
                 {aiWriting ? (
                   <>
-                    <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                    <Spinner size="sm" />
                     Writing...
                   </>
                 ) : (
@@ -680,7 +681,7 @@ function AISceneContent() {
           <div className="max-w-sm mx-auto">
             <div className="rounded-xl overflow-hidden bg-surface-container-low">
               <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
-                <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
+                <Spinner size="lg" className="text-primary" />
                 <span className="text-xs text-on-surface-variant font-medium">Generating...</span>
               </div>
             </div>
@@ -706,7 +707,7 @@ function AISceneContent() {
                   className="flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-all disabled:opacity-50"
                 >
                   {generatingMore ? (
-                    <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                    <Spinner size="sm" />
                   ) : (
                     <span className="material-symbols-outlined text-sm">add</span>
                   )}
@@ -744,7 +745,7 @@ function AISceneContent() {
                     className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
                   >
                     {isRegen ? (
-                      <span className="material-symbols-outlined animate-spin text-white text-3xl">progress_activity</span>
+                      <Spinner size="lg" className="text-white" />
                     ) : (
                       <div className="flex flex-col items-center gap-1">
                         <span className="material-symbols-outlined text-white text-3xl">refresh</span>

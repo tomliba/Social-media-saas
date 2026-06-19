@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { chargePost, refundRender } from "@/app/actions/charge-render";
@@ -396,7 +397,7 @@ export default function PostClonerPage() {
       {step === "processing" && jobStatus && (
         <div className="flex flex-col items-center justify-center py-20 gap-6">
           <div className="w-16 h-16 rounded-full bg-primary-container/20 flex items-center justify-center">
-            <span className="material-symbols-outlined text-primary text-3xl animate-spin">progress_activity</span>
+            <Spinner size="lg" className="text-primary" />
           </div>
           <div className="text-center">
             <h2 className="font-headline text-2xl font-bold text-on-surface mb-2">Cloning in progress...</h2>
@@ -477,7 +478,7 @@ export default function PostClonerPage() {
                 >
                   {editingSlide === result.index ? (
                     <>
-                      <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                      <Spinner size="sm" />
                       Editing...
                     </>
                   ) : (

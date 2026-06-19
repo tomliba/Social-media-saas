@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { PreviewData, CreativeSettings } from "@/components/create/AIStoryPreview";
@@ -586,7 +587,7 @@ function ContentCard({
           </p>
           {isPreparing && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-primary bg-primary/10 rounded-full">
-              <span className="material-symbols-outlined text-[10px] animate-spin">progress_activity</span>
+              <Spinner size="sm" />
               Preparing
             </span>
           )}

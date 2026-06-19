@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, Suspense } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
@@ -573,7 +574,7 @@ ${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference imag
               className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
               {submitting ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  <Spinner size="sm" />
                   Submitting...
                 </>
               ) : (

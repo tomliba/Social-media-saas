@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { triggerVideoRenders } from "@/app/actions/create-videos";
@@ -573,7 +574,7 @@ export default function AnimatedCharacterReviewPage() {
     return (
       <main className="min-h-screen bg-surface pt-24 pb-48 px-6 max-w-4xl mx-auto">
         <div className="text-center py-20">
-          <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
+          <Spinner size="lg" className="text-primary" />
         </div>
       </main>
     );
@@ -634,7 +635,7 @@ export default function AnimatedCharacterReviewPage() {
             {/* Scenes loading */}
             {isLoadingScript && (
               <div className="flex items-center gap-3 py-8 justify-center text-on-surface-variant">
-                <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+                <Spinner size="md" className="text-primary" />
                 <span className="text-sm font-medium">Breaking script into scenes...</span>
               </div>
             )}
@@ -816,7 +817,7 @@ export default function AnimatedCharacterReviewPage() {
         >
           {animating ? (
             <>
-              <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+              <Spinner size="md" />
               Animating... {doneScenes}/{totalScenes}
             </>
           ) : allAnimated ? (
@@ -849,7 +850,7 @@ export default function AnimatedCharacterReviewPage() {
         >
           {rendering ? (
             <>
-              <span className="material-symbols-outlined animate-spin">progress_activity</span>
+              <Spinner size="md" />
               Launching render jobs...
             </>
           ) : (
