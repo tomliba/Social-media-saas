@@ -4,6 +4,7 @@ import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import CostBadge from "@/components/credits/CostBadge";
 import { chargePost, refundRender } from "@/app/actions/charge-render";
 import { postCost } from "@/lib/credits/config";
 
@@ -636,9 +637,9 @@ function AISceneContent() {
             </div>
           </div>
 
-          <p className="text-xs text-on-surface-variant mb-3">
-            {postCost("ai_scene")} credits per image
-          </p>
+          <div className="mb-3">
+            <CostBadge credits={postCost("ai_scene")} suffix="per image" />
+          </div>
           {/* Actions */}
           <div className="flex items-center gap-3">
             <button
