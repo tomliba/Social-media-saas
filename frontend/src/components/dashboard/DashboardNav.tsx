@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import AccountMenu from "./AccountMenu";
+import { MenuIcon } from "./icons";
 
 export default function DashboardNav({
   email,
@@ -17,9 +18,9 @@ export default function DashboardNav({
           type="button"
           aria-label="Open menu"
           onClick={onMenuClick}
-          className="md:hidden -ml-2 p-2 rounded-full hover:bg-zinc-100 transition-colors"
+          className="md:hidden -ml-2 p-2 rounded-full text-on-surface-variant hover:bg-zinc-100 transition-colors"
         >
-          <span className="material-symbols-outlined">menu</span>
+          <MenuIcon />
         </button>
         <Link
           href="/"

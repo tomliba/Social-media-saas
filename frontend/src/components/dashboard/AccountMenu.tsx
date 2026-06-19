@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { logout } from "@/lib/actions/auth";
+import { LogOutIcon } from "./icons";
 
 /**
  * Account dropdown in the top nav (desktop + mobile). Replaces the previously
@@ -77,7 +78,7 @@ export default function AccountMenu({ email }: { email: string | null }) {
               role="menuitem"
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
             >
-              <span className="material-symbols-outlined text-lg">logout</span>
+              <LogOutIcon />
               Sign out
             </button>
           </form>

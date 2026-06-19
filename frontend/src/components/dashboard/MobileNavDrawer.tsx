@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import SidebarContent, { type SidebarData } from "./SidebarContent";
 import { logout } from "@/lib/actions/auth";
+import { LogOutIcon } from "./icons";
 
 /**
  * Mobile-only (md:hidden) navigation drawer. Renders the SAME SidebarContent as
@@ -10,6 +11,12 @@ import { logout } from "@/lib/actions/auth";
  * Panel is w-72 (288px) — wider than the 256px desktop sidebar, so the credit
  * card has at least as much room. Sits at z-[60], above the z-50 top nav.
  * Open/close + route-change-close are owned by DashboardShell.
+ *
+ * The root is a viewport-sized `fixed inset-0 overflow-hidden` container and the
+ * panel is `absolute` inside it, so the closed (off-canvas, -translate-x-full)
+ * panel is CLIPPED rather than extending the page's scroll area — otherwise the
+ * off-screen panel adds leftward horizontal scroll on every page. When closed
+ * the root is `pointer-events-none` so it never blocks the page beneath it.
  */
 export default function MobileNavDrawer({
   open,
@@ -33,12 +40,17 @@ export default function MobileNavDrawer({
   }, [open, onClose]);
 
   return (
-    <div className="md:hidden" aria-hidden={!open}>
+    <div
+      aria-hidden={!open}
+      className={`md:hidden fixed inset-0 z-[60] overflow-hidden ${
+        open ? "" : "pointer-events-none"
+      }`}
+    >
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className={`fixed inset-0 z-[60] bg-black/40 transition-opacity duration-200 ${
-          open ? "opacity-100" : "opacity-0 pointer-events-none"
+        className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${
+          open ? "opacity-100" : "opacity-0"
         }`}
       />
       {/* Panel */}
@@ -46,7 +58,7 @@ export default function MobileNavDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
-        className={`fixed left-0 top-0 z-[60] h-full w-72 bg-zinc-50 flex flex-col py-4 shadow-xl transition-transform duration-200 ${
+        className={`absolute left-0 top-0 h-full w-72 bg-zinc-50 flex flex-col py-4 shadow-xl transition-transform duration-200 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -76,7 +88,7 @@ export default function MobileNavDrawer({
             type="submit"
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
           >
-            <span className="material-symbols-outlined text-lg">logout</span>
+            <LogOutIcon />
             Sign out
           </button>
         </form>
