@@ -77,7 +77,7 @@ const memeTemplates: MemeTemplate[] = [
   {
     id: "running_away_balloon",
     name: "Running Away Balloon",
-    icon: "air_balloon",
+    icon: "directions_run",
     description: "Letting go of the old thing, chasing the new",
     panelCount: 3,
     panelLayout: "Three panels showing a person running. A balloon floats away behind them (the thing they abandoned). They run eagerly toward something ahead (the new thing).",
