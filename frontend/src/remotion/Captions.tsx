@@ -48,6 +48,8 @@ interface WordStyle {
   paintOrder?: string;
   letterSpacing?: string;
   activeScale?: number;
+  /** Render every word at a constant size — no per-word grow/pop on speak. */
+  disableWordScale?: boolean;
   activeBackground?: string;
   activeBorderRadius?: number;
   activePadding?: string;
@@ -60,6 +62,8 @@ interface WordStyle {
 function getStyleDef(styleName: string): WordStyle {
   switch (styleName) {
     case "bold_stroke":
+      // Constant word size (no grow on speak); spoken word emphasized by opacity.
+      // Mirrors the backend renderer so the preview matches the exported video.
       return {
         fontFamily: "Impact, 'Arial Black', sans-serif",
         fontWeight: 900,
@@ -68,7 +72,7 @@ function getStyleDef(styleName: string): WordStyle {
         textShadow: "0 2px 4px rgba(0,0,0,0.6)",
         WebkitTextStroke: "2px black",
         paintOrder: "stroke fill",
-        activeScale: 1.1,
+        disableWordScale: true,
       };
     case "red_highlight":
       return {
@@ -121,6 +125,7 @@ function getStyleDef(styleName: string): WordStyle {
         paintOrder: "stroke fill",
         fontSizeMultiplier: 1.25,
         containerRotate: "rotate(-2deg)",
+        disableWordScale: true,
       };
     case "elegant":
       return {
@@ -264,8 +269,11 @@ export const Captions: React.FC<CaptionsProps> = ({
             : 0;
 
         const baseScale = styleDef.activeScale ?? 1.0;
-        const wordScale =
-          isActive || isPast ? 0.9 + (baseScale - 0.9) * wordProgress : 0.9;
+        const wordScale = styleDef.disableWordScale
+          ? 1.0
+          : isActive || isPast
+            ? 0.9 + (baseScale - 0.9) * wordProgress
+            : 0.9;
         const wordOpacity = isActive || isPast ? 0.7 + 0.3 * wordProgress : 0.7;
         const color = isActive ? styleDef.activeColor : styleDef.color;
         const textShadow =
