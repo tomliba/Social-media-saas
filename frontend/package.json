@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test --config playwright.e2e.config.ts",
     "test:e2e:headed": "playwright test --config playwright.e2e.config.ts --headed",
+    "test:e2e:niche": "playwright test --config playwright.niche.config.ts",
     "test:cost": "playwright test --config playwright.cost.config.ts",
     "postinstall": "prisma generate"
   },

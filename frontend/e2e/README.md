@@ -62,3 +62,22 @@ balance; top up if a run reports `insufficient_credits`.
 | `e2e/create-video.spec.ts` | The create-flow test + DB-based readiness check |
 | `.env.test` | Secrets (gitignored) |
 | `e2e/.auth/state.json` | Minted session (gitignored, regenerated each run) |
+
+## Niche regression test (hermetic, local)
+
+`niche.spec.ts` guards the user-chosen niche behavior (first-use modal,
+empty-niche Generate gating + nudge, and per-flow pre-fill). Unlike the live
+create-video test, it is **hermetic**: it runs against a local dev server and
+**stubs `/api/preferences`** in the browser (empty vs saved niche), so it never
+reads or writes the real account's niche and makes **no DB changes** — important
+because the E2E user is a real account.
+
+```bash
+npm run test:e2e:niche
+```
+
+- `playwright.niche.config.ts` boots `npm run dev` (reusing a running one) and
+  mints a **local-http** session via `e2e/niche.setup.ts`.
+- AUTH_SECRET is taken from `.env` (the local dev server's secret), with
+  `E2E_USER_ID` / `E2E_USER_EMAIL` from `.env.test`.
+- No credits are spent (it never clicks Generate or Save).
