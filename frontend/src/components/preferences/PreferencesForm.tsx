@@ -254,6 +254,14 @@ export default function PreferencesForm({
       </div>
 
       <div className="space-y-6">
+        {/* YOUR NICHE — applies to every format (Character, Templates, Skeleton, Argument) */}
+        <Card title="Your niche (all formats)" icon="auto_awesome">
+          <Field label="Niche">
+            <input value={characterNiche} onChange={(e) => setCharacterNiche(e.target.value)} className="w-full bg-surface-container border border-outline-variant/20 rounded-lg p-2.5 text-sm text-on-surface" placeholder="e.g., fitness tips, medical facts, personal finance" />
+            <p className="text-xs text-on-surface-variant/60 mt-1">Tailors the ideas, topics, and scripts we generate across every format. Leave blank to choose per video.</p>
+          </Field>
+        </Card>
+
         {/* GLOBAL LOOK */}
         <Card title="Global look (all formats)" icon="palette">
           <Field label="Caption style"><CaptionStylePicker value={captionStyle} onChange={setCaptionStyle} /></Field>
@@ -283,9 +291,6 @@ export default function PreferencesForm({
 
         {/* CHARACTER */}
         <Card title="Character video" icon="person_play">
-          <Field label="Niche">
-            <input value={characterNiche} onChange={(e) => setCharacterNiche(e.target.value)} className="w-full bg-surface-container border border-outline-variant/20 rounded-lg p-2.5 text-sm text-on-surface" placeholder="e.g., fitness tips" />
-          </Field>
           <div className="flex flex-wrap gap-3 items-center">
             <button type="button" onClick={() => setCharacterModalOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-high text-sm font-bold">
               {/* eslint-disable-next-line @next/next/no-img-element */}

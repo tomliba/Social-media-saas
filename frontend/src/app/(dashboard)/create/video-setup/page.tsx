@@ -306,7 +306,7 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
   const [activeMode, setActiveMode] = useState<ScriptMode | null>(null);
 
   // ── Template mode state ──
-  const [niche, setNiche] = useState(prefs?.characterNiche ?? "health and wellness");
+  const [niche, setNiche] = useState(prefs?.characterNiche ?? "");
   const [tone, setTone] = useState(prefs?.characterTone ?? "Funny");
   const [duration, setDuration] = useState(prefs?.characterDuration ?? "30s");
   const { entitledPlan: plan } = usePlan();
@@ -776,11 +776,16 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
     }
   };
 
+  // Generating viral ideas (template mode) hits /api/generate-ideas, which 400s
+  // without a niche — gate the button and nudge instead of letting it error.
+  const needsNiche = activeMode === "template" && !showIdeas;
+  const nicheMissing = !niche.trim();
+
   const bottomDisabled =
     uploadExtracting ||
     revoiceTranscribing ||
     (activeMode === "template" && !showIdeas
-      ? ideasLoading
+      ? ideasLoading || nicheMissing
       : !canProceed);
 
   // ── STEP 1: Script review ──
@@ -1886,6 +1891,12 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
         <footer className="fixed bottom-0 left-0 w-full md:left-64 md:w-[calc(100%-16rem)] z-50 bg-white/80 backdrop-blur-xl px-8 py-6 shadow-[0px_-10px_30px_rgba(0,0,0,0.03)] flex flex-col items-center gap-2">
           {activeMode !== "revoice" && (
             <CostBadge credits={currentVideoCost} />
+          )}
+          {needsNiche && nicheMissing && (
+            <p className="text-sm text-on-surface-variant flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-base">edit</span>
+              Enter your niche first
+            </p>
           )}
           <button
             onClick={handleBottomAction}

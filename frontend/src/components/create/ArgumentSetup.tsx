@@ -239,7 +239,7 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
   const [characterB, setCharacterB] = useState(prefs?.argumentCharacterB ?? "stewie");
 
   // Script source
-  const [niche, setNiche] = useState("");
+  const [niche, setNiche] = useState(prefs?.characterNiche ?? "");
   const [formats, setFormats] = useState<{ id: string; label: string; icon: string; description: string }[]>([]);
   const [selectedFormat, setSelectedFormat] = useState("debate");
   const [scriptMode, setScriptMode] = useState<"topic" | "script" | "prompt" | "upload" | null>(null);

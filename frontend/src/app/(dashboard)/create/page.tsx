@@ -3,12 +3,34 @@
 import { useState, useRef, useEffect } from "react";
 import FormatPicker from "@/components/create/FormatPicker";
 import InputMethodSelection from "@/components/create/InputMethodSelection";
+import NicheFirstUseModal from "@/components/create/NicheFirstUseModal";
+import { usePreferenceDefaults } from "@/lib/usePreferenceDefaults";
+
+const NICHE_PROMPT_DISMISSED_KEY = "nichePromptDismissed";
 
 export default function CreatePage() {
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
+
+  // First-use niche prompt: show once when the user has no saved niche.
+  const { prefs, loaded } = usePreferenceDefaults();
+  const [showNichePrompt, setShowNichePrompt] = useState(false);
+  useEffect(() => {
+    if (!loaded) return;
+    const dismissed =
+      typeof window !== "undefined" &&
+      localStorage.getItem(NICHE_PROMPT_DISMISSED_KEY) === "1";
+    if (!prefs?.characterNiche && !dismissed) setShowNichePrompt(true);
+  }, [loaded, prefs]);
+
+  const dismissNichePrompt = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(NICHE_PROMPT_DISMISSED_KEY, "1");
+    }
+    setShowNichePrompt(false);
+  };
 
   useEffect(() => {
     if (selectedFormat && contentRef.current) {
@@ -23,6 +45,13 @@ export default function CreatePage() {
 
   return (
     <main className="pt-28 pb-20 px-6 max-w-screen-xl mx-auto">
+      {showNichePrompt && (
+        <NicheFirstUseModal
+          onSaved={() => setShowNichePrompt(false)}
+          onSkip={dismissNichePrompt}
+        />
+      )}
+
       {/* Header */}
       <header className="mb-12">
         <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-2">
