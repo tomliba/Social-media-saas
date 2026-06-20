@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { chargeStoryGenerate } from "@/lib/credits/generate-gate";
+import { chargeStoryGenerate, markStoryImagesReady, refundStoryGenerate } from "@/lib/credits/generate-gate";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -48,12 +48,15 @@ export async function POST(req: NextRequest) {
   });
 
   if (!res.ok) {
-    // The charge stands; the "preparing" ContentItem anchored at the charge lets
-    // the reconcile cron refund an abandoned/stuck job server-side. (Refunding here
-    // would free a retry, since the idempotent charge won't re-debit.)
+    // No images delivered — refund the base server-side and mark the item failed.
     const errText = await res.text();
+    await refundStoryGenerate({ userId, vgJobId, reason: "scene generation failed" });
     return NextResponse.json({ error: errText }, { status: res.status });
   }
+
+  // Images delivered — the base charge is consumed; take the item off "preparing"
+  // so a long edit session before Export isn't clawed back by the reconcile cron.
+  await markStoryImagesReady(vgJobId);
 
   const data = await res.json();
   return NextResponse.json(data);

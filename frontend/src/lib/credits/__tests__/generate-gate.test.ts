@@ -41,6 +41,16 @@ vi.mock("@/lib/prisma", () => {
     contentItem: {
       findUnique: async ({ where }: any) => store.items.find((i) => i.jobId === where.jobId) ?? null,
       create: async ({ data }: any) => { const row = { id: `item_${store.items.length + 1}`, createdAt: new Date(), ...data }; store.items.push(row); return row; },
+      updateMany: async ({ where, data }: any) => {
+        let count = 0;
+        for (const it of store.items) {
+          if (it.jobId === where.jobId && (where.status ? it.status === where.status : true)) {
+            Object.assign(it, data);
+            count++;
+          }
+        }
+        return { count };
+      },
     },
   };
   return { prisma: { ...tx, $transaction: async (fn: (t: typeof tx) => unknown) => fn(tx) } };
@@ -105,11 +115,23 @@ describe("generate-scene-images charge gate (the leak fix)", () => {
     expect(store.txs.filter((t) => t.jobId === "vg1" && t.delta < 0)).toHaveLength(1);
   });
 
-  it("anchors a 'preparing' ContentItem at the charge so reconcile can refund an abandoned job", async () => {
+  it("anchors an item at the charge and moves it off 'preparing' on success (no editing claw-back)", async () => {
     seedUser("u1", 100);
     vi.stubGlobal("fetch", flaskOk());
     await generateSceneImages(req({ vg_job_id: "vg1", style: "ai-story", duration: 30, scenes: [{}] }));
-    expect(store.items.find((i) => i.jobId === "vg1")?.status).toBe("preparing");
+    // success → "draft", off the reconcile-eligible "preparing" set, so a long edit
+    // session before Export is never refunded out from under the user.
+    expect(store.items.find((i) => i.jobId === "vg1")?.status).toBe("draft");
+  });
+
+  it("refunds the base server-side when the Flux provider fails (and marks the item failed)", async () => {
+    seedUser("u1", 100);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("flux exploded", { status: 500 })));
+    const res = await generateSceneImages(req({ vg_job_id: "vg1", style: "ai-story", duration: 30, scenes: [{}] }));
+    expect(res.status).toBe(500);
+    expect(balanceOf("u1")).toBe(100);                                  // base refunded
+    expect(store.items.find((i) => i.jobId === "vg1")?.status).toBe("failed");
+    expect(store.txs.filter((t) => t.jobId === "vg1")).toHaveLength(2); // one spend + one refund
   });
 });
 

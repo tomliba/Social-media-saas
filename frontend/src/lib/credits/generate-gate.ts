@@ -114,6 +114,35 @@ async function ensureStoryItem(opts: {
 }
 
 /**
+ * After scene images are successfully generated, move the item off the
+ * reconcile-eligible "preparing" status. The base charge is now fairly consumed
+ * (the images were delivered), so a long editing session before Preview/Export
+ * must NOT be clawed back by the stale-render cron. A hung/crashed generation
+ * leaves the item "preparing" and is still refunded by reconcile.
+ */
+export async function markStoryImagesReady(vgJobId: string): Promise<void> {
+  await prisma.contentItem
+    .updateMany({ where: { jobId: vgJobId, status: "preparing" }, data: { status: "draft" } })
+    .catch(() => {});
+}
+
+/**
+ * Scene generation failed (no images delivered) → refund the base server-side and
+ * mark the item failed. vg_job_id is single-use per story (a re-Generate mints a
+ * fresh one), so there is no same-key retry that this refund could make free.
+ */
+export async function refundStoryGenerate(opts: { userId: string; vgJobId: string; reason?: string }): Promise<void> {
+  await refundCredits({
+    userId: opts.userId,
+    jobId: opts.vgJobId,
+    reason: opts.reason ?? "scene generation failed",
+  }).catch(() => {});
+  await prisma.contentItem
+    .updateMany({ where: { jobId: opts.vgJobId }, data: { status: "failed" } })
+    .catch(() => {});
+}
+
+/**
  * Charge the animation surcharge (animated − static base) when the user animates.
  * Pro-gated, idempotent on `${vgJobId}:animate`. Base + surcharge == the full
  * animated cost. Must be called server-side BEFORE the animate provider call.
