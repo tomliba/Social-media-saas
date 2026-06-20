@@ -664,9 +664,13 @@ export default function AnimatedCharacterReviewPage() {
                           disabled={anim.status === "uploading" || anim.status === "animating"}
                           className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:opacity-80 transition-opacity disabled:opacity-50"
                         >
-                          <span className={`material-symbols-outlined text-sm ${anim.status === "uploading" || anim.status === "animating" ? "animate-spin" : ""}`}>
-                            {anim.status === "failed" ? "warning" : anim.status === "done" ? "play_circle" : "progress_activity"}
-                          </span>
+                          {anim.status === "failed" ? (
+                            <span className="material-symbols-outlined text-sm">warning</span>
+                          ) : anim.status === "done" ? (
+                            <span className="material-symbols-outlined text-sm">play_circle</span>
+                          ) : (
+                            <Spinner size="sm" />
+                          )}
                           {anim.status === "failed" ? "Retry" : anim.status === "done" ? "Re-animate" : "Animating..."}
                         </button>
                       )}

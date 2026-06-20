@@ -18,9 +18,9 @@ const beVietnam = Be_Vietnam_Pro({
 // Self-hosted Material Symbols icon font (variable: FILL + wght axes). Served
 // from our own origin so icons never depend on a remote Google Fonts request or
 // a fragile media-swap. `display: "block"` means an icon renders as its glyph or
-// stays briefly invisible — it never falls back to showing the raw ligature name
-// (e.g. "progress_activity"). The .material-symbols-outlined class is defined in
-// globals.css and points at this font via the CSS variable below.
+// stays briefly invisible — it never falls back to showing the raw ligature
+// name. The .material-symbols-outlined class is defined in globals.css and
+// points at this font via the CSS variable below.
 const materialSymbols = localFont({
   src: "./fonts/MaterialSymbolsOutlined.woff2",
   variable: "--font-material-symbols",

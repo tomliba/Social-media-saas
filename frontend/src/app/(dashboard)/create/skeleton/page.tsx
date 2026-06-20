@@ -3,13 +3,14 @@
 import { Suspense } from "react";
 import SkeletonSetup from "@/components/create/SkeletonSetup";
 import { usePreferenceDefaults } from "@/lib/usePreferenceDefaults";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function SkeletonPage() {
   const { prefs, loaded } = usePreferenceDefaults();
   if (!loaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <span className="material-symbols-outlined animate-spin text-primary text-3xl">progressactivity</span>
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
