@@ -263,7 +263,7 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
           />
           <button
             onClick={fetchIdeas}
-            disabled={!topic.trim() || loading}
+            disabled={!topic.trim() || loading || !niche.trim()}
             className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading ? (
@@ -278,6 +278,12 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
               </>
             )}
           </button>
+          {!niche.trim() && (
+            <p className="mt-3 text-sm text-on-surface-variant flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-base">edit</span>
+              Enter your niche first
+            </p>
+          )}
         </section>
       )}
 

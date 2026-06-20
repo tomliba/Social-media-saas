@@ -7,6 +7,8 @@ import Link from "next/link";
 import CarouselTemplatesSection from "./carousel-templates-section";
 import TextTemplatesSection from "./text-templates-section";
 import ImageTemplatesSection from "./image-templates-section";
+import { usePreferenceDefaults } from "@/lib/usePreferenceDefaults";
+import type { UserPrefs } from "@/lib/createOptions";
 
 const videoTemplates = [
   { name: "Did You Know", icon: "lightbulb", example: '"Octopuses have 3 hearts"' },
@@ -37,7 +39,7 @@ interface PostIdea {
   idea: string;
 }
 
-function TemplatesContent() {
+function TemplatesContent({ prefs }: { prefs: UserPrefs | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const format = searchParams.get("format") || "video";
@@ -51,7 +53,7 @@ function TemplatesContent() {
   const [videoIdeas, setVideoIdeas] = useState<VideoIdea[]>([]);
   const [postIdeas, setPostIdeas] = useState<PostIdea[]>([]);
   const [loading, setLoading] = useState(false);
-  const [niche, setNiche] = useState("health and wellness");
+  const [niche, setNiche] = useState(prefs?.characterNiche ?? "");
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("Funny");
   const [duration, setDuration] = useState("30s");
@@ -380,7 +382,7 @@ function TemplatesContent() {
             <div ref={generateBtnRef} className="flex items-center gap-4 mb-16">
               <button
                 onClick={handleGenerateIdeas}
-                disabled={loading}
+                disabled={loading || !niche.trim()}
                 className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {loading ? (
@@ -395,7 +397,12 @@ function TemplatesContent() {
                   </>
                 )}
               </button>
-              {!selectedTemplate && (
+              {!niche.trim() ? (
+                <span className="text-sm text-on-surface-variant flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base">edit</span>
+                  Enter your niche first
+                </span>
+              ) : !selectedTemplate && (
                 <span className="text-sm text-on-surface-variant">
                   Pick a template above, or generate ideas from all formats
                 </span>
@@ -564,9 +571,17 @@ function TemplatesContent() {
 }
 
 export default function TemplatesPage() {
+  const { prefs, loaded } = usePreferenceDefaults();
+  if (!loaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner size="lg" className="text-primary" />
+      </div>
+    );
+  }
   return (
     <Suspense>
-      <TemplatesContent />
+      <TemplatesContent prefs={prefs} />
     </Suspense>
   );
 }

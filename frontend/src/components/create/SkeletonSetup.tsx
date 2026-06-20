@@ -262,7 +262,7 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
   const [step, setStep] = useState(0);
 
   // Skeleton-specific state
-  const [niche, setNiche] = useState("");
+  const [niche, setNiche] = useState(prefs?.characterNiche ?? "");
   const [scriptMode, setScriptMode] = useState<"topic" | "script" | "upload" | "prompt">("topic");
   const [selectedTopic, setSelectedTopic] = useState("");
   const [customTopic, setCustomTopic] = useState("");

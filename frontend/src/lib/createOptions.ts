@@ -184,7 +184,7 @@ export const CREATE_DEFAULTS = {
     language: "Auto Detect",
   },
   character: {
-    niche: "health and wellness",
+    niche: "", // empty by default — user sets their own niche (Preferences / first-use prompt)
     character: "Doctor",
     speed: 1.0,
     backgroundMode: "Smart Mix",
