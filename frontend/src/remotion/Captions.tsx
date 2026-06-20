@@ -274,7 +274,17 @@ export const Captions: React.FC<CaptionsProps> = ({
           : isActive || isPast
             ? 0.9 + (baseScale - 0.9) * wordProgress
             : 0.9;
-        const wordOpacity = isActive || isPast ? 0.7 + 0.3 * wordProgress : 0.7;
+        // Styles that don't scale the spoken word (bold_stroke/beast) instead get
+        // a brightness "spotlight": only the word being spoken is full-bright; words
+        // before and after are dimmer, so the focus still tracks the speech.
+        const SPOTLIGHT_DIM = 0.5;
+        const wordOpacity = styleDef.disableWordScale
+          ? isActive
+            ? SPOTLIGHT_DIM + (1 - SPOTLIGHT_DIM) * wordProgress
+            : SPOTLIGHT_DIM
+          : isActive || isPast
+            ? 0.7 + 0.3 * wordProgress
+            : 0.7;
         const color = isActive ? styleDef.activeColor : styleDef.color;
         const textShadow =
           isActive && styleDef.activeTextShadow
