@@ -463,6 +463,10 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
       });
 
       if (!res.ok) {
+        if (res.status === 402) {
+          const d = await res.json().catch(() => ({}));
+          setCreditError({ needed: d.needed ?? 0, balance: d.balance ?? 0 });
+        }
         setSceneImageStatus(sd.scenes.map(() => "error"));
         if (hasHookPrompt) setHookImageStatus("error");
         if (hasCtaPrompt) setCtaImageStatus("error");
@@ -520,6 +524,10 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
       });
 
       if (!res.ok) {
+        if (res.status === 402) {
+          const d = await res.json().catch(() => ({}));
+          setCreditError({ needed: d.needed ?? 0, balance: d.balance ?? 0 });
+        }
         setSceneImageStatus((prev) => {
           const next = [...prev];
           next[sceneIndex] = "error";
@@ -581,6 +589,10 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
       });
 
       if (!res.ok) {
+        if (res.status === 402) {
+          const d = await res.json().catch(() => ({}));
+          setCreditError({ needed: d.needed ?? 0, balance: d.balance ?? 0 });
+        }
         if (isHook) setHookImageStatus("error");
         else setCtaImageStatus("error");
         return;
@@ -709,12 +721,23 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
       const res = await fetch("/api/animate-scenes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ segments: validSegments }),
+        body: JSON.stringify({
+          segments: validSegments,
+          vg_job_id: scriptData?.vg_job_id,
+          style: "ai-story",
+          duration,
+        }),
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        console.error("Animate scenes error:", errText);
+        if (res.status === 402) {
+          const d = await res.json().catch(() => ({}));
+          setCreditError({ needed: d.needed ?? 0, balance: d.balance ?? 0 });
+        } else if (res.status === 403) {
+          setPrepareError("Animation requires the Pro plan.");
+        } else {
+          console.error("Animate scenes error:", await res.text().catch(() => ""));
+        }
         setAnimating(false);
         return;
       }
@@ -772,7 +795,7 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
       console.error("Animate scenes error:", err);
       setAnimating(false);
     }
-  }, []);
+  }, [scriptData?.vg_job_id, duration]);
 
   const handleAnimateScenes = useCallback(async () => {
     setAnimating(true);
@@ -892,14 +915,16 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
     if (!scriptData) return;
     setPrepareError(null);
 
-    const jobId = `prepare-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const format = sceneMode === "animated" ? "animated_story" : "ai_story";
-    const charge = await chargeVideo({ jobId, format, durationSeconds: duration });
+    // Charge already landed at the Generate step (server-side, keyed on this same
+    // vg_job_id), and the animation surcharge at the animate step. Re-using the
+    // stable vg_job_id with the static base format makes this an idempotent no-op
+    // that merely *verifies* the render is paid (and is a safety-net charge if it
+    // somehow wasn't) — it never double-charges.
+    const jobId = scriptData.vg_job_id;
+    const charge = await chargeVideo({ jobId, format: "ai_story", durationSeconds: duration });
     if (!charge.ok) {
       if (charge.error === "insufficient_credits") {
         setCreditError({ needed: charge.needed, balance: charge.balance });
-      } else if (charge.error === "plan_not_allowed") {
-        setPrepareError("Animated videos require the Pro plan.");
       } else {
         setPrepareError("Please sign in to create.");
       }

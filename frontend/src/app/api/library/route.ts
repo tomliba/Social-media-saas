@@ -54,8 +54,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const item = await prisma.contentItem.create({
-    data: {
+  // Upsert on the unique jobId. Flows that mint a fresh jobId per POST hit the
+  // create branch unchanged; the AI-Story / Skeleton flow now creates a
+  // "preparing" item at the Generate charge (keyed on vg_job_id), and the later
+  // Preview POST on the same jobId updates that item rather than colliding on the
+  // unique constraint. The update only touches fields the caller actually sent,
+  // so it never clobbers Generate-time data with nulls.
+  const provided = <T,>(v: T | undefined) => v !== undefined;
+  const updateData = {
+    ...(provided(title) && { title }),
+    ...(provided(format) && { format }),
+    ...(provided(templateId) && { templateId }),
+    ...(provided(backgroundMode) && { backgroundMode }),
+    ...(provided(script) && { script }),
+    ...(provided(durationSec) && { durationSec }),
+    ...(provided(videoUrl) && { videoUrl }),
+    ...(provided(thumbnailUrl) && { thumbnailUrl }),
+    ...(provided(itemStatus) && { status: itemStatus }),
+    ...(provided(previewData) && { previewData }),
+    ...(provided(creativeSettings) && { creativeSettings }),
+    ...(provided(resolvedSegments) && { resolvedSegments }),
+  };
+
+  const item = await prisma.contentItem.upsert({
+    where: { jobId },
+    create: {
       userId: session.user.id,
       jobId,
       title,
@@ -71,6 +94,7 @@ export async function POST(req: NextRequest) {
       creativeSettings: creativeSettings ?? null,
       resolvedSegments: resolvedSegments ?? null,
     },
+    update: updateData,
   });
 
   return NextResponse.json({ item }, { status: 201 });
