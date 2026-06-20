@@ -1,5 +1,5 @@
 // Self-contained loading spinner. Deliberately an inline SVG ring — NOT an
-// icon-font glyph (e.g. `material-symbols-outlined` "progress_activity") — so it
+// icon-font glyph (e.g. a `material-symbols-outlined` spinner ligature) — so it
 // never depends on the remote Material Symbols stylesheet loading. The arc is
 // stroked with `currentColor`, so callers tint it with text-color utilities
 // (e.g. `text-primary`, `text-white`).

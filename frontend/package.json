@@ -5,13 +5,15 @@
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "node scripts/check-no-iconfont-spinner.mjs && prisma generate && next build",
+    "check:spinners": "node scripts/check-no-iconfont-spinner.mjs",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test --config playwright.e2e.config.ts",
     "test:e2e:headed": "playwright test --config playwright.e2e.config.ts --headed",
+    "test:cost": "playwright test --config playwright.cost.config.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [],

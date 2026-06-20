@@ -69,11 +69,11 @@
 }
 
 /* Material Symbols icon font. Defined locally (not pulled from a remote Google
-   Fonts stylesheet) so the ligature ALWAYS forms: any icon span with a name
-   like "progress_activity" renders as its glyph rather than raw text. The font
-   itself is self-hosted via next/font/local in layout.tsx and exposed as
-   --font-material-symbols. font-size is intentionally omitted so Tailwind
-   text-* utilities continue to control icon size. */
+   Fonts stylesheet) so the ligature ALWAYS forms: any icon span renders as its
+   glyph rather than raw text. The font itself is self-hosted via
+   next/font/local in layout.tsx and exposed as --font-material-symbols.
+   font-size is intentionally omitted so Tailwind text-* utilities continue to
+   control icon size. */
 .material-symbols-outlined {
   font-family: var(--font-material-symbols), "Material Symbols Outlined";
   font-weight: normal;

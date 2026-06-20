@@ -1917,7 +1917,7 @@ export default function VideoSetupPage() {
   if (!loaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <span className="material-symbols-outlined animate-spin text-primary text-3xl">progressactivity</span>
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
