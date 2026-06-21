@@ -11,7 +11,8 @@ import type { Voice } from "@/lib/voices";
 import type { UserPrefs } from "@/lib/createOptions";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { chargeVideo, refundRender } from "@/app/actions/charge-render";
-import { videoCost } from "@/lib/credits/config";
+import { videoCost, canUseVideoFormat } from "@/lib/credits/config";
+import { usePlan } from "@/lib/usePlan";
 import CostBadge from "@/components/credits/CostBadge";
 
 // ── Script source modes (same accordion pattern as Argument) ──
@@ -281,6 +282,9 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
   const [tone, setTone] = useState(prefs?.skeletonTone ?? "Regular");
   const [skeletonStyle, setSkeletonStyle] = useState(prefs?.skeletonColor ?? "red");
   const [sceneMode, setSceneMode] = useState<"static" | "animated">("static");
+  const { entitledPlan: plan } = usePlan();
+  // Animation (animated scenes → Seedance) is Pro-only.
+  const animationLocked = !canUseVideoFormat(plan, "animated_skeleton");
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [captionStyle, setCaptionStyle] = useState(prefs?.captionStyle ?? "regular");
   const [captionFontSize, setCaptionFontSize] = useState<"small" | "medium" | "large">((prefs?.captionFontSize as "small" | "medium" | "large") ?? "medium");
@@ -1597,23 +1601,31 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
           </button>
 
           <button
-            onClick={() => setSceneMode("animated")}
+            onClick={() => {
+              if (animationLocked) { window.location.href = "/pricing"; return; }
+              setSceneMode("animated");
+            }}
+            aria-disabled={animationLocked}
             className={`rounded-2xl overflow-hidden text-left transition-all border ${
-              sceneMode === "animated"
+              animationLocked
+                ? "border-outline-variant/30 opacity-70"
+                : sceneMode === "animated"
                 ? "border-2 border-primary shadow-[0px_10px_30px_rgba(111,51,213,0.1)]"
                 : "border-outline-variant/30 hover:border-outline-variant"
             }`}
           >
             <div className="h-28 bg-gradient-to-br from-purple-900/80 to-indigo-900/80 flex items-center justify-center relative">
-              <span className="material-symbols-outlined text-4xl text-white/60">play_circle</span>
+              <span className="material-symbols-outlined text-4xl text-white/60">{animationLocked ? "lock" : "play_circle"}</span>
               <div className="absolute inset-0 border-2 border-primary/20 rounded-t-2xl" />
             </div>
             <div className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-bold font-headline text-sm text-on-surface">Animated</span>
-                <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">Premium</span>
+                <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">{animationLocked ? "Pro" : "Premium"}</span>
               </div>
-              <p className="text-xs text-on-surface-variant leading-relaxed">Each scene becomes a 3-5s AI animated clip</p>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                {animationLocked ? "Upgrade to Pro to unlock animated scenes" : "Each scene becomes a 3-5s AI animated clip"}
+              </p>
             </div>
           </button>
         </div>

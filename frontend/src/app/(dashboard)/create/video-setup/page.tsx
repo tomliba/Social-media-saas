@@ -644,6 +644,16 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
   const handleAcceptAndCreate = async () => {
     if (scripts.length === 0) return;
 
+    // First line of defense: never let an ineligible tier proceed with a Pro-only
+    // background mode. The dropdown option is locked, but the selected mode can be
+    // pre-filled from saved prefs (e.g. "Animated AI") without ever clicking it —
+    // so gate here too and open the upgrade screen instead of dispatching. The
+    // server-side 403 remains the backstop.
+    if (!canUseVideoFormat(plan, videoFormatFromBackgroundMode(backgroundMode))) {
+      window.location.href = "/pricing";
+      return;
+    }
+
     // Animated AI: redirect to animated character review page.
     // Revoice takes priority — never redirect a revoice job, regardless of bg mode.
     if (backgroundMode === "Animated AI" && activeMode !== "revoice") {

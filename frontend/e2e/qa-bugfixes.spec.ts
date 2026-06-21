@@ -13,6 +13,39 @@ import { test, expect } from "@playwright/test";
  * Stubs all network so it makes no DB/render/provider calls. Auth via niche.setup.
  */
 
+// ── Bug 1 (button gate): the animated video-format option is the first line of
+//    defense — PRO badge + locked for ineligible tiers, click opens the upgrade
+//    screen and never starts generation. The server 403 stays as the backstop. ──
+test("Bug 1: animated bg-mode option is PRO-locked; click opens upgrade, no generate call", async ({ page }) => {
+  await page.route("**/api/credits/balance", (r) =>
+    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ plan: "creator", entitledPlan: "creator", balance: 5000 }) }));
+  await page.route("**/api/preferences", (r) =>
+    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({}) }));
+
+  // If the generate endpoint is ever hit, the gate failed.
+  let generateCalled = false;
+  await page.route("**/api/character-review/generate-scene-images", (r) => { generateCalled = true; return r.abort(); });
+
+  await page.goto("/create/video-setup", { waitUntil: "networkidle" });
+
+  // Open the background-mode dropdown (the pill shows the default "Smart Mix").
+  await page.getByRole("button", { name: /Smart Mix/i }).first().click();
+
+  // The "Animated AI" option is locked for an ineligible tier: PRO badge + upgrade
+  // copy + aria-disabled (visually locked).
+  const animated = page.getByRole("button", { name: /Animated AI/i }).first();
+  await expect(animated).toContainText(/Pro/);
+  await expect(animated).toContainText(/Upgrade to Pro/i);
+  await expect(animated).toHaveAttribute("aria-disabled", "true");
+
+  // It's aria-disabled (looks locked) but still upsells on click — force past
+  // Playwright's actionability check, as a real click would fire. It opens the
+  // upgrade screen and never starts generation.
+  await animated.click({ force: true });
+  await expect(page).toHaveURL(/\/pricing/);
+  expect(generateCalled).toBe(false);
+});
+
 // ── Bug 2: carousel layout buttons all reach a defined state ──
 test("Bug 2: every carousel layout button reaches a defined state (mono delivers mono)", async ({ page }) => {
   const URL = "/create/templates?format=carousel";
