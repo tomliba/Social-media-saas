@@ -35,7 +35,7 @@ export default function HeroSection() {
 
       {/* Right: Phone mockup */}
       <div className="relative flex justify-center lg:justify-end">
-        <div className="relative w-[330px] sm:w-[380px] lg:w-[440px] bg-inverse-surface rounded-[3rem] p-3 shadow-2xl ring-8 ring-surface-variant">
+        <div className="relative w-[300px] sm:w-[340px] lg:w-[400px] bg-inverse-surface rounded-[3rem] p-3 shadow-2xl ring-8 ring-surface-variant">
           {/* Notch */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-inverse-surface rounded-b-2xl z-20" />
           {/* Screen — 9:16 so the full showcase montage is visible, uncropped */}
