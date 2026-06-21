@@ -202,8 +202,8 @@ export const CREATE_DEFAULTS = {
     music: "shadows",
   },
   argument: {
-    characterA: "peter",
-    characterB: "stewie",
+    characterA: "big_dave",
+    characterB: "baby",
     tone: "Regular",
     duration: 45,
     music: "shadows",

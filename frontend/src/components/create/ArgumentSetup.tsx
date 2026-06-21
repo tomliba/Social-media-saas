@@ -235,8 +235,8 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
 
   // Characters (prefs?.x ?? hardcoded default — null prefs ⇒ unchanged)
   const [characters, setCharacters] = useState<Record<string, Character>>({});
-  const [characterA, setCharacterA] = useState(prefs?.argumentCharacterA ?? "peter");
-  const [characterB, setCharacterB] = useState(prefs?.argumentCharacterB ?? "stewie");
+  const [characterA, setCharacterA] = useState(prefs?.argumentCharacterA ?? "big_dave");
+  const [characterB, setCharacterB] = useState(prefs?.argumentCharacterB ?? "baby");
 
   // Script source
   const [niche, setNiche] = useState(prefs?.characterNiche ?? "");
