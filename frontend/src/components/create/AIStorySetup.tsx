@@ -1482,6 +1482,16 @@ export default function AIStorySetup({ prefs }: { prefs: UserPrefs | null }) {
           onSelect={handleVoiceSelect}
           currentVoiceId={selectedVoice?.fishAudioId || defaultVoice.fishAudioId}
         />
+        {/* Out-of-credits dialog for the review-step charges (scene gen/regen, Export).
+            The charges all happen on this step, so the dialog must live here too —
+            not only in the setup view below. */}
+        {creditError && (
+          <InsufficientCreditsDialog
+            needed={creditError.needed}
+            balance={creditError.balance}
+            onClose={() => setCreditError(null)}
+          />
+        )}
       </main>
     );
   }
