@@ -1264,6 +1264,15 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
         </footer>
 
         <VoicePickerModal open={voiceModalOpen} onClose={() => setVoiceModalOpen(false)} onSelect={handleVoiceSelect} currentVoiceId={selectedVoice?.fishAudioId || defaultVoice.fishAudioId} />
+        {/* Out-of-credits dialog for the review-step charges (scene gen/regen, Export).
+            The charges all happen on this step, so the dialog must live here too. */}
+        {creditError && (
+          <InsufficientCreditsDialog
+            needed={creditError.needed}
+            balance={creditError.balance}
+            onClose={() => setCreditError(null)}
+          />
+        )}
       </main>
     );
   }

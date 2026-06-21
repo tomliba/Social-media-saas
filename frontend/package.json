@@ -14,6 +14,8 @@
     "test:e2e": "playwright test --config playwright.e2e.config.ts",
     "test:e2e:headed": "playwright test --config playwright.e2e.config.ts --headed",
     "test:e2e:niche": "playwright test --config playwright.niche.config.ts",
+    "test:billing": "vitest run src/lib/credits/__tests__/generate-gate.test.ts",
+    "test:e2e:billing": "playwright test --config playwright.billing.config.ts",
     "test:cost": "playwright test --config playwright.cost.config.ts",
     "postinstall": "prisma generate"
   },

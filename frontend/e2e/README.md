@@ -81,3 +81,28 @@ npm run test:e2e:niche
 - AUTH_SECRET is taken from `.env` (the local dev server's secret), with
   `E2E_USER_ID` / `E2E_USER_EMAIL` from `.env.test`.
 - No credits are spent (it never clicks Generate or Save).
+
+## AI Story billing regression (hermetic) — two layers
+
+Guards the "charge at Generate, not Export" leak fix for AI Story / Skeleton. Both
+layers are **hermetic**: no real credits, no writes to the real account/ledger.
+
+```bash
+npm run test:billing        # route-level charge MATH (Vitest, in-memory Prisma + stubbed Flask)
+npm run test:e2e:billing    # browser WIRING (Playwright, stubbed routes)
+```
+
+- `test:billing` runs `src/lib/credits/__tests__/generate-gate.test.ts`: executes the
+  real route handlers + charge functions against an **in-memory Prisma** with a
+  **stubbed `fetch`** (Flask), asserting (1) the base debits before the Flux call /
+  402 → provider never called, (2) Generate + Export = one debit (idempotent on
+  `vg_job_id`), (3) regen cap (3 free then charge), (4) animation surcharge + Pro
+  gate. This is the guard for the actual charge/idempotency/cap math — a browser
+  test can't exercise it without writing to the real shared ledger.
+- `test:e2e:billing` runs `billing.spec.ts` (`playwright.billing.config.ts` +
+  `e2e/billing.setup.ts`): local dev server, **stubs the AI-Story generation routes**,
+  and asserts the browser wiring — clicking Generate hits the charge route
+  (`/api/generate-scene-images`) at the first scene image keyed on `vg_job_id`, and a
+  402 surfaces the `InsufficientCreditsDialog`. Catches a "UI unwired from billing"
+  regression. It never clicks Export (whose charge is a server action that would hit
+  the real ledger), so it stays hermetic.
