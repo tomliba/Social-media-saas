@@ -147,8 +147,8 @@ export default function CarouselTemplatesSection({ niche, tone }: { niche: strin
 
   const aiCarouselOptions = [
     { id: "infographic", name: "AI Infographic", description: "AI designs each slide as a unique infographic", icon: "auto_awesome", preview: "/previews/ai/infographic.png", href: "/create/ai-carousel" },
-    { id: "handdrawn-color", name: "Hand-Drawn (Color)", description: "Sketchy whiteboard style, warm and approachable", icon: "draw", preview: "/previews/ai/handdrawn-color.png", href: "/create/ai-carousel?style=handdrawn" },
-    { id: "handdrawn-mono", name: "Hand-Drawn (Mono)", description: "Monochrome sketch style, clean and minimal", icon: "draw", preview: "/previews/ai/handdrawn-mono.png", href: "/create/ai-carousel?style=handdrawn" },
+    { id: "handdrawn-color", name: "Hand-Drawn (Color)", description: "Sketchy whiteboard style, warm and approachable", icon: "draw", preview: "/previews/ai/handdrawn-color.png", href: "/create/ai-carousel?style=handdrawn&draw=color" },
+    { id: "handdrawn-mono", name: "Hand-Drawn (Mono)", description: "Monochrome sketch style, clean and minimal", icon: "draw", preview: "/previews/ai/handdrawn-mono.png", href: "/create/ai-carousel?style=handdrawn&draw=mono" },
     { id: "notebook", name: "Notebook", description: "Spiral-bound pages with doodles and highlighters", icon: "menu_book", preview: "/previews/ai/notebook.png", href: "/create/ai-carousel?style=notebook" },
   ];
 

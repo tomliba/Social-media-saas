@@ -60,9 +60,10 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 
 import { auth } from "@/lib/auth";
 import { POST as generateSceneImages } from "@/app/api/generate-scene-images/route";
+import { POST as characterSceneImages } from "@/app/api/character-review/generate-scene-images/route";
 import { chargeVideo } from "@/app/actions/charge-render";
 import { chargeStoryGenerate, chargeAnimationSurcharge, chargeSceneRegen, SCENE_REGEN_FREE_CAP, SCENE_REGEN_COST } from "@/lib/credits/generate-gate";
-import { videoCost } from "@/lib/credits/config";
+import { videoCost, canUseVideoFormat } from "@/lib/credits/config";
 
 const mockedAuth = vi.mocked(auth);
 
@@ -190,5 +191,117 @@ describe("animation surcharge", () => {
     seedUser("u2", 1000, "free");
     const blocked = await chargeAnimationSurcharge({ userId: "u2", vgJobId: "vg2", style: "ai-story", durationSeconds: 30 });
     expect(blocked).toMatchObject({ ok: false, error: "plan_not_allowed" });
+  });
+});
+
+// ── Bug 1: the animated-CHARACTER review flow produces paid assets (Nano Banana
+//    Pro images → Seedance) at the scene-image step, which previously had NO
+//    server-side gate — an ineligible tier could generate uncharged assets via
+//    direct nav / a stale session / a raw API call, regardless of the client UI.
+//    The route now gates animated_character (Pro-only) before any provider call. ──
+const charReq = (body: unknown) => ({ json: async () => body }) as unknown as Parameters<typeof characterSceneImages>[0];
+const charBody = { vg_job_id: "vgc", scenes: [{}], style: "character", scene_mode: "animated", duration: 30 };
+
+describe("Bug 1: animated-character generate is Pro-gated before any paid asset", () => {
+  it("blocks ineligible tiers (free/creator) with 403 and never calls the paid provider", async () => {
+    for (const plan of ["free", "creator"] as const) {
+      store.users.clear(); store.txs.length = 0;
+      seedUser("u1", 100_000, plan);
+      const fetchSpy = vi.fn();
+      vi.stubGlobal("fetch", fetchSpy);
+
+      const res = await characterSceneImages(charReq(charBody));
+
+      expect(res.status).toBe(403);
+      expect((await res.json()).error).toBe("plan_not_allowed");
+      expect(fetchSpy).not.toHaveBeenCalled();   // no Nano Banana / Seedance generation
+      expect(balanceOf("u1")).toBe(100_000);     // nothing charged
+    }
+  });
+
+  it("allows Pro and reaches the provider", async () => {
+    seedUser("u1", 100_000, "pro");
+    const fetchSpy = flaskOk();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const res = await characterSceneImages(charReq(charBody));
+
+    expect(res.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalled();
+  });
+
+  it("charge math: animated_character is Pro-only and charged exactly once (export no-ops)", async () => {
+    // Gating math: only Pro may generate/charge the animated character format.
+    expect(canUseVideoFormat("free", "animated_character")).toBe(false);
+    expect(canUseVideoFormat("creator", "animated_character")).toBe(false);
+    expect(canUseVideoFormat("pro", "animated_character")).toBe(true);
+    // Cost math: VIDEO_BASE (5) + ceil(2.4 × seconds).
+    expect(videoCost("animated_character", 30)).toBe(77);
+    expect(videoCost("animated_character", 60)).toBe(149);
+
+    // Eligible tier is charged once at dispatch; the export charge on the same job
+    // id is an idempotent no-op — so the render is never double-charged.
+    seedUser("u1", 1000, "pro");
+    mockedAuth.mockResolvedValue(asSession("u1"));
+    const first = await chargeVideo({ jobId: "render1", format: "animated_character", durationSeconds: 30 });
+    expect(first.ok).toBe(true);
+    expect(balanceOf("u1")).toBe(1000 - 77);
+    const again = await chargeVideo({ jobId: "render1", format: "animated_character", durationSeconds: 30 });
+    expect(again.ok).toBe(true);
+    expect(balanceOf("u1")).toBe(1000 - 77); // idempotent — no double charge
+
+    // An ineligible tier cannot be charged for it at all.
+    seedUser("u2", 1000, "creator");
+    mockedAuth.mockResolvedValue(asSession("u2"));
+    const blocked = await chargeVideo({ jobId: "render2", format: "animated_character", durationSeconds: 30 });
+    expect(blocked).toMatchObject({ ok: false, error: "plan_not_allowed" });
+    expect(balanceOf("u2")).toBe(1000);
+  });
+});
+
+// ── Bug 1 (Pro leak): a Pro user who generates the paid scene images then
+//    abandons before export used to burn real provider cost (~$0.134/img) that
+//    was only charged at export. The fix charges at GENERATE, keyed on vg_job_id,
+//    and the export charge re-uses that key (idempotent) — exactly once total. ──
+describe("Bug 1 (Pro leak): charged once at generate, no double at export, refunded on failure", () => {
+  const COST = videoCost("animated_character", 30); // 77
+
+  it("Pro generates scenes then abandons (no export) → charged exactly once at generate", async () => {
+    seedUser("u1", 1000, "pro");
+    vi.stubGlobal("fetch", flaskOk());
+
+    const res = await characterSceneImages(charReq(charBody));
+
+    expect(res.status).toBe(200);
+    expect(balanceOf("u1")).toBe(1000 - COST);                 // billed at generate, not export
+    expect(store.txs.filter((t) => t.jobId === "vgc" && t.delta < 0)).toHaveLength(1);
+    // No export happens — the charge persists. No leak, and no refund.
+  });
+
+  it("generate then export → charged exactly once total (export re-uses vg_job_id, idempotent)", async () => {
+    seedUser("u1", 1000, "pro");
+    vi.stubGlobal("fetch", flaskOk());
+
+    await characterSceneImages(charReq(charBody));
+    const afterGenerate = balanceOf("u1");
+    expect(afterGenerate).toBe(1000 - COST);
+
+    // triggerVideoRenders charges assetsReady videos on settings.vgJobId — the same
+    // key the generate step used — so the export charge is an idempotent no-op.
+    const exportCharge = await chargeVideo({ jobId: "vgc", format: "animated_character", durationSeconds: 30 });
+    expect(exportCharge.ok).toBe(true);
+    expect(balanceOf("u1")).toBe(afterGenerate);               // not charged again
+    expect(store.txs.filter((t) => t.jobId === "vgc" && t.delta < 0)).toHaveLength(1); // one debit total
+  });
+
+  it("generation fails after the reserve → credits refunded, net zero", async () => {
+    seedUser("u1", 1000, "pro");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("nano banana provider error", { status: 500 })));
+
+    const res = await characterSceneImages(charReq(charBody));
+
+    expect(res.status).toBe(500);
+    expect(balanceOf("u1")).toBe(1000);                        // reserve refunded → net zero
+    expect(store.txs.filter((t) => t.jobId === "vgc")).toHaveLength(2); // one spend + one refund
   });
 });

@@ -62,6 +62,10 @@ function AICarouselContent() {
   const styleParam = searchParams.get("style");
   const isHanddrawn = styleParam === "handdrawn";
   const isNotebook = styleParam === "notebook";
+  // The layout gallery distinguishes the color vs mono hand-drawn variants via
+  // ?draw=. Without this, "Hand-Drawn (Mono)" routed to the same URL as Color and
+  // always landed on Color — the Mono layout button never delivered its layout.
+  const drawParam = searchParams.get("draw");
 
   const { entitledPlan: plan, loading: planLoading } = usePlan();
   // Plan-aware slide cap (server enforces too): Creator 10, Pro 15. Free is
@@ -77,7 +81,7 @@ function AICarouselContent() {
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("Friendly");
   const [slideCount, setSlideCount] = useState(5);
-  const [drawStyle, setDrawStyle] = useState<DrawStyle>("handdrawn_color");
+  const [drawStyle, setDrawStyle] = useState<DrawStyle>(drawParam === "mono" ? "handdrawn_mono" : "handdrawn_color");
 
   // Flow state
   const [step, setStep] = useState<Step>("input");

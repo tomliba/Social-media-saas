@@ -84,6 +84,7 @@ export default function AnimatedCharacterReviewPage() {
   const [rendering, setRendering] = useState(false);
   const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
+  const [planGated, setPlanGated] = useState(false);
   const animPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -149,10 +150,26 @@ export default function AnimatedCharacterReviewPage() {
             scenes: breakdown.scenes,
             style: "character",
             scene_mode: "animated",
+            duration: durationMap[setupData.duration] ?? 30,
             ...(setupData.artStyle ? { art_style: setupData.artStyle } : {}),
           }),
         });
 
+        // Animated character is Pro-only and gated server-side at this step.
+        // Surface the upgrade path instead of silently failing to load images.
+        if (imgRes.status === 403) {
+          setPlanGated(true);
+          setLoadingScripts(new Array(count).fill(false));
+          setLoadingImages(new Array(count).fill(false));
+          return;
+        }
+        if (imgRes.status === 402) {
+          const j = await imgRes.json().catch(() => ({}));
+          setCreditError({ needed: j.needed ?? 0, balance: j.balance ?? 0 });
+          setLoadingScripts(new Array(count).fill(false));
+          setLoadingImages(new Array(count).fill(false));
+          return;
+        }
         if (!imgRes.ok) throw new Error("Scene images failed");
         const imgData = await imgRes.json();
         const urls: string[] = imgData.images || imgData.image_urls || imgData.urls || [];
@@ -575,6 +592,26 @@ export default function AnimatedCharacterReviewPage() {
       <main className="min-h-screen bg-surface pt-24 pb-48 px-6 max-w-4xl mx-auto">
         <div className="text-center py-20">
           <Spinner size="lg" className="text-primary" />
+        </div>
+      </main>
+    );
+  }
+
+  if (planGated) {
+    return (
+      <main className="min-h-screen bg-surface pt-24 pb-48 px-6 max-w-4xl mx-auto">
+        <div className="text-center py-20">
+          <span className="material-symbols-outlined text-primary text-5xl mb-4">lock</span>
+          <h1 className="text-2xl font-bold font-headline mb-2">Animated videos are a Pro feature</h1>
+          <p className="text-on-surface-variant text-lg mb-6">
+            Upgrade to Pro to generate animated character videos.
+          </p>
+          <button
+            onClick={() => router.push("/pricing")}
+            className="px-6 py-3 bg-primary text-on-primary rounded-xl font-bold font-headline"
+          >
+            Upgrade to Pro
+          </button>
         </div>
       </main>
     );

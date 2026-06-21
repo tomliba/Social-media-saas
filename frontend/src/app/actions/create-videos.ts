@@ -143,15 +143,23 @@ export async function triggerVideoRenders(
           settings: { ...video.settings, isFreeTier },
         });
 
-        // Charge immediately, keyed on the run id (== ContentItem.jobId).
+        // Charge immediately. For pre-generated assets (the animated-character
+        // review flow), the credits were already reserved at the GENERATE step
+        // keyed on the stable vg_job_id — re-use that key so this charge is an
+        // idempotent no-op (a verify, never a double-charge). Otherwise key on the
+        // run id (== ContentItem.jobId).
+        const chargeJobId =
+          video.settings?.assetsReady && video.settings?.vgJobId
+            ? video.settings.vgJobId
+            : handle.id;
         await spendCredits({
           userId,
           amount: videoCost(video.format, video.durationSeconds),
-          jobId: handle.id,
+          jobId: chargeJobId,
           type: "render_spend",
           reason: video.title,
         });
-        chargedJobIds.push(handle.id);
+        chargedJobIds.push(chargeJobId);
 
         handles.push({
           runId: handle.id,
@@ -179,15 +187,20 @@ export async function triggerVideoRenders(
   const chargedJobIds: string[] = [];
   for (const video of videos) {
     const jobId = `direct-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    // Pre-generated assets were already charged at generate (keyed on vg_job_id);
+    // re-use that key so the charge here is an idempotent no-op. Otherwise charge
+    // the freshly minted render job id.
+    const chargeJobId =
+      video.settings?.assetsReady && video.settings?.vgJobId ? video.settings.vgJobId : jobId;
     try {
       await spendCredits({
         userId,
         amount: videoCost(video.format, video.durationSeconds),
-        jobId,
+        jobId: chargeJobId,
         type: "render_spend",
         reason: video.title,
       });
-      chargedJobIds.push(jobId);
+      chargedJobIds.push(chargeJobId);
     } catch (err) {
       // Balance ran out mid-batch — refund prior charges and abort.
       for (const j of chargedJobIds) {
@@ -210,8 +223,8 @@ export async function triggerVideoRenders(
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Render failed";
       console.error(`Direct video render failed for "${video.title}":`, msg);
-      // Render failed — refund this job's charge immediately.
-      await refundCredits({ userId, jobId, reason: msg }).catch(() => {});
+      // Render failed — refund this job's charge immediately (on the key we charged).
+      await refundCredits({ userId, jobId: chargeJobId, reason: msg }).catch(() => {});
       handles.push({
         runId: jobId,
         publicAccessToken: "",
