@@ -41,7 +41,7 @@ export default function HeroSection() {
           {/* Screen — 9:16 so the full showcase montage is visible, uncropped */}
           <div className="w-full aspect-[9/16] rounded-[2.2rem] overflow-hidden bg-surface-container relative">
             <video
-              poster="/previews/hero-showcase-montage.jpg"
+              poster="/previews/hero-character-montage.jpg"
               autoPlay
               muted
               loop
@@ -50,7 +50,7 @@ export default function HeroSection() {
               aria-label="A montage of the videos, posts, and carousels you can create with Fluvio"
               className="w-full h-full object-cover"
             >
-              <source src="/previews/hero-showcase-montage.mp4" type="video/mp4" />
+              <source src="/previews/hero-character-montage.mp4" type="video/mp4" />
             </video>
           </div>
         </div>
