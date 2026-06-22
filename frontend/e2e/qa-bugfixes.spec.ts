@@ -39,10 +39,12 @@ test("Bug 1: animated bg-mode option is PRO-locked; click opens upgrade, no gene
   await expect(animated).toHaveAttribute("aria-disabled", "true");
 
   // It's aria-disabled (looks locked) but still upsells on click — force past
-  // Playwright's actionability check, as a real click would fire. It opens the
-  // upgrade screen and never starts generation.
+  // Playwright's actionability check, as a real click would fire. It opens an
+  // IN-APP upgrade modal (does NOT navigate away to /pricing) and never generates.
   await animated.click({ force: true });
-  await expect(page).toHaveURL(/\/pricing/);
+  await expect(page.getByRole("heading", { name: /Pro feature/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Upgrade to Pro/i })).toBeVisible();
+  await expect(page).toHaveURL(/\/create\/video-setup/); // stayed inside the app
   expect(generateCalled).toBe(false);
 });
 

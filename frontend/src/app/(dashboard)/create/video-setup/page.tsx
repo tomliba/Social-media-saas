@@ -9,6 +9,7 @@ import { videoFormatFromBackgroundMode, videoCost, canUseVideoFormat } from "@/l
 import { usePlan } from "@/lib/usePlan";
 import CostBadge from "@/components/credits/CostBadge";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import UpgradeModal from "@/components/credits/UpgradeModal";
 import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import VoicePickerModal from "@/components/create/VoicePickerModal";
@@ -408,6 +409,7 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
   // ── Creating state ──
   const [creating, setCreating] = useState(false);
   const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // ── Creative settings (captions, music, effects) ──
@@ -650,7 +652,7 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
     // so gate here too and open the upgrade screen instead of dispatching. The
     // server-side 403 remains the backstop.
     if (!canUseVideoFormat(plan, videoFormatFromBackgroundMode(backgroundMode))) {
-      window.location.href = "/pricing";
+      setUpgradeOpen(true);
       return;
     }
 
@@ -1056,6 +1058,8 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
             )}
           </div>
 
+          <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} feature="Animated videos" />
+
           {/* Background mode pill — hidden in Revoice (the uploaded video is the background) */}
           {activeMode !== "revoice" && (
           <div className="relative" ref={bgModeRef}>
@@ -1088,7 +1092,7 @@ function VideoSetupContent({ prefs }: { prefs: UserPrefs | null }) {
                     <button
                       key={opt.label}
                       onClick={() => {
-                        if (locked) { window.location.href = "/pricing"; return; }
+                        if (locked) { setUpgradeOpen(true); setBgModeOpen(false); return; }
                         setBackgroundMode(opt.label); setBgModeOpen(false);
                       }}
                       aria-disabled={locked}

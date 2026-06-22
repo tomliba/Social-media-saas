@@ -10,6 +10,7 @@ import { defaultVoice } from "@/lib/voices";
 import type { Voice } from "@/lib/voices";
 import type { UserPrefs } from "@/lib/createOptions";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import UpgradeModal from "@/components/credits/UpgradeModal";
 import { chargeVideo, refundRender } from "@/app/actions/charge-render";
 import { videoCost, canUseVideoFormat } from "@/lib/credits/config";
 import { usePlan } from "@/lib/usePlan";
@@ -367,6 +368,7 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
   // Preview flow state
   const [prepareError, setPrepareError] = useState<string | null>(null);
   const [creditError, setCreditError] = useState<{ needed: number; balance: number } | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // Popover state
   const [durationPopoverOpen, setDurationPopoverOpen] = useState(false);
@@ -1602,7 +1604,7 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
 
           <button
             onClick={() => {
-              if (animationLocked) { window.location.href = "/pricing"; return; }
+              if (animationLocked) { setUpgradeOpen(true); return; }
               setSceneMode("animated");
             }}
             aria-disabled={animationLocked}
@@ -1630,6 +1632,8 @@ export default function SkeletonSetup({ prefs }: { prefs: UserPrefs | null }) {
           </button>
         </div>
       </section>
+
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} feature="Animated scenes" />
 
       {/* ── Caption Style ── */}
       <section className="mb-10">
