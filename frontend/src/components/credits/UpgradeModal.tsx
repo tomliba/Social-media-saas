@@ -47,6 +47,8 @@ export default function UpgradeModal({
           </button>
           <Link
             href="/pricing"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex-1 rounded-lg bg-purple-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-purple-700"
           >
             Upgrade to Pro

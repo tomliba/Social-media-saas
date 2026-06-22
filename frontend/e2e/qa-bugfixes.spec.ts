@@ -43,7 +43,11 @@ test("Bug 1: animated bg-mode option is PRO-locked; click opens upgrade, no gene
   // IN-APP upgrade modal (does NOT navigate away to /pricing) and never generates.
   await animated.click({ force: true });
   await expect(page.getByRole("heading", { name: /Pro feature/i })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Upgrade to Pro/i })).toBeVisible();
+  // "Upgrade to Pro" opens checkout in a NEW tab so the create session is preserved.
+  const upgrade = page.getByRole("link", { name: /Upgrade to Pro/i });
+  await expect(upgrade).toBeVisible();
+  await expect(upgrade).toHaveAttribute("target", "_blank");
+  await expect(upgrade).toHaveAttribute("href", /\/pricing/);
   await expect(page).toHaveURL(/\/create\/video-setup/); // stayed inside the app
   expect(generateCalled).toBe(false);
 });
