@@ -607,7 +607,7 @@ export default function AnimatedCharacterReviewPage() {
             Upgrade to Pro to generate animated character videos.
           </p>
           <button
-            onClick={() => router.push("/pricing")}
+            onClick={() => window.open("/pricing", "_blank", "noopener,noreferrer")}
             className="px-6 py-3 bg-primary text-on-primary rounded-xl font-bold font-headline"
           >
             Upgrade to Pro
