@@ -239,7 +239,7 @@ ${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference imag
       const genRes = await fetch("/api/ai-carousel/generate-slide", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, ...(photo ? { productImageBase64: photo } : {}) }),
+        body: JSON.stringify({ prompt, jobId, ...(photo ? { productImageBase64: photo } : {}) }),
       });
       if (!genRes.ok) throw new Error("Generation failed");
       const genData = await genRes.json();

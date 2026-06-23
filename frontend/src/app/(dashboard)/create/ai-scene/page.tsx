@@ -297,6 +297,7 @@ function AISceneContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          jobId,
           prompt: i === 0 ? prompt : prompt + ` Variation ${i + 1} — vary composition, angle, or color palette slightly.`,
           slide_number: i + 1,
           slide_type: "ai_scene",
@@ -371,6 +372,7 @@ function AISceneContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          jobId,
           prompt: prompt + ` Fresh variation — unique composition, different angle and color palette.`,
           slide_number: index + 1,
           slide_type: "ai_scene",
