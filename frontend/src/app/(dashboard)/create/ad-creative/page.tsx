@@ -94,7 +94,7 @@ function AdCreativeContent() {
       const res = await fetch("/api/ad-creative/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product: prod, description: desc, conceptId, variationIndex }),
+        body: JSON.stringify({ jobId, product: prod, description: desc, conceptId, variationIndex }),
       });
       if (!res.ok) throw new Error("Generation failed");
       const data = await res.json();

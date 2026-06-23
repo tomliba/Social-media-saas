@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 // High-quality gpt-image-1 fallback can take ~60s; allow up to the Pro cap.
 export const maxDuration = 300;
@@ -36,14 +37,32 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = session.user.id;
 
   try {
-    const { product, description, conceptId, variationIndex } = await req.json();
+    const { jobId, product, description, conceptId, variationIndex } = await req.json();
 
     if (!product || !conceptId) {
       return NextResponse.json(
         { error: "product and conceptId are required" },
         { status: 400 }
+      );
+    }
+
+    // Require a matching up-front charge for this job (closes the direct-API
+    // bypass): the page debits once via chargePost(jobId) before calling this
+    // route, so a post_spend row must exist for this jobId + user.
+    if (!jobId || typeof jobId !== "string") {
+      return NextResponse.json({ error: "jobId is required" }, { status: 400 });
+    }
+    const charge = await prisma.creditTransaction.findFirst({
+      where: { jobId, type: "post_spend", userId, delta: { lt: 0 } },
+      select: { id: true },
+    });
+    if (!charge) {
+      return NextResponse.json(
+        { error: "No charge found for this ad — generate through the app" },
+        { status: 402 }
       );
     }
 

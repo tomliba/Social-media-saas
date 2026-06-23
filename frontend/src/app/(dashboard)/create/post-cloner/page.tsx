@@ -131,7 +131,7 @@ export default function PostClonerPage() {
       const startRes = await fetch("/api/clone-post/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slides, clone_mode: cloneMode, caption }),
+        body: JSON.stringify({ jobId: chargeKey, slides, clone_mode: cloneMode, caption }),
       });
 
       if (!startRes.ok) {
