@@ -372,8 +372,19 @@ function AICarouselContent() {
         </div>
       )}
 
+      {/* ── Loading: show a skeleton, not the input form, until the plan is known.
+          Otherwise free users see the form paint then get swapped for the gate
+          (the "opens then jumps" flash). ── */}
+      {planLoading && (step === "input" || step === "planning") && (
+        <section className="max-w-xl space-y-6" aria-hidden="true">
+          <div className="h-12 shimmer rounded-xl" />
+          <div className="h-28 shimmer rounded-xl" />
+          <div className="h-12 w-48 shimmer rounded-full" />
+        </section>
+      )}
+
       {/* ── Creator+ gate: Free tier is offered the free HTML carousel instead ── */}
-      {carouselLocked && (step === "input" || step === "planning") && (
+      {!planLoading && carouselLocked && (step === "input" || step === "planning") && (
         <section className="max-w-xl rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-8 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <span className="material-symbols-outlined text-primary">workspace_premium</span>
@@ -387,7 +398,7 @@ function AICarouselContent() {
             <Link href="/pricing" className="px-5 py-2.5 rounded-full bg-primary text-on-primary font-bold text-sm shadow-md hover:bg-primary/90">
               Upgrade
             </Link>
-            <Link href="/create/templates" className="px-5 py-2.5 rounded-full bg-surface-container text-on-surface font-bold text-sm hover:bg-surface-container-high">
+            <Link href="/create/templates?format=carousel" className="px-5 py-2.5 rounded-full bg-surface-container text-on-surface font-bold text-sm hover:bg-surface-container-high">
               Use the free HTML carousel
             </Link>
           </div>
@@ -395,7 +406,7 @@ function AICarouselContent() {
       )}
 
       {/* ── Step 1: Input ── */}
-      {!carouselLocked && (step === "input" || step === "planning") && (
+      {!planLoading && !carouselLocked && (step === "input" || step === "planning") && (
         <section className="max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Hand-drawn style picker */}
           {isHanddrawn && (
