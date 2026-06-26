@@ -12,6 +12,7 @@ import { cookies, headers } from "next/headers";
 import { isDisposableEmail } from "./disposable-email";
 import { verifyTtCookie, TT_COOKIE } from "./turnstile";
 import { recordSignupEvent } from "./signup-audit";
+import { signupHardeningEnabled } from "./flags";
 
 /** Grant welcome credits once per user, but ONLY if eligible (verified, not
  *  banned). Idempotent on the user id. Safe to call repeatedly. */
@@ -89,7 +90,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (dbUser?.bannedAt) return false;
 
       // Extra gating only for Google. Credentials is already gated in authorize().
-      if (account?.provider === "google") {
+      // Skipped wholesale when the hardening kill-switch is off (banned check above
+      // and the emailVerified credit-grant gate still apply).
+      if (signupHardeningEnabled() && account?.provider === "google") {
         const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
         if (isDisposableEmail(email)) {

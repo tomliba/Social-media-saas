@@ -7,6 +7,7 @@ import { allow, ipFromRequest } from "@/lib/rate-limit";
 import { isDisposableEmail } from "@/lib/disposable-email";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { recordSignupEvent } from "@/lib/signup-audit";
+import { signupHardeningEnabled } from "@/lib/flags";
 
 const GENERIC = { ok: true, message: "If that email is available, we've sent a verification link." };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -25,12 +26,14 @@ export async function POST(req: Request) {
   if (!(await allow("signupIp", ip))) {
     return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
   }
-  if (!(await verifyTurnstile(body.turnstileToken, ip))) {
-    return NextResponse.json({ error: "We couldn't verify you're human. Please try again." }, { status: 403 });
-  }
-  if (isDisposableEmail(email)) {
-    await recordSignupEvent({ email, method: "password", ip, outcome: "denied_disposable", turnstilePassed: true, skipEnrich: true });
-    return NextResponse.json({ error: "Please use a non-disposable email address." }, { status: 400 });
+  if (signupHardeningEnabled()) {
+    if (!(await verifyTurnstile(body.turnstileToken, ip))) {
+      return NextResponse.json({ error: "We couldn't verify you're human. Please try again." }, { status: 403 });
+    }
+    if (isDisposableEmail(email)) {
+      await recordSignupEvent({ email, method: "password", ip, outcome: "denied_disposable", turnstilePassed: true, skipEnrich: true });
+      return NextResponse.json({ error: "Please use a non-disposable email address." }, { status: 400 });
+    }
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
