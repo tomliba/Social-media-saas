@@ -4,22 +4,33 @@ import { hashPassword } from "@/lib/password";
 import { createVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
 import { allow, ipFromRequest } from "@/lib/rate-limit";
+import { isDisposableEmail } from "@/lib/disposable-email";
+import { verifyTurnstile } from "@/lib/turnstile";
+import { recordSignupEvent } from "@/lib/signup-audit";
 
 const GENERIC = { ok: true, message: "If that email is available, we've sent a verification link." };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: Request) {
-  let body: { email?: string; password?: string };
+  let body: { email?: string; password?: string; turnstileToken?: string };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
 
   const email = String(body.email ?? "").toLowerCase().trim();
   const password = String(body.password ?? "");
+  const ip = ipFromRequest(req);
 
   if (!EMAIL_RE.test(email) || password.length < 10) {
     return NextResponse.json({ error: "Enter a valid email and a password of at least 10 characters." }, { status: 400 });
   }
-  if (!(await allow("signupIp", ipFromRequest(req)))) {
+  if (!(await allow("signupIp", ip))) {
     return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
+  }
+  if (!(await verifyTurnstile(body.turnstileToken, ip))) {
+    return NextResponse.json({ error: "We couldn't verify you're human. Please try again." }, { status: 403 });
+  }
+  if (isDisposableEmail(email)) {
+    await recordSignupEvent({ email, method: "password", ip, outcome: "denied_disposable", turnstilePassed: true, skipEnrich: true });
+    return NextResponse.json({ error: "Please use a non-disposable email address." }, { status: 400 });
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -31,5 +42,6 @@ export async function POST(req: Request) {
   await prisma.user.create({ data: { email, password: await hashPassword(password), emailVerified: null } });
   const token = await createVerificationToken(email);
   await sendVerificationEmail(email, token);
+  await recordSignupEvent({ email, method: "password", ip, outcome: "pending_verify", turnstilePassed: true });
   return NextResponse.json(GENERIC, { status: 200 });
 }
