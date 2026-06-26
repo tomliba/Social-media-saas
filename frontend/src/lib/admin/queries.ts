@@ -500,6 +500,66 @@ export async function lookupUser(email: string): Promise<UserLookupResult | null
   };
 }
 
+// ── WEEK-OVER-WEEK DELTAS (reconstructable from timestamps) ───────────────────
+// Period-over-period for metrics whose history can be rebuilt from row
+// timestamps: signups, credit spend, renders (count), and new-signup conversion.
+// Deliberately NOT computed for MRR or credit liability — those are point-in-time
+// state and cannot be reconstructed without historical snapshots.
+
+export interface WeekDelta {
+  current: number; // this 7d
+  prior: number; // the 7d before that
+  pctChange: number | null; // relative % change; null when prior is 0 and current > 0
+}
+
+export interface WeekOverWeek {
+  signups: WeekDelta;
+  spend: WeekDelta; // credits spent (abs)
+  renders: WeekDelta; // ContentItem rows created
+  // Cohort conversion: % of each week's NEW signups currently on a paid plan.
+  // (Reconstructable from createdAt + current plan; differs from the all-time
+  // paid/total headline conversion in Overview.)
+  conversion: WeekDelta; // values are percentages
+}
+
+function weekPctChange(current: number, prior: number): number | null {
+  if (prior === 0) return current === 0 ? 0 : null;
+  return ((current - prior) / prior) * 100;
+}
+
+export async function getWeekOverWeek(): Promise<WeekOverWeek> {
+  const d7 = daysAgo(7);
+  const d14 = daysAgo(14);
+
+  const [
+    signupsCur, signupsPrior,
+    paidCur, paidPrior,
+    spendCur, spendPrior,
+    rendersCur, rendersPrior,
+  ] = await Promise.all([
+    prisma.user.count({ where: { createdAt: { gte: d7 } } }),
+    prisma.user.count({ where: { createdAt: { gte: d14, lt: d7 } } }),
+    prisma.user.count({ where: { createdAt: { gte: d7 }, plan: { in: ["creator", "pro"] } } }),
+    prisma.user.count({ where: { createdAt: { gte: d14, lt: d7 }, plan: { in: ["creator", "pro"] } } }),
+    prisma.creditTransaction.aggregate({ _sum: { delta: true }, where: { delta: { lt: 0 }, createdAt: { gte: d7 } } }),
+    prisma.creditTransaction.aggregate({ _sum: { delta: true }, where: { delta: { lt: 0 }, createdAt: { gte: d14, lt: d7 } } }),
+    prisma.contentItem.count({ where: { createdAt: { gte: d7 } } }),
+    prisma.contentItem.count({ where: { createdAt: { gte: d14, lt: d7 } } }),
+  ]);
+
+  const spendCurAbs = Math.abs(spendCur._sum.delta ?? 0);
+  const spendPriorAbs = Math.abs(spendPrior._sum.delta ?? 0);
+  const convCur = signupsCur > 0 ? (paidCur / signupsCur) * 100 : 0;
+  const convPrior = signupsPrior > 0 ? (paidPrior / signupsPrior) * 100 : 0;
+
+  return {
+    signups: { current: signupsCur, prior: signupsPrior, pctChange: weekPctChange(signupsCur, signupsPrior) },
+    spend: { current: spendCurAbs, prior: spendPriorAbs, pctChange: weekPctChange(spendCurAbs, spendPriorAbs) },
+    renders: { current: rendersCur, prior: rendersPrior, pctChange: weekPctChange(rendersCur, rendersPrior) },
+    conversion: { current: convCur, prior: convPrior, pctChange: weekPctChange(convCur, convPrior) },
+  };
+}
+
 // ── CUSTOMERS TABLE ───────────────────────────────────────────────────────────
 
 export type CustomerSort =

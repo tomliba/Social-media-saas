@@ -1,25 +1,39 @@
 import {
   getOverview, getTodayCreditFlow, getRenderHealth, getFailedRenders,
   getCostByMode, getCreditLiability, getBillingHealth, getDisposableEmailUsers,
-  getDailySpend, lookupUser, getCustomers, type CustomerSort,
+  getDailySpend, lookupUser, getCustomers, getWeekOverWeek, type CustomerSort,
 } from "@/lib/admin/queries";
 import { adminGrantCredits, adminForceRefund, adminSetBan } from "./actions";
-import { Panel, Stat, Est, CoverageBadge, fmtUsd, fmtNum, fmtPct, fmtDate } from "./_components";
+import {
+  Panel, Stat, Est, CoverageBadge, Delta, toneAbove, toneBelow,
+  fmtUsd, fmtNum, fmtPct, fmtDate,
+} from "./_components";
 import CreditEstimator from "@/components/credits/CreditEstimator";
 
 // Reads session + DB on every request — always dynamic.
 export const dynamic = "force-dynamic";
 
+// ── Tunable thresholds (additive). Stat coloring + triage roll-up read these;
+// the existing inline thresholds inside the tables are intentionally left as-is.
+const ERROR_RATE_WARN = 10;      // render-health headline error rate: amber ≥ this
+const ERROR_RATE_CRIT = 20;      // ...red ≥ this (matches the per-mode table's 20%)
+const CONVERSION_TARGET = 5;     // free→paid %: green ≥ this
+const CONVERSION_WARN = 2;       // ...amber ≥ this; red below
+const WEBHOOK_ERROR_WARN = 1;    // errored/unhandled webhook counts: amber ≥ this
+const WEBHOOK_ERROR_CRIT = 5;    // ...red ≥ this
+const TRIAGE_MARGIN_FLOOR = 0;   // triage: a mode with margin below this is flagged
+const TRIAGE_MODE_ERROR_PCT = 20; // triage: a mode with error rate above this is flagged
+
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; sort?: string; dir?: string; real?: string }>;
+  searchParams: Promise<{ email?: string; sort?: string; dir?: string; real?: string; flash?: string }>;
 }) {
-  const { email, sort, dir, real } = await searchParams;
+  const { email, sort, dir, real, flash } = await searchParams;
   const realOnly = real === "1";
 
   const [
-    overview, today, health, failed, cost, liability, billing, disposable, daily, customers, lookup,
+    overview, today, health, failed, cost, liability, billing, disposable, daily, customers, wow, lookup,
   ] = await Promise.all([
     getOverview(),
     getTodayCreditFlow(),
@@ -31,10 +45,32 @@ export default async function AdminPage({
     getDisposableEmailUsers(),
     getDailySpend(),
     getCustomers({ sort, dir, realOnly }),
+    getWeekOverWeek(),
     email ? lookupUser(email) : Promise.resolve(null),
   ]);
 
   const maxDaily = Math.max(1, ...daily.map((d) => d.credits));
+
+  // ── TRIAGE roll-up — derived ENTIRELY from data already fetched above (no new
+  // queries). Each problem is one line with a count and a jump link to its panel.
+  const failedNotRefunded = failed.filter((f) => !f.refunded).length;
+  const negMarginModes = cost.rows.filter((r) => r.marginUsd < TRIAGE_MARGIN_FLOOR).length;
+  const highErrorModes = health.byMode.filter((m) => m.errorRatePct > TRIAGE_MODE_ERROR_PCT).length;
+  const erroredCount = billing.errored.length;
+  const unhandledCount = billing.unhandled.length;
+  const paidNoCreditsCount = billing.paidNoCredits.length;
+
+  const triage: { text: string; href: string }[] = [];
+  if (failedNotRefunded > 0)
+    triage.push({ text: `${fmtNum(failedNotRefunded)} failed render${failedNotRefunded === 1 ? "" : "s"} not yet refunded`, href: "#failed-renders" });
+  if (paidNoCreditsCount > 0)
+    triage.push({ text: `${fmtNum(paidNoCreditsCount)} paid but no credits granted`, href: "#billing-health" });
+  if (negMarginModes > 0)
+    triage.push({ text: `${fmtNum(negMarginModes)} mode${negMarginModes === 1 ? "" : "s"} running at negative margin`, href: "#cost-margin" });
+  if (highErrorModes > 0)
+    triage.push({ text: `${fmtNum(highErrorModes)} mode${highErrorModes === 1 ? "" : "s"} with error rate > ${TRIAGE_MODE_ERROR_PCT}%`, href: "#render-health" });
+  if (erroredCount > 0 || unhandledCount > 0)
+    triage.push({ text: `${fmtNum(erroredCount)} errored / ${fmtNum(unhandledCount)} unhandled webhook${erroredCount + unhandledCount === 1 ? "" : "s"}`, href: "#billing-health" });
 
   // Build a /admin query string from the current params plus overrides. Empty
   // values drop the param. Used for sortable headers, the realOnly toggle, and
@@ -66,6 +102,52 @@ export default async function AdminPage({
 
   return (
     <div className="space-y-6">
+      {/* ── FLASH (one-shot confirmation after an admin action) ── */}
+      {flash && (
+        <div
+          role="status"
+          className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800"
+        >
+          <span className="material-symbols-outlined text-emerald-600">check_circle</span>
+          {flash}
+        </div>
+      )}
+
+      {/* ── TRIAGE BANNER (roll-up of existing signals; links to each panel) ── */}
+      <section aria-label="Triage" className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
+          <span className={`material-symbols-outlined ${triage.length ? "text-red-600" : "text-emerald-600"}`}>
+            {triage.length ? "warning" : "check_circle"}
+          </span>
+          <h2 className="font-headline font-bold text-zinc-900">Triage</h2>
+        </div>
+        {triage.length === 0 ? (
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800">
+            <span className="material-symbols-outlined text-base text-emerald-600">check_circle</span>
+            All clear — no outstanding issues.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {triage.map((t, i) => (
+              <li key={i}>
+                <a
+                  href={t.href}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-800 transition-colors hover:bg-red-100"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base text-red-600">error</span>
+                    {t.text}
+                  </span>
+                  <span className="flex items-center gap-1 whitespace-nowrap text-xs font-bold text-red-600">
+                    Jump<span className="material-symbols-outlined text-sm">arrow_forward</span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {/* ── OVERVIEW ── */}
       <Panel title="Overview" icon="dashboard">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -75,11 +157,16 @@ export default async function AdminPage({
             value={`${overview.subsByTier.creator} / ${overview.subsByTier.pro}`}
             sub="creator / pro (active)"
           />
-          <Stat label="Signups" value={fmtNum(overview.signupsToday)} sub={`${overview.signups7d} in last 7d`} />
+          <Stat
+            label="Signups"
+            value={fmtNum(overview.signupsToday)}
+            sub={<>{fmtNum(overview.signups7d)} in last 7d · <Delta {...wow.signups} /></>}
+          />
           <Stat
             label="Free→paid conversion"
             value={fmtPct(overview.conversionPct)}
-            sub={`${fmtNum(overview.paidUsers)} / ${fmtNum(overview.totalUsers)} users`}
+            tone={toneBelow(overview.conversionPct, CONVERSION_WARN, CONVERSION_TARGET)}
+            sub={<>{fmtNum(overview.paidUsers)} / {fmtNum(overview.totalUsers)} users · new-signup conv. <Delta {...wow.conversion} /></>}
           />
         </div>
       </Panel>
@@ -188,16 +275,22 @@ export default async function AdminPage({
 
       {/* ── RENDER HEALTH ── */}
       <Panel
+        id="render-health"
         title="Render health"
         icon="monitoring"
-        note={<>Status comes from the DB (no queued-vs-running split). Error rate by mode is over the last {health.modeWindowDays} days; mode is derived from format/template/background.</>}
+        note={<>Renders (7d vs prior 7d): <Delta {...wow.renders} />. Status comes from the DB (no queued-vs-running split). Error rate by mode is over the last {health.modeWindowDays} days; mode is derived from format/template/background.</>}
       >
         <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
           <Stat label="Rendering" value={fmtNum(health.byStatus["rendering"] ?? 0)} />
           <Stat label="Ready" value={fmtNum(health.byStatus["ready"] ?? 0)} />
           <Stat label="Failed" value={fmtNum(health.byStatus["failed"] ?? 0)} />
           <Stat label="Avg render time" value={health.avgRenderTimeSec != null ? `${Math.round(health.avgRenderTimeSec)}s` : "—"} />
-          <Stat label="Error rate" value={fmtPct(health.errorRatePct)} sub={`${health.failed}/${health.terminalTotal} terminal`} />
+          <Stat
+            label="Error rate"
+            value={fmtPct(health.errorRatePct)}
+            tone={toneAbove(health.errorRatePct, ERROR_RATE_WARN, ERROR_RATE_CRIT)}
+            sub={`${health.failed}/${health.terminalTotal} terminal`}
+          />
         </div>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
@@ -229,7 +322,7 @@ export default async function AdminPage({
       </Panel>
 
       {/* ── FAILED RENDERS + REFUND ── */}
-      <Panel title="Failed renders" icon="error" note="Refund is idempotent — one refund per job; no-ops if nothing was charged.">
+      <Panel id="failed-renders" title="Failed renders" icon="error" note="Refund is idempotent — one refund per job; no-ops if nothing was charged.">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -254,6 +347,7 @@ export default async function AdminPage({
                     ) : (
                       <form action={adminForceRefund}>
                         <input type="hidden" name="userId" value={f.userId} />
+                        <input type="hidden" name="email" value={f.userEmail} />
                         <input type="hidden" name="jobId" value={f.jobId} />
                         <button className="rounded bg-primary px-3 py-1 text-xs font-bold text-white hover:bg-primary/90">
                           Refund credits
@@ -273,9 +367,10 @@ export default async function AdminPage({
 
       {/* ── COST / MARGIN (measured where available) ── */}
       <Panel
+        id="cost-margin"
         title="Cost / margin by mode"
         icon="payments"
-        note={<>Last {cost.windowDays} days. <b>Cost</b> uses the measured provider cost when the render has it (badge <span className="text-emerald-700 font-bold">measured</span>), otherwise the credit-rate estimate (<span className="text-amber-700 font-bold">est.</span>); mixed shows the ratio. <b>Revenue</b> is always estimated from credit value (Creator $0.040, Pro $0.0295). Overall: {cost.totals.rendersMeasured}/{cost.totals.renders} renders measured.</>}
+        note={<>Last {cost.windowDays} days. <b>Cost</b> uses the measured provider cost when the render has it (badge <span className="text-emerald-700 font-bold">measured</span>), otherwise the credit-rate estimate (<span className="text-amber-700 font-bold">est.</span>); mixed shows the ratio. <b>Revenue</b> is always estimated from credit value (Creator $0.040, Pro $0.0295). <b>Margin %</b> = margin ÷ est. revenue; <b>Margin / render</b> = margin ÷ renders. Overall: {cost.totals.rendersMeasured}/{cost.totals.renders} renders measured.</>}
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -287,23 +382,30 @@ export default async function AdminPage({
                 <th className="py-2 pr-4">Est. revenue</th>
                 <th className="py-2 pr-4">Cost</th>
                 <th className="py-2 pr-4">Margin</th>
+                <th className="py-2 pr-4">Margin %</th>
+                <th className="py-2 pr-4">Margin / render</th>
               </tr>
             </thead>
             <tbody>
-              {cost.rows.map((r) => (
-                <tr key={r.mode} className="border-b border-zinc-100">
-                  <td className="py-2 pr-4 font-mono">{r.mode}</td>
-                  <td className="py-2 pr-4">{fmtNum(r.renders)}</td>
-                  <td className="py-2 pr-4">{fmtNum(r.credits)}</td>
-                  <td className="py-2 pr-4">{fmtUsd(r.estRevenueUsd)}</td>
-                  <td className="py-2 pr-4 whitespace-nowrap">
-                    {fmtUsd(r.costUsd)}<CoverageBadge measured={r.rendersMeasured} total={r.renders} />
-                  </td>
-                  <td className={`py-2 pr-4 font-bold ${r.marginUsd < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                    {fmtUsd(r.marginUsd)}
-                  </td>
-                </tr>
-              ))}
+              {cost.rows.map((r) => {
+                const marginTone = r.marginUsd < 0 ? "text-red-600" : "text-emerald-700";
+                const marginPct = r.estRevenueUsd > 0 ? (r.marginUsd / r.estRevenueUsd) * 100 : null;
+                const marginPerRender = r.renders > 0 ? r.marginUsd / r.renders : null;
+                return (
+                  <tr key={r.mode} className="border-b border-zinc-100">
+                    <td className="py-2 pr-4 font-mono">{r.mode}</td>
+                    <td className="py-2 pr-4">{fmtNum(r.renders)}</td>
+                    <td className="py-2 pr-4">{fmtNum(r.credits)}</td>
+                    <td className="py-2 pr-4">{fmtUsd(r.estRevenueUsd)}</td>
+                    <td className="py-2 pr-4 whitespace-nowrap">
+                      {fmtUsd(r.costUsd)}<CoverageBadge measured={r.rendersMeasured} total={r.renders} />
+                    </td>
+                    <td className={`py-2 pr-4 font-bold ${marginTone}`}>{fmtUsd(r.marginUsd)}</td>
+                    <td className={`py-2 pr-4 font-bold ${marginTone}`}>{marginPct === null ? "—" : fmtPct(marginPct)}</td>
+                    <td className={`py-2 pr-4 font-bold ${marginTone}`}>{marginPerRender === null ? "—" : fmtUsd(marginPerRender)}</td>
+                  </tr>
+                );
+              })}
               {cost.rows.length > 0 && (
                 <tr className="font-bold">
                   <td className="py-2 pr-4">Total</td>
@@ -316,10 +418,16 @@ export default async function AdminPage({
                   <td className={`py-2 pr-4 ${cost.totals.marginUsd < 0 ? "text-red-600" : "text-emerald-700"}`}>
                     {fmtUsd(cost.totals.marginUsd)}
                   </td>
+                  <td className={`py-2 pr-4 ${cost.totals.marginUsd < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                    {cost.totals.estRevenueUsd > 0 ? fmtPct((cost.totals.marginUsd / cost.totals.estRevenueUsd) * 100) : "—"}
+                  </td>
+                  <td className={`py-2 pr-4 ${cost.totals.marginUsd < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                    {cost.totals.renders > 0 ? fmtUsd(cost.totals.marginUsd / cost.totals.renders) : "—"}
+                  </td>
                 </tr>
               )}
               {cost.rows.length === 0 && (
-                <tr><td colSpan={6} className="py-4 text-zinc-400">No render charges in window.</td></tr>
+                <tr><td colSpan={8} className="py-4 text-zinc-400">No render charges in window.</td></tr>
               )}
             </tbody>
           </table>
@@ -366,6 +474,7 @@ export default async function AdminPage({
             <div className="flex flex-wrap items-end gap-4 rounded-xl bg-zinc-50 p-4">
               <form action={adminGrantCredits} className="flex items-end gap-2">
                 <input type="hidden" name="userId" value={lookup.user.id} />
+                <input type="hidden" name="email" value={lookup.user.email} />
                 <label className="text-xs font-bold text-zinc-600">
                   Grant credits
                   <input name="amount" type="number" min="1" placeholder="100"
@@ -381,6 +490,7 @@ export default async function AdminPage({
 
               <form action={adminForceRefund} className="flex items-end gap-2">
                 <input type="hidden" name="userId" value={lookup.user.id} />
+                <input type="hidden" name="email" value={lookup.user.email} />
                 <label className="text-xs font-bold text-zinc-600">
                   Force-refund jobId
                   <input name="jobId" type="text" placeholder="run_..."
@@ -391,6 +501,7 @@ export default async function AdminPage({
 
               <form action={adminSetBan}>
                 <input type="hidden" name="userId" value={lookup.user.id} />
+                <input type="hidden" name="email" value={lookup.user.email} />
                 <input type="hidden" name="action" value={lookup.user.bannedAt ? "unban" : "ban"} />
                 <button className={`rounded-lg px-3 py-2 text-sm font-bold text-white ${lookup.user.bannedAt ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`}>
                   {lookup.user.bannedAt ? "Unban" : "Ban"}
@@ -440,14 +551,23 @@ export default async function AdminPage({
 
       {/* ── BILLING HEALTH ── */}
       <Panel
+        id="billing-health"
         title="Billing health (webhooks)"
         icon="receipt_long"
         note={`Only covers Lemon Squeezy events received after this deploy — ${fmtNum(billing.totalEvents)} logged so far. A "paid, no credits" row is a payment/order event with no linked credit grant (note: subscription order_created legitimately has no grant — credits land on payment_success).`}
       >
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 mb-4">
           <Stat label="Logged events" value={fmtNum(billing.totalEvents)} />
-          <Stat label="Errored" value={fmtNum(billing.errored.length)} />
-          <Stat label="Unhandled" value={fmtNum(billing.unhandled.length)} />
+          <Stat
+            label="Errored"
+            value={fmtNum(billing.errored.length)}
+            tone={toneAbove(billing.errored.length, WEBHOOK_ERROR_WARN, WEBHOOK_ERROR_CRIT)}
+          />
+          <Stat
+            label="Unhandled"
+            value={fmtNum(billing.unhandled.length)}
+            tone={toneAbove(billing.unhandled.length, WEBHOOK_ERROR_WARN, WEBHOOK_ERROR_CRIT)}
+          />
           <Stat label="Paid, no credits" value={fmtNum(billing.paidNoCredits.length)} />
         </div>
 
@@ -534,7 +654,7 @@ export default async function AdminPage({
       <Panel
         title="Daily spend — last 30 days"
         icon="bar_chart"
-        note={<>Report-only (no cap/alert enforcement). Dollar figures are estimated.<Est /></>}
+        note={<>Credit spend (7d vs prior 7d): <Delta {...wow.spend} invert />. Report-only (no cap/alert enforcement). Dollar figures are estimated.<Est /></>}
       >
         <div className="space-y-1">
           {daily.map((d) => (
