@@ -6,9 +6,24 @@ export function ipFromRequest(req: Request): string {
   return xff?.split(",")[0]?.trim() || "unknown";
 }
 
-// Fail-open when Upstash isn't configured (e.g. local dev) so logins still work.
 const enabled = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 const redis = enabled ? Redis.fromEnv() : null;
+
+// Loud, once, at module load: a misconfigured limiter in prod is a security hole.
+if (!enabled && process.env.NODE_ENV === "production") {
+  console.error(
+    "[rate-limit] Upstash is NOT configured in production. Rate-limited actions will FAIL CLOSED. " +
+    "Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN."
+  );
+}
+
+/**
+ * When no limiter exists (Upstash unset), should the action be allowed?
+ * Dev/test → allow (no Redis needed locally). Prod → deny (never silently off).
+ */
+export function failClosedWhenUnconfigured(nodeEnv: string | undefined): boolean {
+  return nodeEnv !== "production";
+}
 
 function make(tokens: number, window: Parameters<typeof Ratelimit.slidingWindow>[1], prefix: string) {
   if (!redis) return null;
@@ -21,17 +36,24 @@ const limiters = {
   resetEmail: make(3, "60 m", "rl:reset:email"),
   resetIp: make(10, "60 m", "rl:reset:ip"),
   signupIp: make(5, "60 m", "rl:signup:ip"),
+  signupOauthIp: make(5, "60 m", "rl:signup:oauth:ip"),
   resetSubmitIp: make(10, "60 m", "rl:resetsubmit:ip"),
 };
 
-/** Returns true if allowed. Fail-open on missing config or limiter errors. */
+/**
+ * Returns true if allowed.
+ * - No limiter (Upstash unset): allow in dev/test, DENY in prod (fail closed).
+ * - Runtime error talking to Redis: log loudly, allow (fail open) so an Upstash
+ *   outage cannot lock every user out.
+ */
 export async function allow(name: keyof typeof limiters, key: string): Promise<boolean> {
   const limiter = limiters[name];
-  if (!limiter) return true;
+  if (!limiter) return failClosedWhenUnconfigured(process.env.NODE_ENV);
   try {
     const { success } = await limiter.limit(key);
     return success;
-  } catch {
+  } catch (err) {
+    console.error(`[rate-limit] limiter "${name}" errored; failing open:`, err);
     return true;
   }
 }
