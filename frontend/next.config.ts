@@ -15,7 +15,7 @@ const CSP = [
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https://*.r2.dev https://*.pexels.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.r2.dev https://*.trigger.dev wss://*.trigger.dev https://api.trigger.dev wss://api.trigger.dev",
+  "connect-src 'self' https://*.r2.dev https://*.trigger.dev wss://*.trigger.dev https://api.trigger.dev wss://api.trigger.dev https://challenges.cloudflare.com",
   "worker-src 'self' blob: https://cdn.jsdelivr.net",
   "frame-ancestors 'self'",
   "frame-src 'self' https://challenges.cloudflare.com",
