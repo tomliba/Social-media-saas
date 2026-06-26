@@ -8,6 +8,10 @@ import { authenticateUser } from "./auth-credentials";
 import { allow, ipFromRequest } from "./rate-limit";
 import { roleForEmail } from "./admin";
 import { isGrantEligible } from "./grant-eligibility";
+import { cookies, headers } from "next/headers";
+import { isDisposableEmail } from "./disposable-email";
+import { verifyTtCookie, TT_COOKIE } from "./turnstile";
+import { recordSignupEvent } from "./signup-audit";
 
 /** Grant welcome credits once per user, but ONLY if eligible (verified, not
  *  banned). Idempotent on the user id. Safe to call repeatedly. */
@@ -73,16 +77,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     ...authConfig.callbacks,
-    // Block banned users from establishing a session (covers OAuth, and is a
-    // second guard for Credentials which already rejects in authorize()).
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       const email = user?.email?.toLowerCase();
       if (!email) return true;
+
+      // Banned users never get a session (covers all providers).
       const dbUser = await prisma.user.findUnique({
         where: { email },
-        select: { bannedAt: true },
+        select: { id: true, bannedAt: true },
       });
       if (dbUser?.bannedAt) return false;
+
+      // Extra gating only for Google. Credentials is already gated in authorize().
+      if (account?.provider === "google") {
+        const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+
+        if (isDisposableEmail(email)) {
+          await recordSignupEvent({ email, method: "google", ip, outcome: "denied_disposable", skipEnrich: true });
+          return false;
+        }
+
+        // Only NEW users must pass the captcha + rate gate; returning users glide through.
+        const isNew = !dbUser;
+        if (isNew) {
+          const cookie = (await cookies()).get(TT_COOKIE)?.value;
+          if (!verifyTtCookie(cookie)) {
+            await recordSignupEvent({ email, method: "google", ip, outcome: "denied_captcha", skipEnrich: true });
+            return false;
+          }
+          if (!(await allow("signupOauthIp", ip))) {
+            await recordSignupEvent({ email, method: "google", ip, outcome: "denied_ratelimit", skipEnrich: true });
+            return false;
+          }
+          // Passed the gate; the user row + credit grant happen in events.createUser.
+          await recordSignupEvent({ email, method: "google", ip, outcome: "created", turnstilePassed: true });
+        }
+      }
       return true;
     },
     async jwt({ token, user }) {
