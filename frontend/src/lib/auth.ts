@@ -7,10 +7,17 @@ import Credentials from "next-auth/providers/credentials";
 import { authenticateUser } from "./auth-credentials";
 import { allow, ipFromRequest } from "./rate-limit";
 import { roleForEmail } from "./admin";
+import { isGrantEligible } from "./grant-eligibility";
 
-/** Grant welcome credits exactly once per user (idempotent on the user id). */
-async function grantSignupCredits(userId: string) {
+/** Grant welcome credits once per user, but ONLY if eligible (verified, not
+ *  banned). Idempotent on the user id. Safe to call repeatedly. */
+async function maybeGrantSignupCredits(userId: string) {
   try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { emailVerified: true, bannedAt: true },
+    });
+    if (!user || !isGrantEligible(user)) return;
     await grantCredits({
       userId,
       amount: FREE_TIER_ALLOTMENT,
@@ -54,7 +61,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   events: {
     async createUser({ user }) {
-      if (user.id) await grantSignupCredits(user.id);
+      if (!user.id) return;
+      // Google verified the address; mark it so the gated grant fires and the
+      // password and OAuth paths share one verification model.
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
+      });
+      await maybeGrantSignupCredits(user.id);
     },
   },
   callbacks: {
@@ -78,7 +92,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           update: {},
           create: { id: user.id!, email: user.email!, name: user.name ?? "User" },
         });
-        await grantSignupCredits(user.id!);
+        await maybeGrantSignupCredits(user.id!);
         token.id = user.id;
         token.email = user.email; // ensure email is on the token for role resolution
       }
