@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
+import Turnstile from "@/components/auth/Turnstile";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -10,6 +11,15 @@ export default function SignupPage() {
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [tsToken, setTsToken] = useState<string | null>(null);
+  const onToken = useCallback((t: string) => {
+    setTsToken(t);
+    // Set the tt_ok cookie so the Google OAuth path is unlocked too.
+    fetch("/api/auth/turnstile", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: t }),
+    }).catch(() => {});
+  }, []);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -17,7 +27,7 @@ export default function SignupPage() {
     setSubmitting(true); setFormError(null);
     const res = await fetch("/api/auth/signup", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, turnstileToken: tsToken }),
     });
     setSubmitting(false);
     if (res.ok) setDone(true);
@@ -97,6 +107,8 @@ export default function SignupPage() {
               </button>
             </form>
           )}
+
+          <Turnstile onToken={onToken} />
 
           {/* What you get */}
           <div className="mt-8 space-y-3">

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import Turnstile from "@/components/auth/Turnstile";
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -15,6 +15,12 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const onToken = useCallback((t: string) => {
+    fetch("/api/auth/turnstile", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: t }),
+    }).catch(() => {});
+  }, []);
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -55,6 +61,8 @@ function LoginForm() {
             <div className="mb-6 p-4 bg-error/10 border border-error/20 rounded-lg text-error text-sm text-center">
               {error === "OAuthAccountNotLinked"
                 ? "This email is already registered with a password. Please sign in with your password below."
+                : error === "AccessDenied"
+                ? "We couldn't verify your sign-in. Please try again, and use a non-disposable email."
                 : "Something went wrong. Please try again."}
             </div>
           )}
@@ -97,6 +105,8 @@ function LoginForm() {
             </button>
             <Link href="/forgot-password" className="text-xs text-on-surface-variant hover:text-primary text-center">Forgot password?</Link>
           </form>
+
+          <Turnstile onToken={onToken} />
 
           <div className="mt-8 text-center">
             <p className="text-on-surface-variant text-sm">
