@@ -106,25 +106,31 @@ test.describe("new gating (must fire)", () => {
     }
   });
 
-  test("G4 credits granted only AFTER email verification, not before", async () => {
+  test("G4 credits granted only AFTER email verification, not before", async ({ page }) => {
     const email = uniq("gmail.com");
     created.push(email);
     const { status } = await signup(email);
     expect(status).toBe(200);
-    // Pre-verification: user exists, unverified, ZERO credits, no grant row.
+    // BEFORE verification: user exists, unverified, ZERO credits, no grant row.
     const before = await prisma.user.findUnique({ where: { email } });
     expect(before, "user row should exist after signup").not.toBeNull();
     expect(before!.emailVerified).toBeNull();
     expect(before!.creditBalance).toBe(0);
     expect(await signupGrantCount(email)).toBe(0);
 
-    // Simulate the verification + first login the way the app does: emailVerified
-    // is stamped by /verify, then the credit grant fires on first authenticated
-    // session (jwt callback → maybeGrantSignupCredits, gated on emailVerified).
-    // We assert the GATE: with emailVerified still null, the grant must not exist.
-    // (Driving the real /verify link requires the emailed token; the DB state here
-    // proves the pre-verification half of the gate deterministically.)
-    expect(await signupGrantCount(email)).toBe(0);
+    // Stamp emailVerified exactly as the /verify route does, then sign in through
+    // the real login UI. The grant fires in the jwt callback on first authenticated
+    // session (maybeGrantSignupCredits, gated on emailVerified).
+    await prisma.user.update({ where: { email }, data: { emailVerified: new Date() } });
+    await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
+    await page.getByPlaceholder(/you@example.com/i).fill(email);
+    await page.getByPlaceholder(/^password$/i).fill("abcdefghij10");
+    await page.getByRole("button", { name: /^sign in$/i }).click();
+    await page.waitForURL(/\/create/, { waitUntil: "commit", timeout: 30_000 });
+
+    // AFTER verification + login: exactly 30 credits, exactly one grant.
+    expect(await creditBalance(email)).toBe(30);
+    expect(await signupGrantCount(email)).toBe(1);
   });
 });
 
@@ -211,9 +217,13 @@ test.describe("regression (pre-existing behavior intact)", () => {
   test("R5 login page renders the Turnstile-gated Google button + password form (no CSP break)", async ({ page }) => {
     const cspErrors: string[] = [];
     page.on("console", (m) => { if (/content security policy/i.test(m.text())) cspErrors.push(m.text()); });
-    await page.goto(`${BASE_URL}/login`, { waitUntil: "networkidle" });
+    // NOT networkidle — the invisible Turnstile widget keeps a long-lived
+    // connection to Cloudflare, so the page never goes idle.
+    await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
     await expect(page.getByPlaceholder(/you@example.com/i)).toBeVisible();
+    // Give the Turnstile script time to load + execute; a CSP block would log here.
+    await page.waitForTimeout(4000);
     // The invisible Turnstile script must load with NO CSP violation (validates
     // the connect-src/script-src/frame-src allowances).
     expect(cspErrors, `CSP violations: ${cspErrors.join("; ")}`).toHaveLength(0);
@@ -222,7 +232,19 @@ test.describe("regression (pre-existing behavior intact)", () => {
   // R2 (email LOGIN succeeds) and R3 (Google login) drive full auth sessions.
   // R2 needs a user whose password hash matches a known plaintext — seed it with
   // the app's hashing in a fixture once live; R3 (Google) is the MANUAL human step.
-  test.skip("R2 email login works — TODO seed bcrypt hash via app's hashPassword once preview is live", async () => {});
+  test("R2 email login works (verified user reaches the dashboard)", async ({ page }) => {
+    const email = uniq("gmail.com");
+    created.push(email);
+    expect((await signup(email)).status).toBe(200);
+    await prisma.user.update({ where: { email }, data: { emailVerified: new Date() } });
+    await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
+    await page.getByPlaceholder(/you@example.com/i).fill(email);
+    await page.getByPlaceholder(/^password$/i).fill("abcdefghij10");
+    await page.getByRole("button", { name: /^sign in$/i }).click();
+    await page.waitForURL(/\/create/, { waitUntil: "commit", timeout: 30_000 });
+    expect(page.url()).toMatch(/\/create/); // authenticated session established
+  });
+
   test.skip("R3 Google login for an existing user — MANUAL (Google blocks automation)", async () => {});
 });
 
