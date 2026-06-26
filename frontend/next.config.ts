@@ -8,7 +8,7 @@ import type { NextConfig } from "next";
 const CSP = [
   "default-src 'self'",
   // jsdelivr hosts the pdf.js worker used by the file-upload template flow.
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://challenges.cloudflare.com",
   // All fonts (UI fonts + Material Symbols icons) are self-hosted via
   // next/font, so no remote Google Fonts origins are needed.
   "style-src 'self' 'unsafe-inline'",
@@ -18,7 +18,7 @@ const CSP = [
   "connect-src 'self' https://*.r2.dev https://*.trigger.dev wss://*.trigger.dev https://api.trigger.dev wss://api.trigger.dev",
   "worker-src 'self' blob: https://cdn.jsdelivr.net",
   "frame-ancestors 'self'",
-  "frame-src 'self'",
+  "frame-src 'self' https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
