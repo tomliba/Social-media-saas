@@ -103,6 +103,31 @@ export function Stat({
 }
 
 /**
+ * Compact headline metric for the always-visible KPI strip at the top of the
+ * dashboard. Smaller than Stat; optional threshold tone + a delta line.
+ */
+export function Kpi({
+  label, value, tone, delta, icon,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  tone?: StatTone;
+  delta?: ReactNode;
+  icon?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
+      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-zinc-500">
+        {icon && <span className="material-symbols-outlined text-sm text-zinc-400">{icon}</span>}
+        {label}
+      </div>
+      <div className={`mt-0.5 text-xl font-extrabold ${tone ? TONE_CLASS[tone] : "text-zinc-900"}`}>{value}</div>
+      {delta && <div className="mt-0.5 text-[11px] leading-tight">{delta}</div>}
+    </div>
+  );
+}
+
+/**
  * Period-over-period delta badge: "▲ +X% vs last week". The arrow always shows
  * the real direction; the COLOR shows good/bad. By default up = good (green),
  * down = bad (red). Pass `invert` for metrics where rising is bad (e.g. credit
