@@ -6,6 +6,7 @@ import ContentShowcase from "@/components/ContentShowcase";
 import FoundersSection from "@/components/FoundersSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import PricingSection from "@/components/PricingSection";
+import FAQSection from "@/components/FAQSection";
 import FinalCTA from "@/components/FinalCTA";
 import Footer from "@/components/Footer";
 
@@ -21,6 +22,7 @@ export default function Home() {
         <FoundersSection />
         <TestimonialsSection />
         <PricingSection />
+        <FAQSection />
         <FinalCTA />
       </main>
       <Footer />
