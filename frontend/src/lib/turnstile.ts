@@ -27,8 +27,10 @@ export function verifyTtCookie(value: string | undefined, now: number = Date.now
   const ts = value.slice(0, dot);
   const sig = value.slice(dot + 1);
   const expected = hmac(ts);
-  if (sig.length !== expected.length) return false;
-  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return false;
+  const sigBuf = Buffer.from(sig);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length) return false;
+  if (!crypto.timingSafeEqual(sigBuf, expBuf)) return false;
   const issued = Number(ts);
   if (!Number.isFinite(issued)) return false;
   return now - issued >= 0 && now - issued < TTL_MS;
