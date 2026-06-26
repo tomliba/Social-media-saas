@@ -230,3 +230,27 @@ model ContentItem {
   @@index([userId, status])
   @@index([userId, createdAt])
 }
+
+// Best-effort audit of signup attempts for abuse analysis. Not user-facing.
+// Retention: 90 days (see /api/cron/purge-signup-events). Stores IPs for fraud
+// prevention — add a privacy-policy line before relying on it long-term.
+model SignupEvent {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  userId          String?  // null when denied before user creation
+  email           String
+  emailDomain     String
+  method          String   // "google" | "password"
+  ip              String?
+  country         String?
+  asn             String?
+  asnOrg          String?
+  isDatacenter    Boolean?
+  isProxy         Boolean?
+  turnstilePassed Boolean  @default(false)
+  outcome         String   // created | pending_verify | denied_disposable | denied_captcha | denied_ratelimit
+
+  @@index([ip])
+  @@index([emailDomain])
+  @@index([createdAt])
+}
