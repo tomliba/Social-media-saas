@@ -5,6 +5,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
 import { chargePost, refundRender } from "@/app/actions/charge-render";
+import { postCost } from "@/lib/credits/config";
+import CostBadge from "@/components/credits/CostBadge";
 
 type Step = "input" | "processing" | "results";
 type CloneMode = "exact" | "fresh";
@@ -384,13 +386,16 @@ export default function PostClonerPage() {
             />
           </section>
 
-          <button
-            onClick={handleStart}
-            disabled={files.length === 0}
-            className="w-full py-4 rounded-xl bg-primary text-on-primary font-headline font-bold text-lg transition-all hover:shadow-lg hover:shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Clone Post
-          </button>
+          <div className="flex flex-col items-center gap-3">
+            <CostBadge credits={postCost("post_cloner")} />
+            <button
+              onClick={handleStart}
+              disabled={files.length === 0}
+              className="w-full py-4 rounded-xl bg-primary text-on-primary font-headline font-bold text-lg transition-all hover:shadow-lg hover:shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Clone Post
+            </button>
+          </div>
         </div>
       )}
 

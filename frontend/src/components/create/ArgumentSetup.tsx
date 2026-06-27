@@ -1024,7 +1024,8 @@ export default function ArgumentSetup({ prefs }: { prefs: UserPrefs | null }) {
           </section>
 
           {/* ── Generate button ── */}
-          <div className="fixed bottom-0 left-0 w-full md:left-64 md:w-[calc(100%-16rem)] bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex justify-center items-center z-40">
+          <div className="fixed bottom-0 left-0 w-full md:left-64 md:w-[calc(100%-16rem)] bg-white/90 backdrop-blur-md px-6 py-6 md:px-12 flex flex-col justify-center items-center gap-3 z-40">
+            <CostBadge credits={videoCost("argument", duration)} />
             <button
               onClick={handleGenerateScript}
               disabled={generating}
