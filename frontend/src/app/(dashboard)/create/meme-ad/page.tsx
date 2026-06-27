@@ -25,7 +25,7 @@ const memeTemplates: MemeTemplate[] = [
     icon: "thumb_down",
     description: "Reject old way, approve your product",
     panelCount: 2,
-    panelLayout: "Two horizontal panels stacked vertically, in the style of the classic Drake 'Drakeposting' reaction meme. The figure is the recognizable Drake meme character: a bearded Black man with short dark hair, wearing a cream-and-yellow puffer jacket. Top panel: he raises one hand toward the camera and turns his face away in disapproval, rejecting/refusing something. Bottom panel: the same man smiles and points approvingly toward the viewer.",
+    panelLayout: "Two horizontal panels stacked vertically. Top panel: person with hand up rejecting/refusing something, looking away disapprovingly. Bottom panel: same person pointing and smiling approvingly at something.",
   },
   {
     id: "expanding_brain",
