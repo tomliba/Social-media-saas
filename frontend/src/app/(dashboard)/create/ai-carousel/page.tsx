@@ -99,6 +99,15 @@ function AICarouselContent() {
   const [generatingIndex, setGeneratingIndex] = useState(0);
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
 
+  // ── Single source of truth for the slide count we QUOTE and CHARGE ──
+  // The badge, the planner clamp, and the chargePost call all read this, so the
+  // displayed cost and the deducted cost can never drift. Before the planner runs
+  // we quote the requested slideCount; once it returns, handlePlan clamps the
+  // result to slideCount (so plannedSlides.length is never larger), and we charge
+  // the actual length — fewer-than-requested undercharges, never overcharges.
+  const chargedSlides =
+    plannedSlides.length > 0 ? Math.min(slideCount, plannedSlides.length) : slideCount;
+
   // ── Derive the prompt prefix based on style ──
   const getPromptPrefix = useCallback(() => {
     if (isNotebook) return NOTEBOOK_PREFIX;
@@ -131,7 +140,11 @@ function AICarouselContent() {
       if (!data.slides || data.slides.length === 0) {
         throw new Error("No slides returned. Try a different topic");
       }
-      setPlannedSlides(data.slides);
+      // Clamp the planner output to the requested slideCount so we never plan —
+      // and therefore never charge — for more slides than the badge quoted. If the
+      // planner returns fewer, keep what it returned (never pad); the charge reads
+      // the actual length via chargedSlides so we never overcharge.
+      setPlannedSlides(data.slides.slice(0, slideCount));
       setStep("review-plan");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to plan carousel");
@@ -151,7 +164,7 @@ function AICarouselContent() {
     const charge = await chargePost({
       jobId: carouselJobId,
       format: carouselFormat,
-      slides: plannedSlides.length,
+      slides: chargedSlides,
     });
     if (!charge.ok) {
       if (charge.error === "insufficient_credits") setCreditError({ needed: charge.needed, balance: charge.balance });
@@ -218,7 +231,7 @@ function AICarouselContent() {
     }
 
     setStep("review-slides");
-  }, [plannedSlides, topic, tone, getPromptPrefix, carouselFormat]);
+  }, [plannedSlides, chargedSlides, topic, tone, getPromptPrefix, carouselFormat]);
 
   // ── Regenerate a single slide ──
   const handleRegenerateSlide = useCallback(async (index: number) => {
@@ -394,6 +407,15 @@ function AICarouselContent() {
             AI image carousels (each slide rendered by Nano Banana Pro) are available on Creator and Pro.
             On the Free plan you can make a free HTML-designed carousel instead.
           </p>
+          {/* Show the price even when the flow is plan-locked: the gate blocks the
+              Create action, not the cost display, so a Free user still sees what a
+              paid carousel would cost (priced at the default slide count). */}
+          <div className="mb-6">
+            <CostBadge
+              credits={postCost(carouselFormat, { slides: chargedSlides })}
+              suffix={`for ${chargedSlides} slides`}
+            />
+          </div>
           <div className="flex gap-3">
             <Link href="/pricing" className="px-5 py-2.5 rounded-full bg-primary text-on-primary font-bold text-sm shadow-md hover:bg-primary/90">
               Upgrade
@@ -515,10 +537,7 @@ function AICarouselContent() {
             </div>
             <div className="mt-3">
               <CostBadge
-                credits={postCost(
-                  isNotebook ? "carousel_notebook" : isHanddrawn ? "carousel_handdrawn" : "carousel_infographic",
-                  { slides: slideCount },
-                )}
+                credits={postCost(carouselFormat, { slides: chargedSlides })}
               />
             </div>
           </div>

@@ -19,9 +19,13 @@ const BASE_URL =
 const SECRET = process.env.AUTH_SECRET;
 const USER_ID = process.env.E2E_USER_ID || "";
 const USER_EMAIL = process.env.E2E_USER_EMAIL || "";
-// Auth.js v5 secure-cookie name (HTTPS). Override via E2E_COOKIE_NAME if needed.
+// Auth.js v5 cookie name/flags depend on transport: the secure `__Secure-` prefix
+// + Secure flag on HTTPS (prod), the plain name with no Secure flag on HTTP
+// (local dev). Override the name via E2E_COOKIE_NAME if needed.
+const IS_HTTPS = new URL(BASE_URL).protocol === "https:";
 const COOKIE_NAME =
-  process.env.E2E_COOKIE_NAME || "__Secure-authjs.session-token";
+  process.env.E2E_COOKIE_NAME ||
+  (IS_HTTPS ? "__Secure-authjs.session-token" : "authjs.session-token");
 const STORAGE_PATH = path.join("e2e", ".auth", "state.json");
 
 export default async function globalSetup() {
@@ -63,7 +67,7 @@ export default async function globalSetup() {
         domain: host,
         path: "/",
         httpOnly: true,
-        secure: true,
+        secure: IS_HTTPS,
         sameSite: "Lax" as const,
         expires: Math.floor(Date.now() / 1000) + maxAge,
       },
