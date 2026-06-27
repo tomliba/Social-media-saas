@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import Turnstile from "@/components/auth/Turnstile";
+import Turnstile, { type TurnstileHandle } from "@/components/auth/Turnstile";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -12,26 +12,42 @@ export default function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [tsToken, setTsToken] = useState<string | null>(null);
-  const onToken = useCallback((t: string) => {
-    setTsToken(t);
-    // Set the tt_ok cookie so the Google OAuth path is unlocked too.
-    fetch("/api/auth/turnstile", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: t }),
-    }).catch(() => {});
-  }, []);
+  const tsRef = useRef<TurnstileHandle>(null);
+  // Store the token only — do NOT spend it here. A Turnstile token is single-use,
+  // so it must be verified exactly once, by whichever path the user actually takes
+  // (password → /api/auth/signup, or Google → /api/auth/turnstile). Spending it
+  // eagerly here redeemed it before submit, so the signup re-verify always failed.
+  const onToken = useCallback((t: string) => setTsToken(t), []);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 10) { setFormError("Password must be at least 10 characters."); return; }
+    if (!tsToken) { setFormError("Verifying you're human — give it a second, then try again."); return; }
     setSubmitting(true); setFormError(null);
     const res = await fetch("/api/auth/signup", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, turnstileToken: tsToken }),
     });
     setSubmitting(false);
-    if (res.ok) setDone(true);
-    else setFormError("Enter a valid email and a password of at least 10 characters.");
+    if (res.ok) { setDone(true); return; }
+    // Surface the server's real reason (turnstile / rate limit / disposable /
+    // validation) instead of a one-size-fits-all message.
+    const data = await res.json().catch(() => ({} as { error?: string }));
+    setFormError(data.error ?? "Something went wrong. Please try again.");
+    // This attempt consumed the token; mint a fresh one for any retry.
+    setTsToken(null);
+    tsRef.current?.reset();
+  }
+
+  // Google needs the tt_ok cookie set before the OAuth redirect; spend the token
+  // here (the user chose Google, not the password form), then sign in.
+  async function handleGoogle() {
+    if (!tsToken) { setFormError("Verifying you're human — give it a second, then try again."); return; }
+    await fetch("/api/auth/turnstile", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: tsToken }),
+    }).catch(() => {});
+    signIn("google", { callbackUrl: "/create" });
   }
 
   return (
@@ -57,7 +73,7 @@ export default function SignupPage() {
 
           {/* Google Sign Up */}
           <button
-            onClick={() => signIn("google", { callbackUrl: "/create" })}
+            onClick={handleGoogle}
             className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface hover:border-primary/30 hover:shadow-md transition-all active:scale-[0.98]"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -108,7 +124,7 @@ export default function SignupPage() {
             </form>
           )}
 
-          <Turnstile onToken={onToken} />
+          <Turnstile ref={tsRef} onToken={onToken} />
 
           {/* What you get */}
           <div className="mt-8 space-y-3">

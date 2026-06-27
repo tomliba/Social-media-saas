@@ -11,7 +11,7 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,
-  retries: 1, // absorb dev-server compile/navigation jitter; real failures fail twice
+  retries: 1, // absorb dev-server navigation jitter; real failures fail twice
   reporter: [["list"]],
   use: {
     baseURL: process.env.BASE_URL,
