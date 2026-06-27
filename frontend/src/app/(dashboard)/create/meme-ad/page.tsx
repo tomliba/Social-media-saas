@@ -21,7 +21,7 @@ interface MemeTemplate {
 const memeTemplates: MemeTemplate[] = [
   {
     id: "drake",
-    name: "Drake",
+    name: "Reject / Approve",
     icon: "thumb_down",
     description: "Reject old way, approve your product",
     panelCount: 2,
@@ -270,7 +270,7 @@ function MemeAdContent() {
             Meme Ad
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            AI-generated meme ads: Drake, Expanding Brain, UNO Draw 25, and more
+            AI-generated meme ads: Reject / Approve, Expanding Brain, UNO Draw 25, and more
           </p>
         </div>
       </header>

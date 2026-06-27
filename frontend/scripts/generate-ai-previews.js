@@ -242,7 +242,7 @@ const previews = [
     dir: "ads",
     file: "meme-drake.png",
     prompt:
-      "Illustrated cartoon Drake meme. Top panel: Drake rejecting 'Spending 3 hours on one post'. Bottom panel: Drake approving 'AI makes 10 posts in 5 minutes'. Bold cartoon style, not photorealistic. 1:1 square.",
+      "Illustrated cartoon meme in a two-panel reject/approve format. Two horizontal panels stacked vertically. Top panel: person with hand up rejecting/refusing something, looking away disapprovingly, with text 'Spending 3 hours on one post'. Bottom panel: same person pointing and smiling approvingly at something, with text 'AI makes 10 posts in 5 minutes'. Bold cartoon/illustrated style, not photorealistic, bold outlines and flat colors, white bold text with black outline. 1:1 square.",
   },
   {
     id: "expanding_brain",

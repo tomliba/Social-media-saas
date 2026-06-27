@@ -403,7 +403,7 @@ export default function ImageTemplatesSection({ niche, tone }: { niche: string; 
         <p className="text-sm font-semibold text-on-surface-variant mb-2">Meme Ads</p>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
           {[
-            { id: "drake", name: "Drake", description: "Reject old way, approve your product" },
+            { id: "drake", name: "Reject / Approve", description: "Reject old way, approve your product" },
             { id: "expanding_brain", name: "Expanding Brain", description: "Escalating levels, your product = evolved choice" },
             { id: "uno_draw_25", name: "UNO Draw 25", description: "Rather suffer than try the obvious solution" },
             { id: "distracted_boyfriend", name: "Distracted Boyfriend", description: "Attention pulled from status quo to your product" },
