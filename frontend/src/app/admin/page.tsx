@@ -1,8 +1,9 @@
 import {
   getOverview, getTodayCreditFlow, getRenderHealth, getFailedRenders,
   getCostByMode, getCreditLiability, getBillingHealth, getDisposableEmailUsers,
-  getDailySpend, lookupUser, getCustomers, getWeekOverWeek, type CustomerSort,
+  getDailySpend, lookupUser, getCustomers, getWeekOverWeek, getSignupAbuse, type CustomerSort,
 } from "@/lib/admin/queries";
+import { countryName } from "@/lib/countries";
 import { adminGrantCredits, adminForceRefund, adminSetBan } from "./actions";
 import {
   Panel, Stat, Kpi, Est, CoverageBadge, Delta, toneAbove, toneBelow,
@@ -25,6 +26,18 @@ const WEBHOOK_ERROR_CRIT = 5;    // ...red ≥ this
 const TRIAGE_MARGIN_FLOOR = 0;   // triage: a mode with margin below this is flagged
 const TRIAGE_MODE_ERROR_PCT = 20; // triage: a mode with error rate above this is flagged
 
+// Friendly labels for SignupEvent.outcome values (unknown ones fall through
+// to the raw string). Denials are any outcome prefixed "denied_".
+const SIGNUP_OUTCOME_LABELS: Record<string, string> = {
+  created: "Allowed — created",
+  pending_verify: "Allowed — pending verify",
+  denied_disposable: "Denied — disposable email",
+  denied_captcha: "Denied — no/invalid token",
+  denied_ratelimit: "Denied — rate limited",
+};
+const signupOutcomeLabel = (o: string) => SIGNUP_OUTCOME_LABELS[o] ?? o;
+const isSignupDenial = (o: string) => o.startsWith("denied_");
+
 const TAB_IDS = ["overview", "money", "operations", "users", "integrity"] as const;
 
 export default async function AdminPage({
@@ -36,7 +49,7 @@ export default async function AdminPage({
   const realOnly = real === "1";
 
   const [
-    overview, today, health, failed, cost, liability, billing, disposable, daily, customers, wow, lookup,
+    overview, today, health, failed, cost, liability, billing, disposable, daily, customers, wow, abuse, lookup,
   ] = await Promise.all([
     getOverview(),
     getTodayCreditFlow(),
@@ -49,6 +62,7 @@ export default async function AdminPage({
     getDailySpend(),
     getCustomers({ sort, dir, realOnly }),
     getWeekOverWeek(),
+    getSignupAbuse(),
     email ? lookupUser(email) : Promise.resolve(null),
   ]);
 
@@ -421,6 +435,8 @@ export default async function AdminPage({
                   </th>
                 );
               })}
+              <th className="py-2 pr-4">Username</th>
+              <th className="py-2 pr-4">Country</th>
             </tr>
           </thead>
           <tbody>
@@ -448,10 +464,12 @@ export default async function AdminPage({
                   {r.isPaid && r.currentPeriodEnd ? new Date(r.currentPeriodEnd).toLocaleDateString("en-US") : "—"}
                 </td>
                 <td className="py-2 pr-4 tabular-nums">{r.isPaid ? fmtUsd(r.planPrice) : "—"}</td>
+                <td className="py-2 pr-4">{r.username ?? "—"}</td>
+                <td className="py-2 pr-4 whitespace-nowrap">{r.country ? countryName(r.country) : "—"}</td>
               </tr>
             ))}
             {customers.rows.length === 0 && (
-              <tr><td colSpan={9} className="py-4 text-zinc-400">No customers match this view.</td></tr>
+              <tr><td colSpan={11} className="py-4 text-zinc-400">No customers match this view.</td></tr>
             )}
           </tbody>
         </table>
@@ -486,6 +504,8 @@ export default async function AdminPage({
               <Stat label="Joined" value={new Date(lookup.user.createdAt).toLocaleDateString("en-US")} />
               <Stat label="Status" value={lookup.user.bannedAt ? "BANNED" : "Active"} />
               <Stat label="Name" value={lookup.user.name ?? "—"} />
+              <Stat label="Username" value={lookup.user.username ?? "—"} />
+              <Stat label="Country" value={lookup.user.country ? countryName(lookup.user.country) : "—"} />
             </div>
 
             {/* Actions */}
@@ -672,6 +692,127 @@ export default async function AdminPage({
     </Panel>
   );
 
+  const signupAbusePanel = (
+    <Panel
+      id="signup-abuse"
+      title="Signup abuse — last 7 days"
+      icon="shield_person"
+      note="From the SignupEvent audit log. Denial = any outcome prefixed “denied_”. Emails are shown as domain only; IPs are captured for fraud analysis. Retention 90 days."
+    >
+      {abuse.isSpike && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          <span className="material-symbols-outlined text-red-600">warning</span>
+          Denial spike: {fmtNum(abuse.todayDenials)} denials today vs a {abuse.priorDailyAvgDenials.toFixed(1)}/day prior-7d average.
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 mb-4">
+        <Stat
+          label="Denials today"
+          value={fmtNum(abuse.todayDenials)}
+          tone={abuse.isSpike ? "bad" : "good"}
+          sub={`prior 7d avg ${abuse.priorDailyAvgDenials.toFixed(1)}/day`}
+        />
+        <Stat
+          label="Attempts (7d)"
+          value={fmtNum(abuse.byReason.reduce((s, r) => s + r.count, 0))}
+        />
+        <Stat
+          label="Denials (7d)"
+          value={fmtNum(abuse.byReason.filter((r) => isSignupDenial(r.outcome)).reduce((s, r) => s + r.count, 0))}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Denials / outcomes by reason */}
+        <div>
+          <h3 className="mb-2 text-xs font-bold uppercase text-zinc-500">By reason (7d)</h3>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-200 text-left text-xs uppercase text-zinc-500">
+                <th className="py-2 pr-4">Outcome</th>
+                <th className="py-2 pr-4">Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {abuse.byReason.map((r) => (
+                <tr key={r.outcome} className="border-b border-zinc-100">
+                  <td className={`py-2 pr-4 ${isSignupDenial(r.outcome) ? "font-bold text-red-600" : "text-zinc-700"}`}>
+                    {signupOutcomeLabel(r.outcome)}
+                  </td>
+                  <td className="py-2 pr-4 tabular-nums">{fmtNum(r.count)}</td>
+                </tr>
+              ))}
+              {abuse.byReason.length === 0 && (
+                <tr><td colSpan={2} className="py-4 text-zinc-400">No signup events in window.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Top offending IPs */}
+        <div>
+          <h3 className="mb-2 text-xs font-bold uppercase text-zinc-500">Top IPs (7d, by attempts)</h3>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-200 text-left text-xs uppercase text-zinc-500">
+                <th className="py-2 pr-4">IP</th>
+                <th className="py-2 pr-4">Attempts</th>
+                <th className="py-2 pr-4">Denied</th>
+              </tr>
+            </thead>
+            <tbody>
+              {abuse.topIps.map((r) => (
+                <tr key={r.ip} className="border-b border-zinc-100">
+                  <td className="py-2 pr-4 font-mono text-xs">{r.ip}</td>
+                  <td className="py-2 pr-4 tabular-nums">{fmtNum(r.attempts)}</td>
+                  <td className={`py-2 pr-4 tabular-nums ${r.denied > 0 ? "font-bold text-red-600" : "text-zinc-500"}`}>
+                    {fmtNum(r.denied)}
+                  </td>
+                </tr>
+              ))}
+              {abuse.topIps.length === 0 && (
+                <tr><td colSpan={3} className="py-4 text-zinc-400">No IPs captured in window.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Recent attempts */}
+      <h3 className="mt-6 mb-2 text-xs font-bold uppercase text-zinc-500">Recent attempts (last 25)</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-zinc-200 text-left text-xs uppercase text-zinc-500">
+              <th className="py-2 pr-4">When</th>
+              <th className="py-2 pr-4">Email domain</th>
+              <th className="py-2 pr-4">Method</th>
+              <th className="py-2 pr-4">Outcome</th>
+              <th className="py-2 pr-4">IP</th>
+            </tr>
+          </thead>
+          <tbody>
+            {abuse.recent.map((r) => (
+              <tr key={r.id} className="border-b border-zinc-100">
+                <td className="py-2 pr-4 whitespace-nowrap text-zinc-500">{fmtDate(r.createdAt)}</td>
+                <td className="py-2 pr-4">{r.emailDomain}</td>
+                <td className="py-2 pr-4">{r.method}</td>
+                <td className={`py-2 pr-4 ${isSignupDenial(r.outcome) ? "font-bold text-red-600" : "text-zinc-700"}`}>
+                  {signupOutcomeLabel(r.outcome)}
+                </td>
+                <td className="py-2 pr-4 font-mono text-xs">{r.ip ?? "—"}</td>
+              </tr>
+            ))}
+            {abuse.recent.length === 0 && (
+              <tr><td colSpan={5} className="py-4 text-zinc-400">No signup attempts logged yet.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+  );
+
   // ── Compose tabs ──
   const tabs: AdminTabDef[] = [
     { id: "overview", label: "Overview", icon: "dashboard", content: <>{overviewPanel}{todayPanel}</> },
@@ -687,8 +828,8 @@ export default async function AdminPage({
     { id: "users", label: "Users", icon: "group", content: <>{customersPanel}{lookupPanel}</> },
     {
       id: "integrity", label: "Integrity", icon: "receipt_long",
-      badge: paidNoCreditsCount + erroredCount + unhandledCount,
-      content: <>{billingPanel}{abusePanel}</>,
+      badge: paidNoCreditsCount + erroredCount + unhandledCount + (abuse.isSpike ? 1 : 0),
+      content: <>{billingPanel}{signupAbusePanel}{abusePanel}</>,
     },
   ];
 

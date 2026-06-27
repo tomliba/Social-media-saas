@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCreditBalance } from "@/lib/credits";
 import CreditPacks from "@/components/credits/CreditPacks";
+import ProfileCard from "@/components/account/ProfileCard";
 
 // Always render fresh — plan/status/balance change out of band (webhooks, renders).
 export const dynamic = "force-dynamic";
@@ -54,6 +55,8 @@ export default async function AccountsPage() {
       select: {
         email: true,
         name: true,
+        username: true,
+        country: true,
         plan: true,
         subscriptionStatus: true,
         currentPeriodEnd: true,
@@ -175,6 +178,13 @@ export default async function AccountsPage() {
 
           <CreditPacks />
         </section>
+
+        {/* ── Profile card (editable: username, country; email read-only) ── */}
+        <ProfileCard
+          email={user?.email ?? ""}
+          initialUsername={user?.username ?? ""}
+          initialCountry={user?.country ?? ""}
+        />
       </div>
     </div>
   );

@@ -56,6 +56,10 @@ model User {
   image         String?
   password      String?   // bcrypt hash; null for Google-only accounts
 
+  // User-editable profile fields (set on the /accounts page).
+  username      String?   // optional display handle; not unique by product choice
+  country       String?   // ISO 3166-1 alpha-2 code (e.g. "US"); null = unset
+
   // Plan & billing
   plan          String    @default("free") // free, creator, pro
   lemonSqueezyCustomerId String?

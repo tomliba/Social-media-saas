@@ -417,6 +417,83 @@ export async function getDisposableEmailUsers(): Promise<DisposableUser[]> {
   });
 }
 
+// ── SIGNUP ABUSE (from SignupEvent) ──────────────────────────────────────────
+// Denials-by-reason, a spike flag (today vs prior 7-day daily average), the last
+// 25 attempts (domain only — never the full email), and the top offending IPs.
+// All read-only; no schema change. "Denial" = any outcome prefixed "denied_".
+
+export interface SignupAbuse {
+  windowDays: number;
+  byReason: { outcome: string; count: number }[]; // last 7d, every outcome
+  todayDenials: number;
+  priorDailyAvgDenials: number; // mean denials/day over the 7 days before today
+  isSpike: boolean;             // today's denials meaningfully above normal
+  recent: {
+    id: string; createdAt: Date; emailDomain: string;
+    method: string; outcome: string; ip: string | null;
+  }[];
+  topIps: { ip: string; attempts: number; denied: number }[];
+}
+
+export async function getSignupAbuse(): Promise<SignupAbuse> {
+  const windowDays = 7;
+  const since = daysAgo(windowDays);
+  const today = startOfTodayUTC();
+  const priorStart = new Date(today.getTime() - windowDays * 86400000);
+
+  const [byReasonGroups, recent, ipGroups, deniedIpGroups, todayDenials, priorDenials] =
+    await Promise.all([
+      prisma.signupEvent.groupBy({
+        by: ["outcome"],
+        where: { createdAt: { gte: since } },
+        _count: { _all: true },
+      }),
+      prisma.signupEvent.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 25,
+        select: { id: true, createdAt: true, emailDomain: true, method: true, outcome: true, ip: true },
+      }),
+      // Top IPs by total attempts (ip is indexed); ordered count groupBy.
+      prisma.signupEvent.groupBy({
+        by: ["ip"],
+        where: { createdAt: { gte: since }, ip: { not: null } },
+        _count: { ip: true },
+        orderBy: { _count: { ip: "desc" } },
+        take: 10,
+      }),
+      // Denied-only counts per IP (any IP) — merged onto the top list below.
+      prisma.signupEvent.groupBy({
+        by: ["ip"],
+        where: { createdAt: { gte: since }, ip: { not: null }, outcome: { startsWith: "denied_" } },
+        _count: { _all: true },
+      }),
+      prisma.signupEvent.count({
+        where: { createdAt: { gte: today }, outcome: { startsWith: "denied_" } },
+      }),
+      prisma.signupEvent.count({
+        where: { createdAt: { gte: priorStart, lt: today }, outcome: { startsWith: "denied_" } },
+      }),
+    ]);
+
+  const byReason = byReasonGroups
+    .map((g) => ({ outcome: g.outcome, count: g._count._all }))
+    .sort((a, b) => b.count - a.count);
+
+  const deniedByIp = new Map(deniedIpGroups.map((g) => [g.ip as string, g._count._all]));
+  const topIps = ipGroups.map((g) => ({
+    ip: g.ip as string,
+    attempts: g._count.ip,
+    denied: deniedByIp.get(g.ip as string) ?? 0,
+  }));
+
+  const priorDailyAvgDenials = priorDenials / windowDays;
+  // "Meaningfully above normal": at least 5 denials today AND >1.5× the prior
+  // daily average (so a 0-baseline day flags only once it clears the floor).
+  const isSpike = todayDenials >= 5 && todayDenials > priorDailyAvgDenials * 1.5;
+
+  return { windowDays, byReason, todayDenials, priorDailyAvgDenials, isSpike, recent, topIps };
+}
+
 // ── DAILY SPEND (report-only, 30d) ───────────────────────────────────────────
 
 export interface DailySpend {
@@ -453,6 +530,8 @@ export interface UserLookupResult {
     id: string;
     email: string;
     name: string | null;
+    username: string | null;
+    country: string | null;
     plan: string;
     subscriptionStatus: string | null;
     creditBalance: number;
@@ -470,8 +549,8 @@ export async function lookupUser(email: string): Promise<UserLookupResult | null
   const user = await prisma.user.findUnique({
     where: { email: normalized },
     select: {
-      id: true, email: true, name: true, plan: true, subscriptionStatus: true,
-      creditBalance: true, bannedAt: true, createdAt: true,
+      id: true, email: true, name: true, username: true, country: true, plan: true,
+      subscriptionStatus: true, creditBalance: true, bannedAt: true, createdAt: true,
     },
   });
   if (!user) return null;
@@ -571,6 +650,8 @@ const CUSTOMER_SORTS: CustomerSort[] =
 export interface CustomerRow {
   id: string;
   name: string | null;
+  username: string | null;
+  country: string | null;    // ISO alpha-2, or null
   email: string;
   displayName: string;       // name, else email prefix
   plan: PlanName;
@@ -625,8 +706,8 @@ export async function getCustomers(opts: {
   const [users, usedAgg, renderAgg] = await Promise.all([
     prisma.user.findMany({
       select: {
-        id: true, name: true, email: true, plan: true, subscriptionStatus: true,
-        creditBalance: true, createdAt: true, currentPeriodEnd: true,
+        id: true, name: true, username: true, country: true, email: true, plan: true,
+        subscriptionStatus: true, creditBalance: true, createdAt: true, currentPeriodEnd: true,
       },
     }),
     prisma.creditTransaction.groupBy({
@@ -646,6 +727,8 @@ export async function getCustomers(opts: {
     return {
       id: u.id,
       name: u.name,
+      username: u.username,
+      country: u.country,
       email: u.email,
       displayName: u.name?.trim() || u.email.split("@")[0],
       plan,
