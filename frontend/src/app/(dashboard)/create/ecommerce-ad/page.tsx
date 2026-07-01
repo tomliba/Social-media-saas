@@ -5,6 +5,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import CostBadge from "@/components/credits/CostBadge";
+import { postCost } from "@/lib/credits/config";
 import { chargePost, refundRender } from "@/app/actions/charge-render";
 import { GeneratingOverlay } from "@/components/ui/GeneratingOverlay";
 
@@ -588,6 +590,7 @@ ${VISUAL_STYLE}${photo ? "\n\nThe product looks like the attached reference imag
               className="px-6 py-3 rounded-full font-bold font-headline text-on-surface-variant hover:text-on-surface transition-all">
               Back
             </button>
+            <CostBadge credits={postCost("ecommerce_ad") * Math.max(1, selectedStyles.size)} />
           </div>
 
           {selectedStyles.size > 0 && (

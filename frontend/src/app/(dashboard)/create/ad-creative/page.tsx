@@ -5,6 +5,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import InsufficientCreditsDialog from "@/components/credits/InsufficientCreditsDialog";
+import CostBadge from "@/components/credits/CostBadge";
+import { postCost } from "@/lib/credits/config";
 import { chargePost, refundRender } from "@/app/actions/charge-render";
 
 // ── Visual concepts ──
@@ -330,6 +332,7 @@ function AdCreativeContent() {
             >
               Back
             </button>
+            <CostBadge credits={postCost("ad_creative")} />
           </div>
         </section>
       )}
