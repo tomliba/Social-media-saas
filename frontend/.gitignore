@@ -24,8 +24,13 @@ tests/
 
 # E2E secrets and artifacts (NEVER commit these)
 .env.test
+.env.overnight
 .env.*.local
 e2e/.auth/
 playwright-report-e2e/
 playwright-report/
 test-results/
+
+# Overnight QA harness artifacts/secrets
+qa-overnight/.auth/
+playwright_run/overnight/
