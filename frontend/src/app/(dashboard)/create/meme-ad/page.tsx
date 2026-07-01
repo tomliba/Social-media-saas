@@ -346,23 +346,26 @@ function MemeAdContent() {
             />
           </div>
 
-          <button
-            onClick={handleContinueToTemplate}
-            disabled={!productName.trim() || submitting}
-            className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <Spinner size="sm" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                {selectedTemplate ? "Generate" : "Pick a meme template"}
-                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleContinueToTemplate}
+              disabled={!productName.trim() || submitting}
+              className="px-8 py-3 primary-gradient text-on-primary rounded-full font-bold font-headline shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {submitting ? (
+                <>
+                  <Spinner size="sm" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  {selectedTemplate ? "Generate" : "Pick a meme template"}
+                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </>
+              )}
+            </button>
+            <CostBadge credits={postCost("meme_ad")} />
+          </div>
         </section>
       )}
 
